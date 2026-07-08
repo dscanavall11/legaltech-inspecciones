@@ -3,9 +3,12 @@ import {
   querellasMock,
   querellasDetalleMock,
   audienciasMock,
+  quejasMock,
+  quejasDetalleMock,
   RESPUESTA_IA_DEMO,
 } from './data';
 import type { Querella } from '@/features/querellas/types';
+import type { Queja } from '@/features/quejas/types';
 
 const API = import.meta.env.VITE_API_BASE_URL ?? '/api';
 
@@ -67,6 +70,54 @@ export const handlers = [
         { message: 'Querella no encontrada' },
         { status: 404 },
       );
+    }
+    return HttpResponse.json(detalle);
+  }),
+
+  // ── Quejas ──────────────────────────────────────────────────────────────
+
+  http.get(`${API}/quejas`, async () => {
+    await delay(400);
+    return HttpResponse.json(quejasMock);
+  }),
+
+  http.post(`${API}/quejas`, async ({ request }) => {
+    await delay(500);
+    const body = (await request.json()) as Partial<Queja>;
+    const consecutivo = 60 + quejasMock.length;
+    const nueva: Queja = {
+      id: `qj-${crypto.randomUUID().slice(0, 8)}`,
+      radicado: `2026-QJ-${String(consecutivo).padStart(3, '0')}`,
+      quejoso: body.quejoso ?? '',
+      acusado: body.acusado ?? '',
+      asunto: body.asunto ?? '',
+      categoria: body.categoria ?? 'otro',
+      estado: 'radicada',
+      fechaRadicacion: new Date().toISOString().slice(0, 10),
+      diasTermino: body.diasTermino ?? 10,
+    };
+    quejasMock.unshift(nueva);
+    quejasDetalleMock[nueva.id] = {
+      ...nueva,
+      descripcionHechos: (body as { descripcionHechos?: string }).descripcionHechos ?? '',
+      actuaciones: [
+        {
+          id: `${nueva.id}-a1`,
+          fecha: nueva.fechaRadicacion,
+          tipo: 'radicacion',
+          titulo: 'Radicación de la queja',
+          descripcion: `Se recibe queja presentada por ${nueva.quejoso} contra ${nueva.acusado}.`,
+        },
+      ],
+    };
+    return HttpResponse.json(nueva, { status: 201 });
+  }),
+
+  http.get(`${API}/quejas/:id`, async ({ params }) => {
+    await delay(300);
+    const detalle = quejasDetalleMock[params.id as string];
+    if (!detalle) {
+      return HttpResponse.json({ message: 'Queja no encontrada' }, { status: 404 });
     }
     return HttpResponse.json(detalle);
   }),

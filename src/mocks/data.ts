@@ -4,6 +4,11 @@ import type {
   Querella,
   QuerellaDetalle,
 } from '@/features/querellas/types';
+import type {
+  ActuacionQueja,
+  Queja,
+  QuejaDetalle,
+} from '@/features/quejas/types';
 
 // Fechas relativas a hoy para que los términos se vean realistas en la demo.
 const hoy = dayjs();
@@ -215,6 +220,159 @@ export const audienciasMock: AudienciaMock[] = [
     querellado: 'Inversiones La Estrella S.A.S.',
   },
 ];
+
+// ────────────────────────────────────────────────
+// Quejas
+// ────────────────────────────────────────────────
+
+export const quejasMock: Queja[] = [
+  {
+    id: 'qj-001',
+    radicado: '2026-QJ-041',
+    quejoso: 'Liliana Pérez Ávila',
+    acusado: 'Rodrigo Suárez Montoya',
+    asunto: 'Ruido excesivo en horas nocturnas',
+    categoria: 'ruido',
+    estado: 'conciliacion_programada',
+    fechaRadicacion: hoy.subtract(5, 'day').format('YYYY-MM-DD'),
+    diasTermino: 10,
+  },
+  {
+    id: 'qj-002',
+    radicado: '2026-QJ-038',
+    quejoso: 'Consorcio Torres del Norte',
+    acusado: 'Yeny Carolina Díaz',
+    asunto: 'Tenencia irresponsable de caninos sin correa en zonas comunes',
+    categoria: 'mascotas',
+    estado: 'conciliada',
+    fechaRadicacion: hoy.subtract(15, 'day').format('YYYY-MM-DD'),
+    diasTermino: 10,
+  },
+  {
+    id: 'qj-003',
+    radicado: '2026-QJ-035',
+    quejoso: 'Jairo Enrique Castro',
+    acusado: 'Constructora Urigo S.A.S.',
+    asunto: 'Disposición de escombros en vía pública',
+    categoria: 'construccion',
+    estado: 'sin_acuerdo',
+    fechaRadicacion: hoy.subtract(20, 'day').format('YYYY-MM-DD'),
+    diasTermino: 10,
+  },
+  {
+    id: 'qj-004',
+    radicado: '2026-QJ-029',
+    quejoso: 'Sofía Hernández Arango',
+    acusado: 'Vendedor ambulante no identificado',
+    asunto: 'Ocupación permanente del andén frente a vivienda',
+    categoria: 'espacio_publico',
+    estado: 'radicada',
+    fechaRadicacion: hoy.subtract(1, 'day').format('YYYY-MM-DD'),
+    diasTermino: 10,
+  },
+  {
+    id: 'qj-005',
+    radicado: '2026-QJ-018',
+    quejoso: 'Administración P.H. El Nogal',
+    acusado: 'Gustavo Adolfo Ríos',
+    asunto: 'Inadecuado manejo de residuos sólidos en área común',
+    categoria: 'basuras',
+    estado: 'archivada',
+    fechaRadicacion: hoy.subtract(35, 'day').format('YYYY-MM-DD'),
+    diasTermino: 10,
+  },
+];
+
+function actuacionesParaQueja(q: Queja): ActuacionQueja[] {
+  const base = dayjs(q.fechaRadicacion);
+
+  const nivelMap: Record<Queja['estado'], number> = {
+    radicada: 0,
+    en_tramite: 1,
+    conciliacion_programada: 2,
+    conciliada: 3,
+    sin_acuerdo: 3,
+    archivada: 4,
+  };
+  const nivel = nivelMap[q.estado];
+
+  const todas: { hasta: number; act: ActuacionQueja }[] = [
+    {
+      hasta: 0,
+      act: {
+        id: `${q.id}-a1`,
+        fecha: base.format('YYYY-MM-DD'),
+        tipo: 'radicacion',
+        titulo: 'Radicación de la queja',
+        descripcion: `Se recibe queja presentada por ${q.quejoso} contra ${q.acusado}.`,
+      },
+    },
+    {
+      hasta: 1,
+      act: {
+        id: `${q.id}-a2`,
+        fecha: base.add(1, 'day').format('YYYY-MM-DD'),
+        tipo: 'avoca',
+        titulo: 'Auto avoca conocimiento',
+        descripcion: 'El despacho avoca conocimiento e impulsa el trámite de conciliación.',
+      },
+    },
+    {
+      hasta: 2,
+      act: {
+        id: `${q.id}-a3`,
+        fecha: base.add(3, 'day').format('YYYY-MM-DD'),
+        tipo: 'citacion',
+        titulo: 'Citación a conciliación',
+        descripcion: 'Se notifica a las partes la fecha de la audiencia de conciliación.',
+      },
+    },
+    {
+      hasta: 3,
+      act: {
+        id: `${q.id}-a4`,
+        fecha: base.add(7, 'day').format('YYYY-MM-DD'),
+        tipo: q.estado === 'conciliada' ? 'acuerdo' : 'sin_acuerdo',
+        titulo:
+          q.estado === 'conciliada'
+            ? 'Acuerdo de conciliación'
+            : 'Conciliación sin acuerdo',
+        descripcion:
+          q.estado === 'conciliada'
+            ? 'Las partes alcanzaron un acuerdo. Se suscribe acta de conciliación.'
+            : 'Las partes no llegaron a acuerdo. Se evalúan acciones a seguir.',
+      },
+    },
+    {
+      hasta: 4,
+      act: {
+        id: `${q.id}-a5`,
+        fecha: base.add(10, 'day').format('YYYY-MM-DD'),
+        tipo: 'archivo',
+        titulo: 'Archivo del expediente',
+        descripcion: 'Expediente archivado por culminación del trámite.',
+      },
+    },
+  ];
+
+  return todas
+    .filter((t) => t.hasta <= nivel)
+    .map((t) => t.act)
+    .reverse();
+}
+
+export const quejasDetalleMock: Record<string, QuejaDetalle> =
+  Object.fromEntries(
+    quejasMock.map((q) => [
+      q.id,
+      {
+        ...q,
+        descripcionHechos:
+          `${q.quejoso} manifiesta que el señor(a) ${q.acusado} incurre reiteradamente en el comportamiento descrito, afectando la convivencia pacífica del sector. Los hechos se vienen presentando desde hace aproximadamente dos semanas.`,
+        actuaciones: actuacionesParaQueja(q),
+      },
+    ]),
+  );
 
 // Respuesta simulada del asistente para la demo sin backend.
 export const RESPUESTA_IA_DEMO =

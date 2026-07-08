@@ -26,6 +26,15 @@ const AudienciasPage = lazy(() =>
 const MultasPage = lazy(() =>
   import('@/features/multas/MultasPage').then((m) => ({ default: m.MultasPage })),
 );
+const QuejasListPage = lazy(() =>
+  import('@/features/quejas/QuejasListPage').then((m) => ({ default: m.QuejasListPage })),
+);
+const NuevaQuejaPage = lazy(() =>
+  import('@/features/quejas/NuevaQuejaPage').then((m) => ({ default: m.NuevaQuejaPage })),
+);
+const QuejaDetailPage = lazy(() =>
+  import('@/features/quejas/QuejaDetailPage').then((m) => ({ default: m.QuejaDetailPage })),
+);
 
 function Cargando({ children }: { children: ReactNode }) {
   return (
@@ -54,7 +63,9 @@ export const router = createBrowserRouter([
         path: 'querellas/:id/documento/:tipo',
         element: <Cargando><DocumentoPage /></Cargando>,
       },
-      { path: 'quejas', element: <EnConstruccion modulo="Quejas" /> },
+      { path: 'quejas', element: <Cargando><QuejasListPage /></Cargando> },
+      { path: 'quejas/nueva', element: <Cargando><NuevaQuejaPage /></Cargando> },
+      { path: 'quejas/:id', element: <Cargando><QuejaDetailPage /></Cargando> },
       { path: 'audiencias', element: <Cargando><AudienciasPage /></Cargando> },
       { path: 'fallos', element: <EnConstruccion modulo="Fallos" /> },
       {

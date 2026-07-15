@@ -21,6 +21,247 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/*
+ * Voz tipográfica del despacho: los títulos y números de radicado usan una
+ * serif editorial (Newsreader) que da gravedad jurídica sobre las superficies
+ * suaves; el cuerpo permanece en Inter.
+ */
+h1.ant-typography,
+h2.ant-typography,
+h3.ant-typography,
+.font-display {
+  font-family: 'Newsreader', 'Iowan Old Style', Georgia, 'Times New Roman', serif;
+  font-weight: 550;
+  letter-spacing: -0.01em;
+}
+
+/*
+ * Impresión de documentos del despacho: al imprimir, solo se lleva al papel
+ * el acta (#acta-imprimible), sin navegación ni formularios.
+ */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #acta-imprimible,
+  #acta-imprimible * {
+    visibility: visible;
+  }
+  #acta-imprimible {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+  }
+}
+
+/*
+ * Sistema de movimiento — minimalista y futurista: una sola familia de
+ * animaciones (aparecer con leve ascenso) orquestada al cambiar de vista,
+ * y un shimmer reservado para estados de carga. Nada de reflow: solo
+ * opacity y transform. prefers-reduced-motion lo desactiva todo (abajo).
+ */
+
+:root {
+  --anim-dur: 420ms;
+  --anim-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --stagger-delay: 40ms;
+}
+
+@keyframes aparecer {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Stagger vía variable CSS --i en cada hijo directo */
+.vista-animada > * {
+  animation: aparecer var(--anim-dur) var(--anim-ease) both;
+  animation-delay: calc(var(--i, 0) * var(--stagger-delay));
+}
+
+/* Pulso de radicación — onda azul expansiva (600ms, una vez) */
+@keyframes pulso-radicacion {
+  from {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(26, 115, 232, 0.45);
+  }
+  to {
+    transform: scale(1.02);
+    box-shadow: 0 0 0 28px rgba(26, 115, 232, 0);
+  }
+}
+
+.pulso-exito {
+  animation: pulso-radicacion 600ms var(--anim-ease) forwards;
+}
+
+/* Shimmer — solo para barra de progreso del intake y skeletons */
+@keyframes brillo {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+
+.cargando-brillo {
+  background: linear-gradient(
+    100deg,
+    #eef0f3 40%,
+    #f7f9fc 50%,
+    #eef0f3 60%
+  );
+  background-size: 200% 100%;
+  animation: brillo 1.4s linear infinite;
+}
+
+/* Feedback táctil: los botones responden como objetos físicos al presionarlos. */
+.ant-btn:not(:disabled):active {
+  transform: scale(0.98);
+}
+
+/* Menu item hover suave (200ms) — píldoras del sidebar */
+.ant-menu-item {
+  transition: background-color 200ms ease, color 200ms ease !important;
+}
+
+/* Tag transition para cambio de estado en cola (check revisada) */
+.ant-tag {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/*
+ * Landing pública (.lp-*): grafo de conocimiento animado, chips de áreas del
+ * derecho y revelado suave al hacer scroll. Solo opacity/transform/
+ * stroke-dashoffset; prefers-reduced-motion (abajo) lo neutraliza todo.
+ */
+
+/* Nodos satélite: respiración suave (escala 1→1.06, no más) */
+.lp-nodo {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: lp-respira 4.8s ease-in-out infinite;
+}
+@keyframes lp-respira {
+  0%, 100% { transform: scale(1); opacity: 0.85; }
+  50% { transform: scale(1.06); opacity: 1; }
+}
+
+/* Nodo central: pulso lento con glow */
+.lp-nodo-centro {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: lp-latido 3.6s ease-in-out infinite;
+}
+@keyframes lp-latido {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+/* Halo expansivo del centro (onda pulso) */
+.lp-centro-halo {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: lp-onda 3.6s ease-in-out infinite;
+}
+@keyframes lp-onda {
+  0%, 100% { transform: scale(1); opacity: 0.06; }
+  50% { transform: scale(1.35); opacity: 0.02; }
+}
+
+/* Aristas: dibujado progresivo al entrar, luego permanecen */
+.lp-arista {
+  stroke-dasharray: 400;
+  stroke-dashoffset: 400;
+  animation: lp-trazo 1.8s ease-out forwards;
+}
+@keyframes lp-trazo {
+  to { stroke-dashoffset: 0; }
+}
+
+/* Círculos orbitales: barrido radar lento (dashed + offset animado) */
+.lp-orbita {
+  stroke-dasharray: 12 24;
+  animation: lp-rotar-orbita 24s linear infinite;
+}
+.lp-orbita.lento {
+  stroke-dasharray: 6 30;
+  animation: lp-rotar-orbita 40s linear infinite;
+}
+@keyframes lp-rotar-orbita {
+  to { stroke-dashoffset: -400; }
+}
+
+/* Etiqueta del centro */
+.lp-label-centro {
+  pointer-events: none;
+  animation: lp-parpadear-texto 3.6s ease-in-out infinite;
+}
+@keyframes lp-parpadear-texto {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.75; }
+}
+
+/* Chips de áreas: aparecer + flote */
+.lp-chip {
+  animation: aparecer 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.lp-flotar {
+  animation: lp-flote 7s ease-in-out infinite;
+}
+@keyframes lp-flote {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* Revelado al entrar al viewport (IntersectionObserver agrega .lp-visible) */
+.lp-revela {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 0.65s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.lp-revela.lp-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+@media (prefers-reduced-motion: reduce) {
+  .lp-revela {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Robot mascota: parpadeo y saludo sutil */
+.lp-robot-ojo {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: lp-parpadeo 4.5s ease-in-out infinite;
+}
+@keyframes lp-parpadeo {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.12); }
+}
+.lp-robot-antena {
+  transform-box: fill-box;
+  transform-origin: bottom center;
+  animation: lp-antena 3s ease-in-out infinite;
+}
+@keyframes lp-antena {
+  0%, 100% { transform: rotate(-6deg); }
+  50% { transform: rotate(6deg); }
+}
+
 /* Accesibilidad: respetar a quien prefiere menos movimiento. */
 @media (prefers-reduced-motion: reduce) {
   *,

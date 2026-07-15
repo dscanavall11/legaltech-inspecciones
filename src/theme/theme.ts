@@ -63,7 +63,7 @@ export function buildTheme(opts: {
       fontSizeHeading5: 13,
       lineHeight: 1.55,
       borderRadius: 10,
-      borderRadiusLG: 14,
+      borderRadiusLG: 20,
       controlHeight: 38,
       wireframe: false,
     },
@@ -84,16 +84,19 @@ export function buildTheme(opts: {
         itemHoverBg: '#f4f4f6',
         fontSize,
         iconSize: fontSize + 1,
+        itemHoverColor: PALETA.texto,
+        itemActiveBg: PALETA.azulSuave,
       },
       Button: {
         controlHeight: 40,
         borderRadius: 20, // botones tipo "pill"
+        borderRadiusLG: 24, // también los botones grandes
         fontWeight: 500,
         primaryShadow: 'none',
         defaultShadow: 'none',
       },
       Card: {
-        borderRadiusLG: 14,
+        borderRadiusLG: 20,
         paddingLG: 22,
       },
       Table: {
@@ -107,7 +110,9 @@ export function buildTheme(opts: {
       Tabs: { titleFontSize: fontSize },
       Input: { borderRadius: 20, controlHeight: 40 },
       Segmented: { borderRadius: 16, trackBg: '#f1f3f4' },
-      Tag: { borderRadiusSM: 6 },
+      // Etiquetas de estado como píldoras suaves, sin borde marcado.
+      Tag: { borderRadiusSM: 999, lineWidth: 0 },
+      Modal: { borderRadiusLG: 20 },
       Descriptions: { itemPaddingBottom: 14, colonMarginRight: 0 },
     },
   };

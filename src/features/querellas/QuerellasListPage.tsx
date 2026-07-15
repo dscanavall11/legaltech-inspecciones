@@ -24,7 +24,7 @@ import {
 } from './types';
 import { calcularTermino } from '@/shared/terminos/diasHabiles';
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 
 export function QuerellasListPage() {
   const { data, isLoading, isError } = useQuerellas();
@@ -49,7 +49,11 @@ export function QuerellasListPage() {
       title: 'Radicado',
       dataIndex: 'radicado',
       key: 'radicado',
-      render: (v: string) => <Text strong>{v}</Text>,
+      render: (v: string) => (
+        <span className="font-display" style={{ fontSize: 15 }}>
+          {v}
+        </span>
+      ),
     },
     { title: 'Querellante', dataIndex: 'querellante', key: 'querellante' },
     { title: 'Querellado', dataIndex: 'querellado', key: 'querellado' },
@@ -110,7 +114,7 @@ export function QuerellasListPage() {
           type="primary"
           size="large"
           icon={<PlusOutlined />}
-          onClick={() => navigate('/querellas/nueva')}
+          onClick={() => navigate('/panel/querellas/nueva')}
         >
           Nueva querella
         </Button>
@@ -147,7 +151,7 @@ export function QuerellasListPage() {
             pagination={{ pageSize: 10, showSizeChanger: false }}
             scroll={{ x: 'max-content' }}
             onRow={(record) => ({
-              onClick: () => navigate(`/querellas/${record.id}`),
+              onClick: () => navigate(`/panel/querellas/${record.id}`),
               style: { cursor: 'pointer' },
             })}
           />

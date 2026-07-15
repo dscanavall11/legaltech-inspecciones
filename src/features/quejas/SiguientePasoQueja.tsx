@@ -19,8 +19,9 @@ import {
   InboxOutlined,
 } from '@ant-design/icons';
 import type { ReactNode } from 'react';
-import { siguientePasoQueja, type AccionQuejaTipo } from './flujo';
-import type { EstadoQueja } from './types';
+import { siguientePasoQueja, TERMINOS, type AccionQuejaTipo } from '@/derecho';
+import { useCrearQuerella } from '@/features/querellas/api';
+import type { Queja } from './types';
 import { PALETA } from '@/theme/theme';
 
 const { Text } = Typography;
@@ -32,19 +33,16 @@ const ICONO: Record<AccionQuejaTipo, ReactNode> = {
   archivar: <InboxOutlined />,
 };
 
-export function SiguientePasoQueja({
-  id,
-  estado,
-}: {
-  id: string;
-  estado: EstadoQueja;
-}) {
+export function SiguientePasoQueja({ queja }: { queja: Queja }) {
+  const { id, estado } = queja;
   const navigate = useNavigate();
   const { message } = App.useApp();
   const paso = siguientePasoQueja(estado);
+  const crearQuerella = useCrearQuerella();
 
   const [modalCitar, setModalCitar] = useState(false);
   const [modalResultado, setModalResultado] = useState(false);
+  const [modalConvertir, setModalConvertir] = useState(false);
   const [resultado, setResultado] = useState<'acuerdo' | 'sin_acuerdo' | null>(null);
 
   const ejecutar = (tipo: AccionQuejaTipo) => {
@@ -55,13 +53,28 @@ export function SiguientePasoQueja({
         setResultado(null);
         return setModalResultado(true);
       case 'convertir_querella':
-        message.info('La conversión a querella formal estará disponible en la siguiente versión.');
-        return;
+        return setModalConvertir(true);
       case 'archivar':
-        message.success('Expediente archivado.');
+        message.success('Archivo del expediente ordenado.');
         return;
     }
   };
+
+  async function darTramiteQuerella() {
+    try {
+      const creada = await crearQuerella.mutateAsync({
+        querellante: queja.quejoso,
+        querellado: queja.acusado,
+        asunto: queja.asunto,
+        diasTermino: TERMINOS.querellaDias,
+      });
+      setModalConvertir(false);
+      message.success(`Querella radicada bajo el número ${creada.radicado}.`);
+      navigate(`/panel/querellas/${creada.id}`);
+    } catch {
+      message.error('No se pudo radicar la querella. Intente de nuevo.');
+    }
+  }
 
   if (paso.terminal) {
     return (
@@ -78,11 +91,17 @@ export function SiguientePasoQueja({
     <>
       <Card
         variant="borderless"
-        style={{ background: PALETA.azulSuave, border: `1px solid ${PALETA.borde}` }}
-        styles={{ body: { padding: 18 } }}
+        style={{
+          background: `linear-gradient(120deg, ${PALETA.azulSuave} 0%, #ffffff 78%)`,
+          borderRadius: 20,
+        }}
+        styles={{ body: { padding: '18px 22px 20px' } }}
       >
-        <Text type="secondary" style={{ fontSize: 12, letterSpacing: 0.3 }}>
-          SIGUIENTE PASO
+        <Text
+          type="secondary"
+          style={{ fontSize: 11, letterSpacing: '0.09em', fontWeight: 600 }}
+        >
+          PRÓXIMA ACTUACIÓN
         </Text>
         <div style={{ margin: '6px 0 14px', color: PALETA.texto }}>
           {paso.mensaje}
@@ -105,13 +124,13 @@ export function SiguientePasoQueja({
       <Modal
         open={modalCitar}
         title="Citar a audiencia de conciliación"
-        okText="Generar citación"
+        okText="Librar citación"
         cancelText="Cancelar"
         onCancel={() => setModalCitar(false)}
         onOk={() => {
           setModalCitar(false);
-          message.success('Conciliación programada. Notifica a las partes.');
-          navigate(`/quejas/${id}`);
+          message.success('Audiencia de conciliación señalada. Se citará a las partes.');
+          navigate(`/panel/quejas/${id}`);
         }}
       >
         <Space direction="vertical" size="middle" style={{ width: '100%', marginTop: 8 }}>
@@ -128,11 +147,11 @@ export function SiguientePasoQueja({
         </Space>
       </Modal>
 
-      {/* Registrar resultado de conciliación */}
+      {/* Acta de audiencia de conciliación */}
       <Modal
         open={modalResultado}
-        title="Registrar resultado de la conciliación"
-        okText="Guardar resultado"
+        title="Acta de audiencia de conciliación"
+        okText={resultado === 'sin_acuerdo' ? 'Dejar constancia de no acuerdo' : 'Suscribir acta'}
         cancelText="Cancelar"
         okButtonProps={{ disabled: !resultado }}
         onCancel={() => setModalResultado(false)}
@@ -140,13 +159,13 @@ export function SiguientePasoQueja({
           setModalResultado(false);
           message.success(
             resultado === 'acuerdo'
-              ? 'Acuerdo registrado. Expediente en firmeza.'
-              : 'Sin acuerdo registrado.',
+              ? 'Acta de conciliación suscrita por las partes.'
+              : 'Constancia de no acuerdo dejada en el expediente.',
           );
         }}
       >
         <Space direction="vertical" size="middle" style={{ width: '100%', marginTop: 8 }}>
-          <Text>¿Las partes llegaron a un acuerdo de conciliación?</Text>
+          <Text>¿Las partes llegaron a un acuerdo conciliatorio?</Text>
           <Radio.Group
             value={resultado}
             onChange={(e) => setResultado(e.target.value)}
@@ -154,7 +173,7 @@ export function SiguientePasoQueja({
             <Space direction="vertical">
               <Radio value="acuerdo">
                 <CheckCircleOutlined style={{ color: PALETA.verde, marginRight: 6 }} />
-                Sí, llegaron a acuerdo
+                Hubo acuerdo conciliatorio
               </Radio>
               <Radio value="sin_acuerdo">
                 <CloseCircleOutlined style={{ color: PALETA.rojo, marginRight: 6 }} />
@@ -167,18 +186,43 @@ export function SiguientePasoQueja({
             <Alert
               type="success"
               showIcon
-              message="Conciliación exitosa"
-              description="Se suscribirá el acta de acuerdo. El expediente quedará en firmeza una vez cumplidas las obligaciones pactadas."
+              message="Conciliación lograda"
+              description="El acta suscrita por las partes y el inspector presta mérito ejecutivo y hace tránsito a cosa juzgada. Verificado el cumplimiento, se ordenará el archivo."
             />
           )}
           {resultado === 'sin_acuerdo' && (
             <Alert
               type="warning"
               showIcon
-              message="Sin acuerdo"
-              description="Ante la falta de acuerdo, el inspector podrá convertir el asunto en querella formal para continuar con el proceso verbal abreviado."
+              message="Constancia de no acuerdo"
+              description="Ante la falta de ánimo conciliatorio, el inspector podrá dar a la queja trámite de querella mediante proceso verbal abreviado (art. 223, Ley 1801 de 2016)."
             />
           )}
+        </Space>
+      </Modal>
+
+      {/* Dar trámite de querella (proceso verbal abreviado) */}
+      <Modal
+        open={modalConvertir}
+        title="Dar trámite de querella"
+        okText="Radicar querella"
+        cancelText="Cancelar"
+        confirmLoading={crearQuerella.isPending}
+        onCancel={() => setModalConvertir(false)}
+        onOk={() => void darTramiteQuerella()}
+      >
+        <Space direction="vertical" size="middle" style={{ width: '100%', marginTop: 8 }}>
+          <Text type="secondary">
+            Fracasada la conciliación, el asunto continúa por proceso verbal
+            abreviado (art. 223, Ley 1801 de 2016). Se radicará una querella con
+            las partes y los hechos de esta queja.
+          </Text>
+          <Alert
+            type="info"
+            showIcon
+            message={`${queja.quejoso} contra ${queja.acusado}`}
+            description={queja.asunto}
+          />
         </Space>
       </Modal>
     </>

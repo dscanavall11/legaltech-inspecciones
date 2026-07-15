@@ -1,3 +1,5 @@
+import type { DocumentoCaso } from '@/shared/documentos/types';
+
 export type EstadoQueja =
   | 'radicada'
   | 'en_tramite'
@@ -75,4 +77,5 @@ export interface Queja {
 export interface QuejaDetalle extends Queja {
   descripcionHechos: string;
   actuaciones: ActuacionQueja[];
+  documentos: DocumentoCaso[];
 }

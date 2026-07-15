@@ -1,71 +1,129 @@
 import { useState } from 'react';
-import { Layout, Menu, Avatar, Typography, Grid } from 'antd';
+import { Layout, Menu, Avatar, Typography, Grid, Dropdown } from 'antd';
 import {
   AppstoreOutlined,
   FileTextOutlined,
-  AuditOutlined,
   CalendarOutlined,
   SafetyCertificateOutlined,
   MessageOutlined,
   DollarOutlined,
   UserOutlined,
+  LogoutOutlined,
+  FolderOpenOutlined,
+  BookOutlined,
+  LeftOutlined,
 } from '@ant-design/icons';
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { FontSizeControl } from './FontSizeControl';
+import { StatusBar } from './StatusBar';
+import { CommandPalette } from './CommandPalette';
 import { AiAssistant } from '@/shared/ai/AiAssistant';
 import { useAuth } from '@/shared/auth/auth';
-import { PALETA } from '@/theme/theme';
+import { PALETA, ELEVACION } from '@/theme/theme';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
 const { useBreakpoint } = Grid;
 
-// Navegación con texto SIEMPRE acompañando al ícono (nunca solo íconos).
-const MENU = [
-  { key: '/', icon: <AppstoreOutlined />, label: <Link to="/">Inicio</Link> },
+const MENU_ITEMS_COMPLETO = [
   {
-    key: '/querellas',
-    icon: <FileTextOutlined />,
-    label: <Link to="/querellas">Querellas</Link>,
+    key: '/panel',
+    icon: <AppstoreOutlined />,
+    label: <Link to="/panel">Inicio</Link>,
   },
   {
-    key: '/quejas',
-    icon: <MessageOutlined />,
-    label: <Link to="/quejas">Quejas</Link>,
+    key: 'g-casos',
+    type: 'group' as const,
+    label: 'Casos',
+    children: [
+      {
+        key: '/panel/querellas',
+        icon: <FileTextOutlined />,
+        label: <Link to="/panel/querellas">Querellas</Link>,
+      },
+      {
+        key: '/panel/quejas',
+        icon: <MessageOutlined />,
+        label: <Link to="/panel/quejas">Quejas</Link>,
+      },
+      {
+        key: '/panel/audiencias',
+        icon: <CalendarOutlined />,
+        label: <Link to="/panel/audiencias">Audiencias</Link>,
+      },
+    ],
   },
   {
-    key: '/audiencias',
-    icon: <CalendarOutlined />,
-    label: <Link to="/audiencias">Audiencias</Link>,
+    key: 'g-gestion',
+    type: 'group' as const,
+    label: 'Gestión',
+    children: [
+      {
+        key: '/panel/actas-firmeza',
+        icon: <SafetyCertificateOutlined />,
+        label: <Link to="/panel/actas-firmeza">Actas de firmeza</Link>,
+      },
+      {
+        key: '/panel/medidas-correctivas',
+        icon: <DollarOutlined />,
+        label: <Link to="/panel/medidas-correctivas">Medidas correctivas</Link>,
+      },
+    ],
   },
   {
-    key: '/fallos',
-    icon: <AuditOutlined />,
-    label: <Link to="/fallos">Fallos</Link>,
-  },
-  {
-    key: '/actas-firmeza',
-    icon: <SafetyCertificateOutlined />,
-    label: <Link to="/actas-firmeza">Actas de firmeza</Link>,
-  },
-  {
-    key: '/medidas-correctivas',
-    icon: <DollarOutlined />,
-    label: <Link to="/medidas-correctivas">Medidas correctivas</Link>,
+    key: 'g-referencia',
+    type: 'group' as const,
+    label: 'Referencia',
+    children: [
+      {
+        key: '/panel/normas',
+        icon: <BookOutlined />,
+        label: <Link to="/panel/normas">Normas nacionales</Link>,
+      },
+      {
+        key: '/panel/archivo',
+        icon: <FolderOpenOutlined />,
+        label: <Link to="/panel/archivo">Archivo digital</Link>,
+      },
+    ],
   },
 ];
 
+// Rutas de hoja navegables (excluye grupos y /panel raíz)
+const NAV_RUTAS_COMPLETO = [
+  '/panel/querellas',
+  '/panel/quejas',
+  '/panel/audiencias',
+  '/panel/actas-firmeza',
+  '/panel/medidas-correctivas',
+  '/panel/normas',
+  '/panel/archivo',
+];
+
+function getMenuItems() {
+  return MENU_ITEMS_COMPLETO;
+}
+
+function getNavRutas() {
+  return NAV_RUTAS_COMPLETO;
+}
+
 export function AppLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const screens = useBreakpoint();
   const [colapsado, setColapsado] = useState(false);
   const usuario = useAuth((s) => s.usuario);
+  const cerrarSesion = useAuth((s) => s.cerrarSesion);
 
-  // Resalta el ítem activo aunque estemos en una subruta (ej: /querellas/q-001).
+  const navRutas = getNavRutas();
+  const menuItems = getMenuItems();
+
   const selectedKey =
-    MENU.map((m) => m.key)
-      .filter((k) => k !== '/' && location.pathname.startsWith(k))
-      .sort((a, b) => b.length - a.length)[0] ?? '/';
+    navRutas.filter((k) => location.pathname.startsWith(k)).sort((a, b) => b.length - a.length)[0] ??
+    '/panel';
+
+  const esPaginaFullBleed = location.pathname.startsWith('/panel/nuevo-caso');
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
@@ -76,8 +134,10 @@ export function AppLayout() {
         collapsed={colapsado}
         onCollapse={setColapsado}
         width={248}
-        style={{ borderRight: `1px solid ${PALETA.borde}` }}
+        trigger={null}
+        style={{ borderRight: `1px solid ${PALETA.borde}`, position: 'relative' }}
       >
+        {/* Logo */}
         <div
           style={{
             height: 64,
@@ -92,7 +152,7 @@ export function AppLayout() {
             style={{
               width: 32,
               height: 32,
-              borderRadius: 9,
+              borderRadius: 12,
               background: PALETA.azul,
               color: '#fff',
               fontWeight: 700,
@@ -106,19 +166,41 @@ export function AppLayout() {
             L
           </span>
           {!colapsado && (
-            <span
-              style={{ fontWeight: 700, fontSize: 18, color: PALETA.texto }}
-            >
-              LegalTech
-            </span>
+            <span style={{ fontWeight: 700, fontSize: 18, color: PALETA.texto }}>LegalTech</span>
           )}
         </div>
+
         <Menu
           mode="inline"
           selectedKeys={[selectedKey]}
-          items={MENU}
-          style={{ border: 'none', padding: '8px 12px' }}
+          items={menuItems}
+          style={{ border: 'none', padding: '4px 12px' }}
         />
+
+        <button
+          aria-label={colapsado ? 'Expandir menú' : 'Contraer menú'}
+          onClick={() => setColapsado((c) => !c)}
+          style={{
+            position: 'absolute',
+            right: -14,
+            top: '50%',
+            width: 28,
+            height: 28,
+            borderRadius: '50%',
+            background: PALETA.superficie,
+            border: `1px solid ${PALETA.borde}`,
+            boxShadow: ELEVACION.base,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            transition: 'transform 200ms ease',
+            transform: `translateY(-50%) rotate(${colapsado ? '180deg' : '0deg'})`,
+            zIndex: 10,
+          }}
+        >
+          <LeftOutlined style={{ fontSize: 10, color: PALETA.textoSuave }} />
+        </button>
       </Sider>
 
       <Layout>
@@ -139,29 +221,60 @@ export function AppLayout() {
           </Text>
           <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
             <FontSizeControl />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <Avatar
-                style={{ background: PALETA.azulSuave, color: PALETA.azulOscuro }}
-                icon={<UserOutlined />}
-              />
-              <div style={{ lineHeight: 1.2 }}>
-                <div>
-                  <Text strong>{usuario?.nombre}</Text>
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: 'logout',
+                    icon: <LogoutOutlined />,
+                    label: 'Cerrar sesión',
+                    onClick: () => {
+                      cerrarSesion();
+                      navigate('/login', { replace: true });
+                    },
+                  },
+                ],
+              }}
+              trigger={['click']}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+                <Avatar
+                  style={{ background: PALETA.azulSuave, color: PALETA.azulOscuro }}
+                  icon={<UserOutlined />}
+                />
+                <div style={{ lineHeight: 1.2 }}>
+                  <div>
+                    <Text strong>{usuario?.nombre}</Text>
+                  </div>
+                  <Text type="secondary" style={{ fontSize: 12, textTransform: 'capitalize' }}>
+                    {usuario?.rol}
+                  </Text>
                 </div>
-                <Text type="secondary" style={{ fontSize: 12, textTransform: 'capitalize' }}>
-                  {usuario?.rol}
-                </Text>
               </div>
-            </div>
+            </Dropdown>
           </div>
         </Header>
 
-        <Content style={{ margin: 0, padding: 28, maxWidth: 1280, width: '100%' }}>
-          <Outlet />
+        <Content
+          style={{
+            margin: 0,
+            padding: esPaginaFullBleed ? 0 : 28,
+            maxWidth: esPaginaFullBleed ? 'none' : 1280,
+            width: '100%',
+            overflow: esPaginaFullBleed ? 'hidden' : undefined,
+          }}
+        >
+          {/* key por ruta: cada vista entra con la animación orquestada */}
+          <div key={location.pathname} className="vista-animada">
+            <Outlet />
+          </div>
         </Content>
+
+        <StatusBar />
       </Layout>
 
       <AiAssistant />
+      <CommandPalette />
     </Layout>
   );
 }

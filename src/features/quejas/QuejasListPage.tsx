@@ -50,7 +50,11 @@ export function QuejasListPage() {
       title: 'Radicado',
       dataIndex: 'radicado',
       key: 'radicado',
-      render: (v: string) => <Text strong>{v}</Text>,
+      render: (v: string) => (
+        <span className="font-display" style={{ fontSize: 15 }}>
+          {v}
+        </span>
+      ),
     },
     { title: 'Quejoso', dataIndex: 'quejoso', key: 'quejoso' },
     { title: 'Acusado', dataIndex: 'acusado', key: 'acusado' },
@@ -130,7 +134,7 @@ export function QuejasListPage() {
           type="primary"
           size="large"
           icon={<PlusOutlined />}
-          onClick={() => navigate('/quejas/nueva')}
+          onClick={() => navigate('/panel/quejas/nueva')}
         >
           Nueva queja
         </Button>
@@ -167,7 +171,7 @@ export function QuejasListPage() {
             pagination={{ pageSize: 10, showSizeChanger: false }}
             scroll={{ x: 'max-content' }}
             onRow={(record) => ({
-              onClick: () => navigate(`/quejas/${record.id}`),
+              onClick: () => navigate(`/panel/quejas/${record.id}`),
               style: { cursor: 'pointer' },
             })}
           />

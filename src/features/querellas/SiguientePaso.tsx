@@ -19,7 +19,7 @@ import {
   InboxOutlined,
 } from '@ant-design/icons';
 import type { ReactNode } from 'react';
-import { siguientePaso, type AccionTipo } from './flujo';
+import { siguientePaso, type AccionTipo } from '@/derecho';
 import type { EstadoQuerella } from './types';
 import { PALETA } from '@/theme/theme';
 
@@ -30,7 +30,7 @@ const ICONO: Record<AccionTipo, ReactNode> = {
   registrar_audiencia: <AuditOutlined />,
   reagendar_audiencia: <CalendarOutlined />,
   generar_fallo: <FileTextOutlined />,
-  generar_acta: <SafetyCertificateOutlined />,
+  constancia_ejecutoria: <SafetyCertificateOutlined />,
   archivar: <InboxOutlined />,
 };
 
@@ -61,11 +61,11 @@ export function SiguientePaso({
         setComparecio(null);
         return setModalRegistrar(true);
       case 'generar_fallo':
-        return navigate(`/querellas/${id}/documento/fallo`);
-      case 'generar_acta':
-        return navigate(`/querellas/${id}/documento/acta`);
+        return navigate(`/panel/querellas/${id}/documento/fallo`);
+      case 'constancia_ejecutoria':
+        return navigate(`/panel/querellas/${id}/documento/constancia`);
       case 'archivar':
-        return message.success('Expediente archivado.');
+        return message.success('Archivo del expediente ordenado.');
     }
   };
 
@@ -84,11 +84,17 @@ export function SiguientePaso({
     <>
       <Card
         variant="borderless"
-        style={{ background: PALETA.azulSuave, border: `1px solid ${PALETA.borde}` }}
-        styles={{ body: { padding: 18 } }}
+        style={{
+          background: `linear-gradient(120deg, ${PALETA.azulSuave} 0%, #ffffff 78%)`,
+          borderRadius: 20,
+        }}
+        styles={{ body: { padding: '18px 22px 20px' } }}
       >
-        <Text type="secondary" style={{ fontSize: 12, letterSpacing: 0.3 }}>
-          SIGUIENTE PASO
+        <Text
+          type="secondary"
+          style={{ fontSize: 11, letterSpacing: '0.09em', fontWeight: 600 }}
+        >
+          PRÓXIMA ACTUACIÓN
         </Text>
         <div style={{ margin: '6px 0 14px', color: PALETA.texto }}>
           {paso.mensaje}
@@ -107,23 +113,23 @@ export function SiguientePaso({
         </Space>
       </Card>
 
-      {/* Programar / reagendar audiencia */}
+      {/* Citar / aplazar audiencia pública */}
       <Modal
         open={modalAgendar !== null}
-        title={modalAgendar === 'reagendar' ? 'Reagendar audiencia' : 'Programar audiencia'}
-        okText="Generar citación"
+        title={modalAgendar === 'reagendar' ? 'Aplazar audiencia pública' : 'Citar a audiencia pública'}
+        okText="Librar citación"
         cancelText="Cancelar"
         onCancel={() => setModalAgendar(null)}
         onOk={() => {
           setModalAgendar(null);
-          message.success('Audiencia programada. Genera la citación para las partes.');
-          navigate(`/querellas/${id}/documento/citacion`);
+          message.success('Audiencia señalada. Se librará la citación a las partes.');
+          navigate(`/panel/querellas/${id}/documento/citacion`);
         }}
       >
         <Space direction="vertical" size="middle" style={{ width: '100%', marginTop: 8 }}>
           <Text type="secondary">
-            Selecciona la fecha y hora de la audiencia pública. Se generará la
-            citación con la antelación mínima de ley (24 horas).
+            Señale la fecha y hora de la audiencia pública. La citación a las
+            partes se librará con la antelación mínima de ley.
           </Text>
           <DatePicker
             showTime
@@ -134,17 +140,17 @@ export function SiguientePaso({
         </Space>
       </Modal>
 
-      {/* Registrar resultado de audiencia */}
+      {/* Acta de audiencia pública */}
       <Modal
         open={modalRegistrar}
-        title="Registrar resultado de la audiencia"
-        okText={comparecio === 'no' ? 'Generar fallo en ausencia' : 'Generar fallo'}
+        title="Acta de audiencia pública"
+        okText={comparecio === 'no' ? 'Proferir decisión en ausencia' : 'Proferir decisión'}
         cancelText="Cerrar"
         okButtonProps={{ disabled: !comparecio }}
         onCancel={() => setModalRegistrar(false)}
         onOk={() => {
           setModalRegistrar(false);
-          navigate(`/querellas/${id}/documento/fallo`);
+          navigate(`/panel/querellas/${id}/documento/fallo`);
         }}
       >
         <Space direction="vertical" size="middle" style={{ width: '100%', marginTop: 8 }}>
@@ -164,7 +170,7 @@ export function SiguientePaso({
               type="warning"
               showIcon
               message="Inasistencia del querellado"
-              description="Ante la inasistencia injustificada, el despacho puede imponer la medida correctiva correspondiente y proferir el fallo en ausencia, conforme al Código Nacional de Seguridad y Convivencia."
+              description="Ante la inasistencia injustificada, el inspector puede proferir la decisión en ausencia e imponer la orden de policía o medida correctiva a que haya lugar (art. 223, parágrafo 1, Ley 1801 de 2016)."
             />
           )}
           {comparecio === 'si' && (
@@ -172,7 +178,7 @@ export function SiguientePaso({
               type="info"
               showIcon
               message="Audiencia celebrada"
-              description="Con el resultado de la audiencia, procede redactar el fallo de fondo."
+              description="Agotadas la conciliación, la práctica de pruebas y los alegatos, procede proferir la decisión de fondo y notificarla en estrados."
             />
           )}
         </Space>

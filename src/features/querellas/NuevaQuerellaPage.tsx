@@ -165,10 +165,10 @@ function PasoRevision({ valores }: { valores: FormValores }) {
       <Descriptions.Item label="Querellado">{valores.querellado}</Descriptions.Item>
       <Descriptions.Item label="Asunto">{valores.asunto}</Descriptions.Item>
       <Descriptions.Item label="Inmueble / dirección">
-        {valores.direccionInmueble || '—'}
+        {valores.direccionInmueble || 'Sin diligenciar'}
       </Descriptions.Item>
       <Descriptions.Item label="Descripción">
-        {valores.descripcion || '—'}
+        {valores.descripcion || 'Sin diligenciar'}
       </Descriptions.Item>
       <Descriptions.Item label="Término aplicable">
         {valores.diasTermino} días hábiles
@@ -219,7 +219,7 @@ export function NuevaQuerellaPage() {
       {
         onSuccess: (creada) => {
           message.success(`Querella ${creada.radicado} radicada.`);
-          navigate(`/querellas/${creada.id}`);
+          navigate(`/panel/querellas/${creada.id}`);
         },
         onError: () => message.error('No se pudo radicar la querella. Intenta de nuevo.'),
       },
@@ -231,7 +231,7 @@ export function NuevaQuerellaPage() {
       <Button
         type="text"
         icon={<ArrowLeftOutlined />}
-        onClick={() => navigate('/querellas')}
+        onClick={() => navigate('/panel/querellas')}
         style={{ paddingLeft: 0, marginBottom: 8 }}
       >
         Volver a querellas

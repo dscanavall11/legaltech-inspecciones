@@ -14,7 +14,7 @@ import {
   Col,
   Space,
 } from 'antd';
-import { ArrowLeftOutlined, FileTextOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useQuerella } from './api';
 import {
@@ -26,6 +26,9 @@ import {
 import { calcularTermino } from '@/shared/terminos/diasHabiles';
 import { CaseAssistant } from '@/shared/ai/CaseAssistant';
 import { SiguientePaso } from './SiguientePaso';
+import { DocumentosExpediente } from '@/shared/documentos/DocumentosExpediente';
+import { EtapaProcesal } from '@/shared/components/EtapaProcesal';
+import { ETAPAS_QUERELLA, ETAPA_QUERELLA_ACTIVA } from '@/derecho';
 import { ELEVACION, PALETA } from '@/theme/theme';
 
 const { Title, Text } = Typography;
@@ -126,7 +129,7 @@ export function QuerellaDetailPage() {
         title="Querella no encontrada"
         subTitle="El expediente que buscas no existe o fue archivado."
         extra={
-          <Button type="primary" onClick={() => navigate('/querellas')}>
+          <Button type="primary" onClick={() => navigate('/panel/querellas')}>
             Volver a querellas
           </Button>
         }
@@ -151,7 +154,7 @@ export function QuerellaDetailPage() {
           </Col>
           <Col xs={24}>
             <Campo label="Inmueble / dirección">
-              {data.direccionInmueble ?? '—'}
+              {data.direccionInmueble ?? 'Sin registro'}
             </Campo>
           </Col>
           <Col xs={24} sm={12}>
@@ -192,13 +195,8 @@ export function QuerellaDetailPage() {
     },
     {
       key: 'documentos',
-      label: 'Documentos',
-      children: (
-        <Result
-          icon={<FileTextOutlined style={{ color: PALETA.textoTenue }} />}
-          subTitle="La gestión documental del expediente estará disponible pronto."
-        />
-      ),
+      label: `Documentos (${data.documentos?.length ?? 0})`,
+      children: <DocumentosExpediente iniciales={data.documentos ?? []} />,
     },
   ];
 
@@ -207,7 +205,7 @@ export function QuerellaDetailPage() {
       <Button
         type="text"
         icon={<ArrowLeftOutlined />}
-        onClick={() => navigate('/querellas')}
+        onClick={() => navigate('/panel/querellas')}
         style={{ marginBottom: 10, paddingLeft: 0 }}
       >
         Volver a querellas
@@ -219,10 +217,14 @@ export function QuerellaDetailPage() {
         </Title>
         <Tag color={ESTADO_COLOR[data.estado]}>{ESTADO_LABEL[data.estado]}</Tag>
       </Space>
-      <div style={{ marginBottom: 20 }}>
+      <div>
         <Text type="secondary" style={{ fontSize: 15 }}>
           {data.asunto}
         </Text>
+      </div>
+
+      <div style={{ marginBottom: 26 }}>
+        <EtapaProcesal etapas={[...ETAPAS_QUERELLA]} activa={ETAPA_QUERELLA_ACTIVA[data.estado]} />
       </div>
 
       <div style={{ marginBottom: 24 }}>

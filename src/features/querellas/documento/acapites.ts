@@ -4,7 +4,7 @@ import { sumarDiasHabiles } from '@/shared/terminos/diasHabiles';
 import { MULTA_LABEL, valorMulta, formatearPesos } from '@/shared/multas/multas';
 
 /**
- * Construcción del documento legal (fallo / acta de firmeza) por acápites.
+ * Construcción del documento legal (fallo / constancia de ejecutoria) por acápites.
  *
  * En producción esto lo genera el backend con la plantilla de cada inspección
  * y los modelos de IA (Spring AI). Aquí se arma una versión de demostración con

@@ -180,7 +180,7 @@ function PasoRevision({ valores }: { valores: FormValores }) {
       </Descriptions.Item>
       <Descriptions.Item label="Asunto">{valores.asunto}</Descriptions.Item>
       <Descriptions.Item label="Descripción de los hechos">
-        {valores.descripcionHechos || '—'}
+        {valores.descripcionHechos || 'Sin diligenciar'}
       </Descriptions.Item>
       <Descriptions.Item label="Término aplicable">
         {valores.diasTermino} días hábiles
@@ -231,7 +231,7 @@ export function NuevaQuejaPage() {
       {
         onSuccess: (creada) => {
           message.success(`Queja ${creada.radicado} radicada.`);
-          navigate(`/quejas/${creada.id}`);
+          navigate(`/panel/quejas/${creada.id}`);
         },
         onError: () =>
           message.error('No se pudo radicar la queja. Intenta de nuevo.'),
@@ -244,7 +244,7 @@ export function NuevaQuejaPage() {
       <Button
         type="text"
         icon={<ArrowLeftOutlined />}
-        onClick={() => navigate('/quejas')}
+        onClick={() => navigate('/panel/quejas')}
         style={{ paddingLeft: 0, marginBottom: 8 }}
       >
         Volver a quejas

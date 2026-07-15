@@ -18,6 +18,7 @@ import {
 } from '@ant-design/icons';
 import { useQuerella } from '../api';
 import { construirDocumento, type Acapite, type TipoDocumento } from './acapites';
+import { ResumenLateral } from './ResumenLateral';
 import { ELEVACION, PALETA } from '@/theme/theme';
 
 const { Title, Text } = Typography;
@@ -38,7 +39,7 @@ export function DocumentoPage() {
         status="404"
         title="Expediente no encontrado"
         extra={
-          <Button type="primary" onClick={() => navigate('/querellas')}>
+          <Button type="primary" onClick={() => navigate('/panel/querellas')}>
             Volver a querellas
           </Button>
         }
@@ -72,7 +73,7 @@ export function DocumentoPage() {
           <Button
             type="text"
             icon={<ArrowLeftOutlined />}
-            onClick={() => navigate(`/querellas/${id}`)}
+            onClick={() => navigate(`/panel/querellas/${id}`)}
             style={{ paddingLeft: 0, marginBottom: 4 }}
           >
             Volver al expediente
@@ -94,7 +95,7 @@ export function DocumentoPage() {
             icon={<CheckOutlined />}
             onClick={() => {
               message.success('Documento aprobado y firmado.');
-              navigate(`/querellas/${id}`);
+              navigate(`/panel/querellas/${id}`);
             }}
           >
             Aprobar y firmar
@@ -111,7 +112,7 @@ export function DocumentoPage() {
               maxWidth: 820,
               margin: '0 auto',
               padding: '56px 64px',
-              borderRadius: 6,
+              borderRadius: 12,
               boxShadow: ELEVACION.media,
               fontFamily: 'Georgia, "Times New Roman", serif',
               color: '#1a1a1a',
@@ -143,12 +144,12 @@ export function DocumentoPage() {
                 key={a.id}
                 id={`acap-${a.id}`}
                 style={{
-                  marginBottom: 26,
-                  scrollMarginTop: 16,
-                  background:
-                    activo === a.id ? PALETA.azulSuave : 'transparent',
+marginBottom: 26,
+                scrollMarginTop: 16,
+                background:
+                  activo === a.id ? PALETA.azulSuave : 'transparent',
                   transition: 'background 0.5s',
-                  borderRadius: 6,
+                  borderRadius: 12,
                   padding: activo === a.id ? '8px 10px' : '8px 0',
                 }}
               >
@@ -189,6 +190,12 @@ export function DocumentoPage() {
           }}
           className="acapites-sidebar"
         >
+          <ResumenLateral
+            tipoDocumento={doc.titulo}
+            texto={doc.acapites
+              .map((a) => `${a.titulo}\n${a.parrafos.join('\n')}`)
+              .join('\n\n')}
+          />
           <Text type="secondary" style={{ fontSize: 12, letterSpacing: 0.3, padding: '0 8px 6px' }}>
             ACÁPITES DEL DOCUMENTO
           </Text>
@@ -218,7 +225,7 @@ export function DocumentoPage() {
               >
                 <span style={{ flex: 1 }}>{a.titulo}</span>
                 {a.fuente === 'ia' && (
-                  <Tooltip title="Redactado con IA — requiere revisión">
+                  <Tooltip title="Redactado con IA. Requiere revisión">
                     <RobotOutlined style={{ color: PALETA.azul, fontSize: 13 }} />
                   </Tooltip>
                 )}

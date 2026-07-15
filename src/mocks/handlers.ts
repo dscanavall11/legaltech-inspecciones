@@ -9,14 +9,67 @@ import {
 } from './data';
 import type { Querella } from '@/features/querellas/types';
 import type { Queja } from '@/features/quejas/types';
+import type { DocumentoCaso } from '@/shared/documentos/types';
+import {
+  legalCasesMock,
+  legalCaseDetailMock,
+  nationalNormsMock,
+  nationalNormDetailMock,
+  ANALISIS_IA_DEMO,
+} from './dataLegacy';
+import { fallosMock } from './dataFallos';
 
 const API = import.meta.env.VITE_API_BASE_URL ?? '/api';
+
+// In-memory store para radiaciones y actas
+const radiacionesMock: Array<{
+  id: string;
+  tipo: 'querella' | 'queja' | 'acta_firmeza' | 'apelacion' | 'fallo';
+  radicado: string;
+  fechaRadicacion: string;
+  estado: string;
+  radicadoOrigen?: string;
+  partes?: string;
+  fechaDecision?: string;
+  sustento?: string;
+  documentos?: Array<{ nombre: string; tipo: string }>;
+}> = [];
+
+const actasMock: Array<{
+  id: string;
+  estado: 'pendiente' | 'generada' | 'revisada' | 'expedida';
+  datos: any;
+}> = [];
 
 /**
  * Handlers de MSW. Definen el contrato de la API que el backend Spring deberá
  * cumplir. Cuando exista el backend real, basta poner VITE_ENABLE_MOCKS=false.
  */
 export const handlers = [
+  // ── Autenticación (mock del microservicio real de auth) ─────────────────
+  // Cualquier correo/contraseña funciona en modo demo.
+  http.post(`${API}/public/auth/login`, async ({ request }) => {
+    await delay(500);
+    const body = (await request.json()) as { username?: string };
+    return HttpResponse.json({
+      status: 'SUCCESS',
+      message: 'Login exitoso (mock)',
+      username: body.username ?? 'demo@legaltech.com.co',
+      accessToken: 'mock-access-token',
+      idToken: 'mock-id-token',
+      refreshToken: 'mock-refresh-token',
+      mfaRequired: false,
+    });
+  }),
+
+  http.post(`${API}/public/auth/register`, async () => {
+    await delay(600);
+    return HttpResponse.json({
+      status: 'SUCCESS',
+      message: 'Registro exitoso (mock). Ya puedes iniciar sesión.',
+    });
+  }),
+
   // Listado de querellas
   http.get(`${API}/querellas`, async () => {
     await delay(400); // simula latencia de red
@@ -39,6 +92,7 @@ export const handlers = [
       diasTermino: body.diasTermino ?? 15,
     };
     querellasMock.unshift(nueva);
+    const anexosQuerella = (body as { documentos?: { nombre: string; tipo: string }[] }).documentos ?? [];
     querellasDetalleMock[nueva.id] = {
       ...nueva,
       direccionInmueble: (body as { direccionInmueble?: string }).direccionInmueble,
@@ -51,6 +105,13 @@ export const handlers = [
           descripcion: `Se recibe querella de ${nueva.querellante} contra ${nueva.querellado}.`,
         },
       ],
+      documentos: anexosQuerella.map((d, i) => ({
+        id: `${nueva.id}-d${i + 1}`,
+        nombre: d.nombre,
+        tipo: (d.tipo as DocumentoCaso['tipo']) ?? 'otro',
+        origen: 'radicacion',
+        fecha: nueva.fechaRadicacion,
+      })),
     };
     return HttpResponse.json(nueva, { status: 201 });
   }),
@@ -97,6 +158,7 @@ export const handlers = [
       diasTermino: body.diasTermino ?? 10,
     };
     quejasMock.unshift(nueva);
+    const anexosQueja = (body as { documentos?: { nombre: string; tipo: string }[] }).documentos ?? [];
     quejasDetalleMock[nueva.id] = {
       ...nueva,
       descripcionHechos: (body as { descripcionHechos?: string }).descripcionHechos ?? '',
@@ -109,6 +171,13 @@ export const handlers = [
           descripcion: `Se recibe queja presentada por ${nueva.quejoso} contra ${nueva.acusado}.`,
         },
       ],
+      documentos: anexosQueja.map((d, i) => ({
+        id: `${nueva.id}-d${i + 1}`,
+        nombre: d.nombre,
+        tipo: (d.tipo as DocumentoCaso['tipo']) ?? 'otro',
+        origen: 'radicacion',
+        fecha: nueva.fechaRadicacion,
+      })),
     };
     return HttpResponse.json(nueva, { status: 201 });
   }),
@@ -122,8 +191,413 @@ export const handlers = [
     return HttpResponse.json(detalle);
   }),
 
-  // Asistente IA: respuesta en streaming token-a-token (simula Spring AI)
-  http.post(`${API}/ai/chat`, async () => {
+  // ── Microservicios migrados del frontend Angular ─────────────────────────
+
+  // legalcase: expedientes recientes — BFF devuelve PagedResponseDTO
+  http.get(`${API}/legal-cases`, async ({ request }) => {
+    await delay(400);
+    const url = new URL(request.url);
+    const page = Number(url.searchParams.get('page') ?? 0);
+    const size = Number(url.searchParams.get('size') ?? 10);
+    const content = legalCasesMock.slice(page * size, page * size + size);
+    return HttpResponse.json({
+      content,
+      totalElements: legalCasesMock.length,
+      totalPages: Math.ceil(legalCasesMock.length / size),
+      page,
+      size,
+    });
+  }),
+
+  http.get(`${API}/legal-cases/filing-number/:filingNumber`, async ({ params }) => {
+    await delay(350);
+    const detalle = legalCaseDetailMock[decodeURIComponent(params.filingNumber as string)];
+    if (!detalle) {
+      return HttpResponse.json({ message: 'Expediente no encontrado' }, { status: 404 });
+    }
+    return HttpResponse.json(detalle);
+  }),
+
+  // legalbases: normas nacionales paginadas estilo Spring Data
+  http.get(`${API}/national-norms`, async ({ request }) => {
+    await delay(400);
+    const url = new URL(request.url);
+    const search = (url.searchParams.get('search') ?? '').toLowerCase();
+    const page = Number(url.searchParams.get('page') ?? 0);
+    const size = Number(url.searchParams.get('size') ?? 10);
+    const sortDir = url.searchParams.get('sortDir') ?? 'asc';
+
+    let lista = nationalNormsMock.filter(
+      (n) =>
+        !search ||
+        n.title.toLowerCase().includes(search) ||
+        n.type.toLowerCase().includes(search) ||
+        String(n.id).includes(search),
+    );
+    lista = [...lista].sort((a, b) =>
+      sortDir === 'asc'
+        ? a.publishedAt.localeCompare(b.publishedAt)
+        : b.publishedAt.localeCompare(a.publishedAt),
+    );
+
+    const content = lista.slice(page * size, page * size + size);
+    return HttpResponse.json({
+      content,
+      totalElements: lista.length,
+      totalPages: Math.max(1, Math.ceil(lista.length / size)),
+      page,
+      size,
+    });
+  }),
+
+  http.get(`${API}/national-norms/:id`, async ({ params }) => {
+    await delay(300);
+    const detalle = nationalNormDetailMock[params.id as string];
+    if (!detalle) {
+      return HttpResponse.json({ message: 'Norma no encontrada' }, { status: 404 });
+    }
+    return HttpResponse.json(detalle);
+  }),
+
+  // legalbases: registro en el archivo digital (multipart)
+  http.post(`${API}/national-norms/save`, async () => {
+    await delay(700);
+    return HttpResponse.json({
+      status: 'SUCCESS',
+      message: 'Documento registrado en el archivo digital (mock).',
+      id: `arch-${crypto.randomUUID().slice(0, 8)}`,
+    });
+  }),
+
+  // legal/orchestrator: análisis clínico con historial (multipart)
+  http.post(`${API}/legal/analize-with-history`, async () => {
+    await delay(1200);
+    return HttpResponse.json({
+      status: 'SUCCESS',
+      message: 'Análisis completado',
+      data: ANALISIS_IA_DEMO,
+    });
+  }),
+
+  // Resumen lateral de documentos (tier suave, vía BFF /api/legal/summarize)
+  http.post(`${API}/legal/summarize`, async () => {
+    await delay(1400);
+    return HttpResponse.json({
+      success: true,
+      message: 'Resumen generado.',
+      data: {
+        resumen:
+          'El Despacho declara probada la perturbación a la posesión sobre el inmueble de la calle 45 y ordena al querellado el cese definitivo de la obra. Se impone la restitución de la servidumbre de paso en un término de diez días hábiles.',
+        acapites: [
+          { titulo: 'Hechos', sintesis: 'Construcción irregular que invade la servidumbre de paso desde enero de 2026.' },
+          { titulo: 'Consideraciones', sintesis: 'La inspección ocular y los testimonios acreditan la perturbación.' },
+          { titulo: 'Resuelve', sintesis: 'Cese de la obra y restitución en diez días hábiles.' },
+        ],
+        razonesDePeso: [
+          'La inspección ocular constató la invasión material de la servidumbre.',
+          'El querellado no aportó licencia ni permiso que ampare la obra.',
+          'Los testimonios de los vecinos son contestes y no fueron desvirtuados.',
+        ],
+        normasCitadas: ['Ley 1801 de 2016, art. 77', 'Ley 1801 de 2016, art. 223'],
+      },
+      timestamp: new Date().toISOString(),
+    });
+  }),
+
+  // ── Fallos ───────────────────────────────────────────────────────────────
+
+  http.get(`${API}/fallos`, async ({ request }) => {
+    await delay(400);
+    const url = new URL(request.url);
+    const search = (url.searchParams.get('search') ?? '').toLowerCase();
+    const decision = url.searchParams.get('decision') ?? '';
+    const page = Number(url.searchParams.get('page') ?? 0);
+    const size = Number(url.searchParams.get('size') ?? 20);
+
+    let lista = [...fallosMock];
+    if (search) {
+      lista = lista.filter(
+        (f) =>
+          f.radicado.toLowerCase().includes(search) ||
+          f.querellante.toLowerCase().includes(search) ||
+          f.querellado.toLowerCase().includes(search) ||
+          f.comportamiento.toLowerCase().includes(search),
+      );
+    }
+    if (decision) {
+      lista = lista.filter((f) => f.decision === decision);
+    }
+    const content = lista.slice(page * size, page * size + size);
+    return HttpResponse.json({
+      content,
+      totalElements: lista.length,
+      totalPages: Math.max(1, Math.ceil(lista.length / size)),
+      page,
+      size,
+    });
+  }),
+
+  http.get(`${API}/fallos/:id`, async ({ params }) => {
+    await delay(300);
+    const fallo = fallosMock.find((f) => f.id === params.id);
+    if (!fallo) return HttpResponse.json({ message: 'Fallo no encontrado' }, { status: 404 });
+    return HttpResponse.json(fallo);
+  }),
+
+  // ── Radicaciones unificadas (MVP) ───────────────────────────────────────
+  // POST /radicaciones — radicar querella, queja, acta, apelación, fallo
+  http.post(`${API}/radicaciones`, async ({ request }) => {
+    await delay(600);
+    const contentType = request.headers.get('content-type') ?? '';
+    let body: any = {};
+
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await request.formData();
+      body = {
+        tipo: formData.get('tipo'),
+        radicadoOrigen: formData.get('radicadoOrigen'),
+        partes: formData.get('partes'),
+        fechaDecision: formData.get('fechaDecision'),
+        sustento: formData.get('sustento'),
+        documentos: formData.getAll('documentos'),
+      };
+    } else {
+      body = await request.json();
+    }
+
+    const tipo = body.tipo ?? 'querella';
+    const consecutivo = radiacionesMock.length + 1;
+    const now = new Date().toISOString().slice(0, 10);
+
+    let radicado: string;
+    let estadoInicial: string;
+    let item: any;
+
+    switch (tipo) {
+      case 'apelacion':
+        radicado = `2026-AP-${String(consecutivo).padStart(4, '0')}`;
+        estadoInicial = 'radicada';
+        item = {
+          id: `rad-${crypto.randomUUID().slice(0, 8)}`,
+          tipo: 'apelacion',
+          radicado,
+          fechaRadicacion: now,
+          estado: estadoInicial,
+          radicadoOrigen: body.radicadoOrigen,
+          partes: body.partes,
+          fechaDecision: body.fechaDecision,
+          sustento: body.sustento,
+          documentos: Array.isArray(body.documentos) ? body.documentos.map((f: File) => ({ nombre: f.name, tipo: f.type })) : [],
+        };
+        break;
+      case 'fallo':
+        radicado = `2026-F2-${String(consecutivo).padStart(4, '0')}`;
+        estadoInicial = 'radicada';
+        item = {
+          id: `rad-${crypto.randomUUID().slice(0, 8)}`,
+          tipo: 'fallo',
+          radicado,
+          fechaRadicacion: now,
+          estado: estadoInicial,
+          radicadoOrigen: body.radicadoOrigen,
+          partes: body.partes,
+          fechaDecision: body.fechaDecision,
+          sustento: body.sustento,
+          documentos: Array.isArray(body.documentos) ? body.documentos.map((f: File) => ({ nombre: f.name, tipo: f.type })) : [],
+        };
+        break;
+      case 'acta_firmeza':
+        radicado = `2026-AF-${String(consecutivo).padStart(4, '0')}`;
+        estadoInicial = 'pendiente';
+        item = {
+          id: `rad-${crypto.randomUUID().slice(0, 8)}`,
+          tipo: 'acta_firmeza',
+          radicado,
+          fechaRadicacion: now,
+          estado: estadoInicial,
+          ...body,
+        };
+        break;
+      default:
+        radicado = `2026-${String(200 + consecutivo).padStart(5, '0')}`;
+        estadoInicial = 'radicada';
+        item = {
+          id: `rad-${crypto.randomUUID().slice(0, 8)}`,
+          tipo,
+          radicado,
+          fechaRadicacion: now,
+          estado: estadoInicial,
+          ...body,
+        };
+    }
+
+    radiacionesMock.unshift(item);
+
+    // Si es acta_firmeza, también crear entrada en actasMock para la cola
+    if (tipo === 'acta_firmeza') {
+      actasMock.push({
+        id: item.id,
+        estado: 'pendiente',
+        datos: body.datosActa ?? {},
+      });
+    }
+
+    return HttpResponse.json(
+      { id: item.id, radicado: item.radicado, fechaRadicacion: item.fechaRadicacion, estado: item.estado },
+      { status: 201 },
+    );
+  }),
+
+  // GET /radicaciones — listar radiaciones con filtro por tipo
+  http.get(`${API}/radicaciones`, async ({ request }) => {
+    await delay(300);
+    const url = new URL(request.url);
+    const tipo = url.searchParams.get('tipo');
+    let lista = radiacionesMock;
+    if (tipo) {
+      lista = lista.filter((r) => r.tipo === tipo);
+    }
+    return HttpResponse.json(lista);
+  }),
+
+  // PATCH /actas/:id/estado — cambiar estado de acta (pendiente → generada → revisada → expedida)
+  http.patch(`${API}/actas/:id/estado`, async ({ params, request }) => {
+    await delay(400);
+    const { estado } = (await request.json()) as { estado: 'pendiente' | 'generada' | 'revisada' | 'expedida' };
+    const acta = actasMock.find((a) => a.id === params.id);
+    if (!acta) {
+      return HttpResponse.json({ message: 'Acta no encontrada' }, { status: 404 });
+    }
+    acta.estado = estado;
+    const rad = radiacionesMock.find((r) => r.id === params.id);
+    if (rad) rad.estado = estado;
+    return HttpResponse.json({ id: acta.id, estado: acta.estado });
+  }),
+
+  // GET /actas — listar actas con filtro por estado
+  http.get(`${API}/actas`, async ({ request }) => {
+    await delay(300);
+    const url = new URL(request.url);
+    const estado = url.searchParams.get('estado');
+    let lista = actasMock;
+    if (estado) {
+      lista = lista.filter((a) => a.estado === estado);
+    }
+    return HttpResponse.json(lista);
+  }),
+
+  // POST /actas/lote — generar actas en lote desde comparendos vencidos
+  http.post(`${API}/actas/lote`, async ({ request }) => {
+    await delay(800);
+    const body = (await request.json()) as { comparendos: Array<{ comparendo: string; solicitado: string; cedula: string; fechaComparendo: string; tipoMulta: number; causal: string }> };
+    const now = new Date().toISOString().slice(0, 10);
+    const generadas = body.comparendos.map((c, i) => {
+      const id = `act-lote-${crypto.randomUUID().slice(0, 8)}`;
+      const radicado = `2026-AF-L${String(i + 1).padStart(4, '0')}`;
+      const item = {
+        id,
+        tipo: 'acta_firmeza' as const,
+        radicado,
+        fechaRadicacion: now,
+        estado: 'pendiente',
+      };
+      radiacionesMock.unshift(item);
+      actasMock.push({
+        id,
+        estado: 'pendiente',
+        datos: c,
+      });
+      return item;
+    });
+    return HttpResponse.json({ generadas: generadas.length, items: generadas }, { status: 201 });
+  }),
+
+  // ── Recepción de caso: agente de radicación ────────────────────────────────
+  // Simula un agente especializado en Ley 1801/2016 que guía el intake turn-a-turn.
+  // La respuesta incluye marcadores <case_update>{json}</case_update> que el frontend
+  // extrae para poblar la ficha de radicación en tiempo real.
+  http.post(`${API}/intake/chat`, async ({ request }) => {
+    const body = (await request.json()) as { mensaje: string; turno: number };
+    const { mensaje, turno } = body;
+    const msg = mensaje.toLowerCase();
+
+    let respuesta: string;
+
+    if (turno === 0) {
+      if (
+        msg.includes('posesión') || msg.includes('posesion') ||
+        msg.includes('vecino') || msg.includes('garaje') ||
+        msg.includes('cerramiento') || msg.includes('paso') ||
+        msg.includes('muro') || msg.includes('inmueble') ||
+        msg.includes('construcción') || msg.includes('construccion')
+      ) {
+        const upd = JSON.stringify({
+          tipo: 'querella',
+          viaProcesal: 'verbal_abreviado',
+          comportamiento: 'Perturbación a la posesión — interferencia con el acceso o uso del inmueble',
+          articuloInfringido: 'Art. 77 Ley 1801 de 2016',
+          proximoPaso: 'Citar a audiencia dentro de los 5 días hábiles siguientes a la radicación (Art. 223 Ley 1801/2016)',
+        });
+        respuesta = `Lo que describe corresponde a una **perturbación a la posesión** contemplada en el artículo 77 del Código Nacional de Seguridad y Convivencia Ciudadana (Ley 1801 de 2016).\n\nEl trámite aplicable es el **Proceso Verbal Abreviado**.\n\nPara radicar la querella necesito los datos de las partes. ¿Me indica el nombre completo del **querellante** — la persona que presenta la solicitud?\n<case_update>${upd}</case_update>`;
+      } else if (
+        msg.includes('ruido') || msg.includes('música') || msg.includes('musica') ||
+        msg.includes('escándalo') || msg.includes('escandalo') ||
+        msg.includes('bulla') || msg.includes('sonido') || msg.includes('bocina')
+      ) {
+        const upd = JSON.stringify({
+          tipo: 'querella',
+          viaProcesal: 'verbal_abreviado',
+          comportamiento: 'Perturbación a la tranquilidad — ruido excesivo en horario de descanso',
+          articuloInfringido: 'Art. 33 Ley 1801 de 2016',
+          proximoPaso: 'Citar a audiencia dentro de los 5 días hábiles (Art. 223 Ley 1801/2016)',
+        });
+        respuesta = `Lo que describe corresponde a **perturbación a la tranquilidad** según el artículo 33 de la Ley 1801 de 2016. Se tramita por **Proceso Verbal Abreviado**.\n\n¿Cuál es el nombre completo del **querellante**?\n<case_update>${upd}</case_update>`;
+      } else if (
+        msg.includes('espacio') || msg.includes('andén') || msg.includes('anden') ||
+        msg.includes('basura') || msg.includes('escombros') || msg.includes('residuos')
+      ) {
+        const upd = JSON.stringify({
+          tipo: 'querella',
+          viaProcesal: 'verbal_abreviado',
+          comportamiento: 'Perturbación por uso indebido del espacio público o arrojo de residuos',
+          articuloInfringido: 'Art. 92 Ley 1801 de 2016',
+          proximoPaso: 'Citar a audiencia dentro de los 5 días hábiles (Art. 223 Ley 1801/2016)',
+        });
+        respuesta = `Lo que describe corresponde a **uso indebido del espacio público** o **arrojo de residuos** según los artículos 92 y 140 de la Ley 1801 de 2016. Trámite: **Proceso Verbal Abreviado**.\n\n¿Cuál es el nombre completo del **querellante**?\n<case_update>${upd}</case_update>`;
+      } else {
+        respuesta = `Entendido. Para clasificar correctamente esta solicitud, ¿podría describir con mayor precisión qué tipo de comportamiento se reporta?\n\nPor ejemplo: ruido excesivo, conflicto de vecinos, construcción irregular, ocupación de andén, amenazas verbales, entre otros.`;
+      }
+    } else if (turno === 1) {
+      const nombre = mensaje.trim();
+      const upd = JSON.stringify({ querellante: nombre });
+      respuesta = `Registrado como querellante: **${nombre}**.\n\n¿Cuál es el nombre completo del **querellado** — la persona contra quien se dirige la solicitud?\n<case_update>${upd}</case_update>`;
+    } else if (turno === 2) {
+      const nombre = mensaje.trim();
+      const upd = JSON.stringify({ querellado: nombre });
+      respuesta = `Perfecto. Querellado registrado: **${nombre}**.\n\nLa ficha está lista para radicar. Si cuenta con **pruebas documentales** (fotografías, PDF o escritos), adjúntelas con el clip para que queden radicadas con el expediente.\n\nRevise los datos en el panel derecho y presione **"Radicar caso"** para crear el expediente y continuar con la citación a audiencia.\n<case_update>${upd}</case_update>`;
+    } else {
+      respuesta = `Los datos están completos. Una vez radicado el caso, la parte querellada será notificada y citada a audiencia conforme al artículo 223 de la Ley 1801 de 2016.\n\n¿Desea agregar alguna **anotación adicional** antes de radicar?`;
+    }
+
+    const palabras = respuesta.split(' ');
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        for (const p of palabras) {
+          controller.enqueue(encoder.encode(p + ' '));
+          await delay(28);
+        }
+        controller.close();
+      },
+    });
+
+    return new HttpResponse(stream, {
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+    });
+  }),
+
+  // Asistente IA: respuesta en streaming token-a-token (simula Spring AI /legal/chat)
+  http.post(`${API}/legal/chat`, async () => {
     const palabras = RESPUESTA_IA_DEMO.split(' ');
     const encoder = new TextEncoder();
 

@@ -27,6 +27,9 @@ import {
 import { calcularTermino } from '@/shared/terminos/diasHabiles';
 import { CaseAssistant } from '@/shared/ai/CaseAssistant';
 import { SiguientePasoQueja } from './SiguientePasoQueja';
+import { DocumentosExpediente } from '@/shared/documentos/DocumentosExpediente';
+import { EtapaProcesal } from '@/shared/components/EtapaProcesal';
+import { ETAPAS_QUEJA, ETAPA_QUEJA_ACTIVA } from '@/derecho';
 import { ELEVACION, PALETA } from '@/theme/theme';
 
 const { Title, Text } = Typography;
@@ -132,7 +135,7 @@ export function QuejaDetailPage() {
         title="Queja no encontrada"
         subTitle="El expediente que buscas no existe o fue archivado."
         extra={
-          <Button type="primary" onClick={() => navigate('/quejas')}>
+          <Button type="primary" onClick={() => navigate('/panel/quejas')}>
             Volver a quejas
           </Button>
         }
@@ -203,6 +206,11 @@ export function QuejaDetailPage() {
         />
       ),
     },
+    {
+      key: 'documentos',
+      label: `Documentos (${data.documentos?.length ?? 0})`,
+      children: <DocumentosExpediente iniciales={data.documentos ?? []} />,
+    },
   ];
 
   return (
@@ -210,7 +218,7 @@ export function QuejaDetailPage() {
       <Button
         type="text"
         icon={<ArrowLeftOutlined />}
-        onClick={() => navigate('/quejas')}
+        onClick={() => navigate('/panel/quejas')}
         style={{ marginBottom: 10, paddingLeft: 0 }}
       >
         Volver a quejas
@@ -224,14 +232,18 @@ export function QuejaDetailPage() {
           {ESTADO_QUEJA_LABEL[data.estado]}
         </Tag>
       </Space>
-      <div style={{ marginBottom: 20 }}>
+      <div>
         <Text type="secondary" style={{ fontSize: 15 }}>
           {data.asunto}
         </Text>
       </div>
 
+      <div style={{ marginBottom: 26 }}>
+        <EtapaProcesal etapas={[...ETAPAS_QUEJA]} activa={ETAPA_QUEJA_ACTIVA[data.estado]} />
+      </div>
+
       <div style={{ marginBottom: 24 }}>
-        <SiguientePasoQueja id={data.id} estado={data.estado} />
+        <SiguientePasoQueja queja={data} />
       </div>
 
       <Row gutter={[24, 24]}>

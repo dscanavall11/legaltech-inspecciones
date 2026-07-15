@@ -39,7 +39,7 @@ export function useAiChat(contextoCaso?: { tipo: string; id: string }) {
       abortRef.current = controller;
 
       try {
-        const res = await fetch(`${BASE_URL}/ai/chat`, {
+        const res = await fetch(`${BASE_URL}/legal/chat`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mensaje: texto, contexto: contextoCaso }),

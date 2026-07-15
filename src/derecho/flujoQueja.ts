@@ -1,5 +1,14 @@
-import type { EstadoQueja } from './types';
+import type { EstadoQueja } from '@/features/quejas/types';
+import { ARTICULOS } from './normativa';
 
+/**
+ * Máquina de estados del trámite de una queja (mediación y conciliación
+ * ante el inspector, Ley 1801 de 2016, arts. 231 a 233). Si la conciliación
+ * fracasa, el asunto puede tomar la vía de querella por proceso verbal
+ * abreviado.
+ *
+ * ⚠️ Las reglas procesales deben validarse con el equipo legal.
+ */
 export type AccionQuejaTipo =
   | 'citar_conciliacion'
   | 'registrar_conciliacion'
@@ -23,8 +32,7 @@ export function siguientePasoQueja(estado: EstadoQueja): PasoFlujoQueja {
     case 'radicada':
     case 'en_tramite':
       return {
-        mensaje:
-          'Avoca conocimiento y cita a las partes a la audiencia de conciliación.',
+        mensaje: `Queja radicada. Avoque conocimiento y cite a las partes a audiencia de conciliación (${ARTICULOS.conciliacion}).`,
         acciones: [
           {
             tipo: 'citar_conciliacion',
@@ -38,11 +46,11 @@ export function siguientePasoQueja(estado: EstadoQueja): PasoFlujoQueja {
     case 'conciliacion_programada':
       return {
         mensaje:
-          'Celebrada la audiencia, registra si las partes llegaron a acuerdo.',
+          'Audiencia de conciliación citada. Celebrada la diligencia, suscriba el acta de conciliación o deje constancia de no acuerdo.',
         acciones: [
           {
             tipo: 'registrar_conciliacion',
-            label: 'Registrar resultado',
+            label: 'Suscribir acta de conciliación',
             primaria: true,
           },
         ],
@@ -52,9 +60,9 @@ export function siguientePasoQueja(estado: EstadoQueja): PasoFlujoQueja {
     case 'conciliada':
       return {
         mensaje:
-          'Las partes llegaron a acuerdo. Archiva el expediente o genera el acta.',
+          'Las partes conciliaron. El acta presta mérito ejecutivo y hace tránsito a cosa juzgada; ordene el archivo del expediente.',
         acciones: [
-          { tipo: 'archivar', label: 'Archivar expediente', primaria: true },
+          { tipo: 'archivar', label: 'Ordenar archivo', primaria: true },
         ],
         terminal: false,
       };
@@ -62,21 +70,21 @@ export function siguientePasoQueja(estado: EstadoQueja): PasoFlujoQueja {
     case 'sin_acuerdo':
       return {
         mensaje:
-          'No hubo acuerdo en conciliación. Puedes convertir el asunto en querella formal o archivar.',
+          'No hubo ánimo conciliatorio. Puede dar a la queja trámite de querella mediante proceso verbal abreviado, u ordenar el archivo.',
         acciones: [
           {
             tipo: 'convertir_querella',
-            label: 'Convertir en querella',
+            label: 'Dar trámite de querella',
             primaria: true,
           },
-          { tipo: 'archivar', label: 'Archivar', primaria: false },
+          { tipo: 'archivar', label: 'Ordenar archivo', primaria: false },
         ],
         terminal: false,
       };
 
     case 'archivada':
       return {
-        mensaje: 'El expediente fue archivado y el trámite se dio por terminado.',
+        mensaje: 'Expediente archivado. El trámite concluyó.',
         acciones: [],
         terminal: true,
       };

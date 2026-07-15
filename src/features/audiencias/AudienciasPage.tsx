@@ -18,15 +18,18 @@ function FilaAudiencia({ a }: { a: Audiencia }) {
   const fecha = dayjs(a.fecha);
   const badge = diasTexto(a.fecha);
   return (
-    <Link to={`/querellas/${a.querellaId}`}>
+    <Link to={`/panel/querellas/${a.querellaId}`}>
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           gap: 16,
-          padding: '14px 4px',
-          borderBottom: `1px solid ${PALETA.borde}`,
+          padding: '14px 16px',
+          borderRadius: 18,
+          transition: 'background 0.2s ease',
         }}
+        onMouseEnter={(e) => (e.currentTarget.style.background = '#f7f9fc')}
+        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
       >
         {/* Bloque de fecha */}
         <div
@@ -47,7 +50,7 @@ function FilaAudiencia({ a }: { a: Audiencia }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <Text strong>{a.asunto}</Text>
           <div style={{ fontSize: 13, color: PALETA.textoSuave }}>
-            {a.querellante} vs. {a.querellado} · Radicado {a.radicado}
+            {a.querellante} contra {a.querellado} · Radicado {a.radicado}
           </div>
           <div style={{ fontSize: 13, color: PALETA.textoTenue, marginTop: 2 }}>
             <ClockCircleOutlined /> {fecha.format('h:mm a')}

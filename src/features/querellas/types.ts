@@ -1,3 +1,5 @@
+import type { DocumentoCaso } from '@/shared/documentos/types';
+
 export type EstadoQuerella =
   | 'radicada'
   | 'en_tramite'
@@ -56,4 +58,5 @@ export interface Actuacion {
 export interface QuerellaDetalle extends Querella {
   direccionInmueble?: string;
   actuaciones: Actuacion[];
+  documentos: DocumentoCaso[];
 }

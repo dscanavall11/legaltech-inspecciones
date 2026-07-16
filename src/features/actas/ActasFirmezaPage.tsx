@@ -14,12 +14,10 @@ import {
 import {
   DownloadOutlined,
   FilePdfOutlined,
-  PictureOutlined,
   PrinterOutlined,
   UploadOutlined,
   SearchOutlined,
   SafetyCertificateOutlined,
-  DeleteOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import {
@@ -37,10 +35,10 @@ import { COMPARENDOS_DEMO, parsearBdComparendos, type Comparendo, type ReporteIm
 import { extraerComparendoPdf } from './extraerComparendoPdf';
 import { descargarActaPdf } from './actaPdf';
 import { ELEVACION, PALETA } from '@/theme/theme';
+import { useInspeccionStore } from '@/store/inspeccionStore';
 
 const { Title, Text } = Typography;
 
-const CLAVE_MEMBRETE = 'acta-firmeza:membrete';
 const CLAVE_DESPACHO = 'acta-firmeza:despacho';
 
 const DATOS_INICIALES: DatosActaFirmeza = {
@@ -127,10 +125,19 @@ function Tarjeta({ children, style }: { children: ReactNode; style?: React.CSSPr
 
 export function ActasFirmezaPage() {
   const { message } = App.useApp();
+  const inspeccion = useInspeccionStore((s) => s.config);
   const [ruta, setRuta] = useState<'pdf' | 'excel'>('pdf');
   const [datos, setDatos] = useState<DatosActaFirmeza>(() => {
+    // Prioridad: store de inspección (contexto persistido) > recuerdo local > defaults.
     const despacho = localStorage.getItem(CLAVE_DESPACHO);
-    return despacho ? { ...DATOS_INICIALES, ...JSON.parse(despacho) } : DATOS_INICIALES;
+    const base = despacho ? { ...DATOS_INICIALES, ...JSON.parse(despacho) } : DATOS_INICIALES;
+    const store = useInspeccionStore.getState().config;
+    return {
+      ...base,
+      municipio: store.municipio || base.municipio,
+      inspectorNombre: store.inspectorNombre || base.inspectorNombre,
+      inspeccion: store.inspeccion || base.inspeccion,
+    };
   });
   const [bd, setBd] = useState<Comparendo[]>(COMPARENDOS_DEMO);
   const [origenBd, setOrigenBd] = useState<'demo' | 'archivo'>('demo');
@@ -139,10 +146,8 @@ export function ActasFirmezaPage() {
   const [camposExtraidos, setCamposExtraidos] = useState<(keyof Comparendo)[]>([]);
   const [pdfEscaneado, setPdfEscaneado] = useState(false);
   const [reporteImportacion, setReporteImportacion] = useState<ReporteImportacion | null>(null);
-  const [membrete, setMembrete] = useState<string | null>(() => localStorage.getItem(CLAVE_MEMBRETE));
   const archivoBdRef = useRef<HTMLInputElement>(null);
   const archivoPdfRef = useRef<HTMLInputElement>(null);
-  const archivoMembreteRef = useRef<HTMLInputElement>(null);
 
   function set<K extends keyof DatosActaFirmeza>(k: K, v: DatosActaFirmeza[K]) {
     setDatos((prev) => ({ ...prev, [k]: v }));
@@ -228,23 +233,6 @@ export function ActasFirmezaPage() {
     if (c.causal !== 'ninguna') {
       message.info(`La BD registra reincidencia: ${INCREMENTO_LABEL[c.causal]}.`);
     }
-  }
-
-  // ── Membrete del despacho ────────────────────────────────────────────
-  function cargarMembrete(archivo: File | undefined) {
-    if (!archivo) return;
-    const lector = new FileReader();
-    lector.onload = () => {
-      const dataUrl = String(lector.result);
-      setMembrete(dataUrl);
-      try {
-        localStorage.setItem(CLAVE_MEMBRETE, dataUrl);
-      } catch {
-        message.warning('El membrete es muy pesado para recordarlo entre sesiones; se usará solo en esta.');
-      }
-    };
-    lector.readAsDataURL(archivo);
-    if (archivoMembreteRef.current) archivoMembreteRef.current.value = '';
   }
 
   // ── Términos y acta ──────────────────────────────────────────────────
@@ -587,27 +575,18 @@ export function ActasFirmezaPage() {
             </CampoActa>
 
             <CampoActa label="Membrete de la alcaldía (encabezado del acta)">
-              <input
-                ref={archivoMembreteRef}
-                type="file"
-                accept="image/png,image/jpeg"
-                style={{ display: 'none' }}
-                onChange={(e) => cargarMembrete(e.target.files?.[0])}
-              />
-              <div style={{ display: 'flex', gap: 8 }}>
-                <Button icon={<PictureOutlined />} onClick={() => archivoMembreteRef.current?.click()} block>
-                  {membrete ? 'Cambiar membrete' : 'Cargar membrete (PNG/JPG)'}
-                </Button>
-                {membrete && (
-                  <Button
-                    icon={<DeleteOutlined />}
-                    aria-label="Quitar membrete"
-                    onClick={() => {
-                      setMembrete(null);
-                      localStorage.removeItem(CLAVE_MEMBRETE);
-                    }}
-                  />
-                )}
+              <div
+                style={{
+                  background: inspeccion.membreteDataUrl ? PALETA.azulSuave : '#f1f3f4',
+                  borderRadius: 12,
+                  padding: '10px 14px',
+                  fontSize: 13,
+                  color: inspeccion.membreteDataUrl ? PALETA.azulOscuro : PALETA.textoSuave,
+                }}
+              >
+                {inspeccion.membreteDataUrl
+                  ? 'Membrete cargado desde la configuración de la inspección.'
+                  : 'Aún no hay membrete. Ábrelo con el asistente "Configurar inspección" (botón flotante) para guardarlo una vez.'}
               </div>
             </CampoActa>
 
@@ -618,7 +597,7 @@ export function ActasFirmezaPage() {
                 block
                 icon={<DownloadOutlined />}
                 disabled={!acta || apelo}
-                onClick={() => acta && descargarActaPdf(acta, membrete)}
+                onClick={() => acta && descargarActaPdf(acta, inspeccion.membreteDataUrl)}
                 style={{ fontWeight: 600 }}
               >
                 Descargar PDF
@@ -668,10 +647,10 @@ export function ActasFirmezaPage() {
                 color: '#1b1b1f',
               }}
             >
-              {membrete && (
+              {inspeccion.membreteDataUrl && (
                 <div style={{ textAlign: 'center', marginBottom: 16 }}>
                   <img
-                    src={membrete}
+                    src={inspeccion.membreteDataUrl}
                     alt="Membrete de la alcaldía"
                     style={{ maxWidth: '100%', maxHeight: 96, objectFit: 'contain' }}
                   />

@@ -1,10 +1,12 @@
-import { Card, Col, Row, Typography, Tag, Empty, Skeleton } from 'antd';
+import { Card, Col, Row, Typography, Tag, Empty, Skeleton, Button } from 'antd';
 import {
   FileTextOutlined,
   CalendarOutlined,
   WarningOutlined,
   CheckCircleOutlined,
   RightOutlined,
+  PlusSquareOutlined,
+  InboxOutlined,
 } from '@ant-design/icons';
 import { useState, type ReactNode } from 'react';
 import dayjs from 'dayjs';
@@ -129,6 +131,7 @@ export function DashboardPage() {
   const { data, isLoading } = useQuerellas();
   const { data: audienciasData } = useAudiencias();
   const usuario = useAuth((s) => s.usuario);
+  const navigate = useNavigate();
   const querellas = data ?? [];
 
   const enTramite = querellas.filter(
@@ -184,6 +187,26 @@ export function DashboardPage() {
       <Text type="secondary" style={{ fontSize: 16 }}>
         Este es el estado de tu despacho hoy.
       </Text>
+
+      <div style={{ marginTop: 18, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <Button
+          type="primary"
+          size="large"
+          icon={<PlusSquareOutlined />}
+          onClick={() => navigate('/panel/radicador')}
+          style={{ fontWeight: 600, borderRadius: 12, height: 46 }}
+        >
+          Radicar nuevo caso
+        </Button>
+        <Button
+          size="large"
+          icon={<InboxOutlined />}
+          onClick={() => navigate('/panel/cola')}
+          style={{ borderRadius: 12, height: 46 }}
+        >
+          Ver cola de trabajo
+        </Button>
+      </div>
 
       <Row gutter={[20, 20]} style={{ marginTop: 28 }}>
         <Col xs={24} sm={12} lg={6}>

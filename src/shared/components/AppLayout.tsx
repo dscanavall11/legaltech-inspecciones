@@ -12,12 +12,15 @@ import {
   FolderOpenOutlined,
   BookOutlined,
   LeftOutlined,
+  InboxOutlined,
+  PlusSquareOutlined,
 } from '@ant-design/icons';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { FontSizeControl } from './FontSizeControl';
 import { StatusBar } from './StatusBar';
 import { CommandPalette } from './CommandPalette';
 import { AiAssistant } from '@/shared/ai/AiAssistant';
+import { ConfigAssistant } from '@/shared/ai/ConfigAssistant';
 import { useAuth } from '@/shared/auth/auth';
 import { PALETA, ELEVACION } from '@/theme/theme';
 
@@ -59,6 +62,16 @@ const MENU_ITEMS_COMPLETO = [
     label: 'Gestión',
     children: [
       {
+        key: '/panel/radicador',
+        icon: <PlusSquareOutlined />,
+        label: <Link to="/panel/radicador">Radicador</Link>,
+      },
+      {
+        key: '/panel/cola',
+        icon: <InboxOutlined />,
+        label: <Link to="/panel/cola">Cola de trabajo</Link>,
+      },
+      {
         key: '/panel/actas-firmeza',
         icon: <SafetyCertificateOutlined />,
         label: <Link to="/panel/actas-firmeza">Actas de firmeza</Link>,
@@ -94,6 +107,8 @@ const NAV_RUTAS_COMPLETO = [
   '/panel/querellas',
   '/panel/quejas',
   '/panel/audiencias',
+  '/panel/radicador',
+  '/panel/cola',
   '/panel/actas-firmeza',
   '/panel/medidas-correctivas',
   '/panel/normas',
@@ -274,6 +289,7 @@ export function AppLayout() {
       </Layout>
 
       <AiAssistant />
+      <ConfigAssistant />
       <CommandPalette />
     </Layout>
   );

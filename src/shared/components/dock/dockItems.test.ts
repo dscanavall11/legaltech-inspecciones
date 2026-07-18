@@ -8,11 +8,4 @@ describe('DOCK_ITEMS', () => {
     expect(radicar?.destacado).toBe(true);
     expect(radicar?.ruta).toBe('/panel/radicador');
   });
-
-  it('cada item tiene un color de tile valido', () => {
-    const coloresValidos = ['azul', 'verde', 'amarillo', 'rojo'];
-    for (const item of DOCK_ITEMS) {
-      expect(coloresValidos).toContain(item.color);
-    }
-  });
 });

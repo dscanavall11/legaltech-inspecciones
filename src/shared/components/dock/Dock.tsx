@@ -1,31 +1,25 @@
 import type { ReactNode } from 'react';
 import { motion, useMotionValue, useReducedMotion } from 'motion/react';
-import { Tooltip } from 'antd';
 import {
-  AppstoreOutlined,
-  FileTextOutlined,
+  HomeOutlined,
+  FolderOutlined,
   CalendarOutlined,
   SafetyCertificateOutlined,
-  MessageOutlined,
-  BookOutlined,
-  PlusSquareOutlined,
-  TableOutlined,
+  PlusOutlined,
 } from '@ant-design/icons';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { DOCK_ITEMS, type DockIconKey } from './dockItems';
 import { DockIcon } from './DockIcon';
-import { PALETA, ELEVACION } from '@/theme/theme';
-import { sombraGlass, fondoGlass } from '@/theme/glass';
+import { PALETA } from '@/theme/theme';
+import { glassBackground, glassShadowLiquid } from '@/theme/glass';
 import { usePrefersReducedTransparency } from '@/shared/hooks/usePrefersReducedTransparency';
 
 const ICONOS_DOCK: Record<DockIconKey, ReactNode> = {
-  inicio: <AppstoreOutlined />,
-  querellas: <FileTextOutlined />,
-  quejas: <MessageOutlined />,
+  inicio: <HomeOutlined />,
+  querellas: <FolderOutlined />,
   audiencias: <CalendarOutlined />,
   'actas-firmeza': <SafetyCertificateOutlined />,
-  normas: <BookOutlined />,
-  radicar: <PlusSquareOutlined />,
+  radicar: <PlusOutlined />,
 };
 
 interface DockProps {
@@ -38,6 +32,10 @@ export function Dock({ onAbrirLaunchpad }: DockProps) {
   const mouseY = useMotionValue(Infinity);
   const location = useLocation();
   const navigate = useNavigate();
+  const glassBg = glassBackground(reducirTransparencia);
+  // El botón "+" del Launchpad se eliminó; el acceso queda por teclado
+  // (Cmd/Ctrl + Shift + L, gestionado en AppLayout) y CommandPalette.
+  void onAbrirLaunchpad;
 
   return (
     <motion.div
@@ -47,22 +45,18 @@ export function Dock({ onAbrirLaunchpad }: DockProps) {
       onPointerLeave={() => mouseY.set(Infinity)}
       style={{
         position: 'fixed',
-        left: 16,
+        left: 20,
         top: '50%',
         transform: 'translateY(-50%)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: 10,
-        padding: '16px 10px',
-        borderRadius: 24,
-        background: reducirTransparencia
-          ? PALETA.superficie
-          : fondoGlass('rgba(255, 255, 255, 0.72)'),
-        backdropFilter: reducirTransparencia ? 'none' : 'blur(20px) saturate(180%)',
-        WebkitBackdropFilter: reducirTransparencia ? 'none' : 'blur(20px) saturate(180%)',
+        gap: 16,
+        padding: '24px 14px',
+        borderRadius: 28,
+        ...glassBg,
         border: `1px solid ${PALETA.borde}`,
-        boxShadow: sombraGlass(ELEVACION.media),
+        boxShadow: glassShadowLiquid(PALETA.azul, 'high'),
         zIndex: 20,
         maxHeight: 'calc(100vh - 32px)',
         overflowY: 'auto',
@@ -78,7 +72,6 @@ export function Dock({ onAbrirLaunchpad }: DockProps) {
             key={item.key}
             icon={ICONOS_DOCK[item.iconKey]}
             label={item.label}
-            color={item.color}
             destacado={item.destacado}
             activo={activo}
             onClick={() => navigate(item.ruta)}
@@ -87,33 +80,10 @@ export function Dock({ onAbrirLaunchpad }: DockProps) {
         );
       })}
 
-      <div
-        style={{ height: 1, alignSelf: 'stretch', background: PALETA.borde, margin: '2px 4px' }}
-      />
-
-      <Tooltip title="Más" placement="right">
-        <motion.button
-          onClick={onAbrirLaunchpad}
-          aria-label="Abrir Launchpad"
-          whileHover={reducirMovimiento ? undefined : { scale: 1.15 }}
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: 14,
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 18,
-            background: 'transparent',
-            color: PALETA.textoSuave,
-            flexShrink: 0,
-          }}
-        >
-          <TableOutlined />
-        </motion.button>
-      </Tooltip>
+      {/* El botón "+" que abría el Launchpad se eliminó por petición del usuario.
+          El Launchpad sigue accesible con Cmd/Ctrl + Shift + L (gestionado en AppLayout)
+          y desde el CommandPalette (Cmd/Ctrl + K). */}
+      {false && onAbrirLaunchpad}
     </motion.div>
   );
 }

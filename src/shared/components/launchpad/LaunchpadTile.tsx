@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import { PALETA, ELEVACION } from '@/theme/theme';
-import { usePrefersReducedTransparency } from '@/shared/hooks/usePrefersReducedTransparency';
+import { GlassTile } from '@/shared/components/glass/GlassPanel';
+import { PALETA } from '@/theme/theme';
 
 interface LaunchpadTileProps {
   icon: ReactNode;
@@ -9,39 +9,29 @@ interface LaunchpadTileProps {
 }
 
 export function LaunchpadTile({ icon, label, onClick }: LaunchpadTileProps) {
-  const reducirTransparencia = usePrefersReducedTransparency();
-
   return (
-    <button
+    <GlassTile
       onClick={onClick}
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 10,
-        width: 132,
-        padding: '20px 12px',
-        borderRadius: 20,
-        border: `1px solid ${PALETA.borde}`,
-        background: reducirTransparencia ? PALETA.superficie : 'rgba(255,255,255,0.85)',
-        backdropFilter: reducirTransparencia ? 'none' : undefined,
-        boxShadow: ELEVACION.base,
-        cursor: 'pointer',
-        transition: 'transform 160ms ease, box-shadow 160ms ease',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'translateY(-2px)';
-        e.currentTarget.style.boxShadow = ELEVACION.media;
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = 'none';
-        e.currentTarget.style.boxShadow = ELEVACION.base;
-      }}
+      padding="20px 12px"
+      radius={20}
+      accent={PALETA.azul}
+      elevation="level2"
+      role="button"
+      aria-label={label}
+      tabIndex={0}
+      style={{ width: 132, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}
     >
       <span style={{ fontSize: 28, color: PALETA.azul }}>{icon}</span>
-      <span style={{ fontSize: 13, fontWeight: 500, color: PALETA.texto, textAlign: 'center' }}>
+      <span
+        style={{
+          fontSize: 13,
+          fontWeight: 500,
+          color: PALETA.texto,
+          textAlign: 'center',
+        }}
+      >
         {label}
       </span>
-    </button>
+    </GlassTile>
   );
 }

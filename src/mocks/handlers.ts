@@ -122,6 +122,28 @@ export const handlers = [
     return HttpResponse.json(audienciasMock);
   }),
 
+  // Programar una audiencia para un caso que aún no tiene fecha
+  http.post(`${API}/audiencias`, async ({ request }) => {
+    await delay(400);
+    const body = (await request.json()) as { querellaId?: string; fecha?: string };
+    const querella = querellasMock.find((q) => q.id === body.querellaId);
+    if (!querella || !body.fecha) {
+      return HttpResponse.json({ message: 'querellaId y fecha son requeridos' }, { status: 400 });
+    }
+    const nueva = {
+      id: `aud-${crypto.randomUUID().slice(0, 8)}`,
+      querellaId: querella.id,
+      radicado: querella.radicado,
+      fecha: body.fecha,
+      asunto: querella.asunto,
+      querellante: querella.querellante,
+      querellado: querella.querellado,
+    };
+    audienciasMock.push(nueva);
+    querella.estado = 'audiencia_programada';
+    return HttpResponse.json(nueva, { status: 201 });
+  }),
+
   // Detalle de una querella (incluye actuaciones del expediente)
   http.get(`${API}/querellas/:id`, async ({ params }) => {
     await delay(300);

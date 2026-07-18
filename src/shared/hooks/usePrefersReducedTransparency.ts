@@ -19,7 +19,7 @@ function leerPreferencia(): boolean {
  * nunca lanza.
  */
 export function usePrefersReducedTransparency(): boolean {
-  const [reducirTransparencia, setReducirTransparencia] = useState(leerPreferencia);
+  const [reducirTransparencia, setReducirTransparencia] = useState<boolean>(leerPreferencia);
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
@@ -40,5 +40,5 @@ export function usePrefersReducedTransparency(): boolean {
     return () => mql.removeEventListener('change', onChange);
   }, []);
 
-  return reducirTransparencia;
+  return !!reducirTransparencia;
 }

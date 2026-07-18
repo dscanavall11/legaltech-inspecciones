@@ -1,14 +1,28 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
-import { InboxOutlined, DollarOutlined, RobotOutlined, SettingOutlined } from '@ant-design/icons';
-import { LAUNCHPAD_ITEMS, type LaunchpadIconKey, type LaunchpadItem } from './launchpadItems';
+import {
+  InboxOutlined,
+  DollarOutlined,
+  RobotOutlined,
+  SettingOutlined,
+  MessageOutlined,
+  BookOutlined,
+} from '@ant-design/icons';
+import {
+  LAUNCHPAD_ITEMS,
+  LAUNCHPAD_AREAS,
+  type LaunchpadIconKey,
+  type LaunchpadItem,
+} from './launchpadItems';
 import { LaunchpadTile } from './LaunchpadTile';
 import { useOverlayStore } from '@/store/overlayStore';
 import { PALETA } from '@/theme/theme';
 import { usePrefersReducedTransparency } from '@/shared/hooks/usePrefersReducedTransparency';
 
 const ICONOS_LAUNCHPAD: Record<LaunchpadIconKey, ReactNode> = {
+  quejas: <MessageOutlined />,
+  normas: <BookOutlined />,
   cola: <InboxOutlined />,
   'medidas-correctivas': <DollarOutlined />,
   'asistente-ia': <RobotOutlined />,
@@ -37,7 +51,7 @@ export function Launchpad({ abierto, onCerrar }: LaunchpadProps) {
         return;
       }
       if (e.key === 'Tab') {
-        const focoables = gridRef.current?.querySelectorAll<HTMLButtonElement>('button');
+        const focoables = gridRef.current?.querySelectorAll<HTMLButtonElement>('button, [tabindex="0"]');
         if (!focoables || focoables.length === 0) return;
         const primero = focoables[0];
         const ultimo = focoables[focoables.length - 1];
@@ -57,7 +71,7 @@ export function Launchpad({ abierto, onCerrar }: LaunchpadProps) {
   useEffect(() => {
     if (abierto) {
       elementoPrevioRef.current = document.activeElement as HTMLElement | null;
-      const primerTile = gridRef.current?.querySelector<HTMLButtonElement>('button');
+      const primerTile = gridRef.current?.querySelector<HTMLButtonElement>('button, [tabindex="0"]');
       primerTile?.focus();
     } else {
       elementoPrevioRef.current?.focus();
@@ -87,13 +101,15 @@ export function Launchpad({ abierto, onCerrar }: LaunchpadProps) {
           style={{
             position: 'fixed',
             inset: 0,
-            background: reducirTransparencia ? PALETA.superficie : 'rgba(250, 250, 250, 0.78)',
+            background: reducirTransparencia ? PALETA.superficie : 'rgba(238, 244, 250, 0.72)',
             backdropFilter: reducirTransparencia ? 'none' : 'blur(24px) saturate(180%)',
             WebkitBackdropFilter: reducirTransparencia ? 'none' : 'blur(24px) saturate(180%)',
             zIndex: 30,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            overflowY: 'auto',
+            padding: '40px 24px',
           }}
         >
           <motion.div
@@ -108,21 +124,51 @@ export function Launchpad({ abierto, onCerrar }: LaunchpadProps) {
                 : { type: 'spring', stiffness: 260, damping: 24 }
             }
             style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, 132px)',
-              gap: 24,
-              padding: 32,
-              justifyContent: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 32,
+              maxWidth: 760,
+              width: '100%',
             }}
           >
-            {LAUNCHPAD_ITEMS.map((item) => (
-              <LaunchpadTile
-                key={item.key}
-                icon={ICONOS_LAUNCHPAD[item.iconKey]}
-                label={item.label}
-                onClick={() => ejecutar(item)}
-              />
-            ))}
+            {LAUNCHPAD_AREAS.map((area) => {
+              const items = LAUNCHPAD_ITEMS.filter((i) => i.area === area.id);
+              if (items.length === 0) return null;
+              return (
+                <div key={area.id}>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      letterSpacing: '0.12em',
+                      textTransform: 'uppercase',
+                      color: PALETA.textoTenue,
+                      marginBottom: 14,
+                      paddingLeft: 4,
+                    }}
+                  >
+                    {area.label}
+                  </div>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, 132px)',
+                      gap: 20,
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {items.map((item) => (
+                      <LaunchpadTile
+                        key={item.key}
+                        icon={ICONOS_LAUNCHPAD[item.iconKey]}
+                        label={item.label}
+                        onClick={() => ejecutar(item)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </motion.div>
         </motion.div>
       )}

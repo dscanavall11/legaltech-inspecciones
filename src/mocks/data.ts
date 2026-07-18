@@ -75,6 +75,26 @@ export const querellasMock: Querella[] = [
     fechaRadicacion: hoy.subtract(13, 'day').format('YYYY-MM-DD'),
     diasTermino: 15,
   },
+  {
+    id: 'q-007',
+    radicado: '2026-00161',
+    querellante: 'Comunidad Edificio Los Almendros',
+    querellado: 'Bar y Billares El Turpial',
+    asunto: 'Perturbación por ruido de establecimiento comercial',
+    estado: 'en_tramite',
+    fechaRadicacion: hoy.subtract(3, 'day').format('YYYY-MM-DD'),
+    diasTermino: 15,
+  },
+  {
+    id: 'q-008',
+    radicado: '2026-00163',
+    querellante: 'Fabián Alberto Cárdenas',
+    querellado: 'Talleres Cárdenas e Hijos',
+    asunto: 'Invasión de andén con vehículos en reparación',
+    estado: 'radicada',
+    fechaRadicacion: hoy.subtract(1, 'day').format('YYYY-MM-DD'),
+    diasTermino: 10,
+  },
 ];
 
 /**

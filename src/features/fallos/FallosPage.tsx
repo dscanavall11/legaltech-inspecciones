@@ -21,11 +21,13 @@ import {
   CloseCircleOutlined,
   EyeOutlined,
   SearchOutlined,
+  RobotOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import { ELEVACION } from '@/theme/theme';
 import { DESPACHO } from '@/derecho';
+import { useOverlayStore } from '@/store/overlayStore';
 import { useFallos } from './api';
 import {
   DECISION_COLOR,
@@ -50,6 +52,7 @@ const TIPO_MEDIDA_LABEL: Record<MedidaCorrectiva['tipo'], string> = {
 };
 
 function ResumenFallo({ fallo, onClose }: { fallo: Fallo; onClose: () => void }) {
+  const abrirAiAssistant = useOverlayStore((s) => s.abrirAiAssistant);
   return (
     <Modal
       open
@@ -62,7 +65,16 @@ function ResumenFallo({ fallo, onClose }: { fallo: Fallo; onClose: () => void })
       width={720}
       onCancel={onClose}
       footer={
-        <Button onClick={onClose}>Cerrar</Button>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+          <Button
+            type="primary"
+            icon={<RobotOutlined />}
+            onClick={abrirAiAssistant}
+          >
+            Asistente IA del caso
+          </Button>
+          <Button onClick={onClose}>Cerrar</Button>
+        </div>
       }
     >
       <Space direction="vertical" size="middle" style={{ width: '100%' }}>
@@ -119,7 +131,7 @@ function ResumenFallo({ fallo, onClose }: { fallo: Fallo; onClose: () => void })
         )}
 
         {fallo.apelacion && (
-          <Card size="small" title="Apelación" style={{ background: '#fafafa' }}>
+          <Card size="small" title="Apelación" style={{ background: '#eef4fa' }}>
             <Descriptions size="small" column={2}>
               <Descriptions.Item label="Fecha de apelación">
                 {dayjs(fallo.apelacion.fechaApelacion).format('DD/MM/YYYY')}

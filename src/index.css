@@ -16,9 +16,37 @@ body {
   font-family:
     'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     'Helvetica Neue', Arial, sans-serif;
-  background: #f8f9fa;
+  /*
+   * Fondo frío con degradado azul muy sutil (Apple Liquid Glass): tres
+   * paradas casi idénticas sobre un base #f5f8fc que da la sensación de
+   * cristal limpio y fresco, macOS. La textura de ruido se compone con
+   * ::before fijo (pointer-events-none) para no interferir con el contenido.
+   */
+  background-color: #f5f8fc;
+  background-image: linear-gradient(135deg, #f5f8fc 0%, #eef4fa 50%, #eaf1f8 100%);
+  background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/*
+ * Textura de ruido sutil y fría: grano casi imperceptible sobre un overlay
+ * fijo, sin afectar la interacción. Tinte azul-gris muy tenue para coherencia
+ * con el degradado. Se apaga con prefers-reduced-transparency.
+ */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.4;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.55 0 0 0 0 0.65 0 0 0 0 0.78 0 0 0 0.035 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+@media (prefers-reduced-transparency: reduce) {
+  body::before {
+    display: none;
+  }
 }
 
 /*
@@ -92,11 +120,11 @@ h3.ant-typography,
 @keyframes pulso-radicacion {
   from {
     transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(26, 115, 232, 0.45);
+    box-shadow: 0 0 0 0 rgba(0, 122, 255, 0.45);
   }
   to {
     transform: scale(1.02);
-    box-shadow: 0 0 0 28px rgba(26, 115, 232, 0);
+    box-shadow: 0 0 0 28px rgba(0, 122, 255, 0);
   }
 }
 
@@ -117,9 +145,9 @@ h3.ant-typography,
 .cargando-brillo {
   background: linear-gradient(
     100deg,
-    #eef0f3 40%,
-    #f7f9fc 50%,
-    #eef0f3 60%
+    #e3eaf2 40%,
+    #f0f5fa 50%,
+    #e3eaf2 60%
   );
   background-size: 200% 100%;
   animation: brillo 1.4s linear infinite;
@@ -130,14 +158,46 @@ h3.ant-typography,
   transform: scale(0.98);
 }
 
+/*
+ * Superficies "ópalo": highlight glossy superior + halo de color al hover,
+ * consistente con Dock/Launchpad/Dashboard. Un ::before neutro (blanco) sirve
+ * para cualquier fondo; el halo coloreado solo aplica al botón primario,
+ * donde conocemos el acento (azul institucional).
+ */
+.ant-btn,
+.ant-tag {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.ant-btn::before,
+.ant-tag::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.5) 0%, transparent 55%);
+  opacity: 0.9;
+  pointer-events: none;
+}
+.ant-btn-primary {
+  box-shadow: 0 4px 14px -4px rgba(0, 122, 255, 0.45);
+  transition: box-shadow 200ms ease, transform 150ms ease;
+}
+.ant-btn-primary:hover {
+  box-shadow: 0 6px 20px -4px rgba(0, 122, 255, 0.55);
+}
+.ant-tag {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease,
+    box-shadow 200ms ease, transform 150ms ease;
+}
+.ant-tag:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px -4px rgba(0, 30, 80, 0.18);
+}
+
 /* Menu item hover suave (200ms) — píldoras del sidebar */
 .ant-menu-item {
   transition: background-color 200ms ease, color 200ms ease !important;
-}
-
-/* Tag transition para cambio de estado en cola (check revisada) */
-.ant-tag {
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
 /*
@@ -274,22 +334,307 @@ h3.ant-typography,
 
 /* Foco visible y marcado — clave para usuarios que navegan con teclado. */
 :focus-visible {
-  outline: 3px solid #1a73e8;
+  outline: 3px solid #007aff;
   outline-offset: 2px;
 }
 
-/* Scrollbar discreta estilo Google. */
+/* Scrollbar discreta sobre fondo azul frío. */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #dadce0;
+  background: #c4d2e0;
   border-radius: 8px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #bdc1c6;
+  background: #aebfd2;
   background-clip: content-box;
 }
+
+/* ============================================================================
+ * GLASSMORPHISM / LIQUID GLASS GLOBAL UTILITIES
+ * ============================================================================
+ * These utilities provide the Liquid Glass look for any element.
+ * They respect prefers-reduced-transparency and prefers-reduced-motion.
+ */
+
+/* CSS Custom Properties for glass system — consumed by components */
+:root {
+  --glass-bg-base: rgba(255, 255, 255, 0.72);
+  --glass-bg-strong: rgba(255, 255, 255, 0.82);
+  --glass-bg-subtle: rgba(255, 255, 255, 0.55);
+  --glass-border: #d2d7de;
+  --glass-accent: #007aff;
+  --glass-accent-rgba: rgba(0, 122, 255, 0.18);
+  --glass-shadow-base: 0 1px 2px rgba(0, 30, 80, 0.06), 0 1px 1px rgba(0, 30, 80, 0.05);
+  --glass-shadow-medium: 0 4px 12px rgba(0, 30, 80, 0.10), 0 2px 4px rgba(0, 30, 80, 0.06);
+  --glass-shadow-high: 0 12px 32px rgba(0, 30, 80, 0.15), 0 4px 8px rgba(0, 30, 80, 0.10);
+  --glass-shadow-overlay: 0 24px 64px rgba(0, 30, 80, 0.20), 0 8px 16px rgba(0, 30, 80, 0.12);
+  --glass-inner-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  --glass-inner-highlight-soft: inset 0 1px 1px rgba(255, 255, 255, 0.5);
+  --glass-glossy-overlay: radial-gradient(ellipse 60% 40% at 50% 0%, rgba(255, 255, 255, 0.55), transparent 50%);
+  --glass-specular-sheen: linear-gradient(135deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.15) 35%, transparent 65%);
+  --glass-backdrop-standard: blur(20px) saturate(180%);
+  --glass-backdrop-high: blur(28px) saturate(200%);
+  --glass-backdrop-overlay: blur(32px) saturate(220%);
+}
+
+/* Reduced transparency overrides */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --glass-bg-base: #ffffff;
+    --glass-bg-strong: #ffffff;
+    --glass-bg-subtle: #f5f8fc;
+    --glass-backdrop-standard: none;
+    --glass-backdrop-high: none;
+    --glass-backdrop-overlay: none;
+  }
+}
+
+/* Reduced motion overrides */
+@media (prefers-reduced-motion: reduce) {
+  .glass-transition,
+  .glass-transition * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* Base glass surface — apply to any element */
+.glass-surface {
+  position: relative;
+  isolation: isolate;
+  background: var(--glass-bg-base);
+  backdrop-filter: var(--glass-backdrop-standard);
+  -webkit-backdrop-filter: var(--glass-backdrop-standard);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  box-shadow:
+    var(--glass-inner-highlight),
+    var(--glass-inner-highlight-soft),
+    0 8px 24px -8px var(--glass-accent-rgba),
+    var(--glass-shadow-medium);
+  overflow: hidden;
+}
+
+/* Glass surface elevation variants */
+.glass-elevation-0 {
+  background: var(--glass-bg-subtle);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  box-shadow: none;
+  border: 1px solid var(--glass-border);
+}
+.glass-elevation-1 {
+  background: var(--glass-bg-base);
+  backdrop-filter: var(--glass-backdrop-standard);
+  -webkit-backdrop-filter: var(--glass-backdrop-standard);
+  box-shadow:
+    var(--glass-inner-highlight),
+    var(--glass-inner-highlight-soft),
+    0 4px 12px -4px var(--glass-accent-rgba),
+    var(--glass-shadow-base);
+}
+.glass-elevation-2 {
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  box-shadow:
+    var(--glass-inner-highlight),
+    var(--glass-inner-highlight-soft),
+    0 8px 24px -8px var(--glass-accent-rgba),
+    var(--glass-shadow-medium);
+}
+.glass-elevation-3 {
+  background: var(--glass-bg-strong);
+  backdrop-filter: var(--glass-backdrop-high);
+  -webkit-backdrop-filter: var(--glass-backdrop-high);
+  box-shadow:
+    var(--glass-inner-highlight),
+    var(--glass-inner-highlight-soft),
+    0 12px 32px -8px var(--glass-accent-rgba),
+    var(--glass-shadow-high);
+}
+.glass-elevation-overlay {
+  background: rgba(238, 244, 250, 0.62);
+  backdrop-filter: var(--glass-backdrop-overlay);
+  -webkit-backdrop-filter: var(--glass-backdrop-overlay);
+  border: none;
+  box-shadow:
+    var(--glass-inner-highlight),
+    var(--glass-inner-highlight-soft),
+    0 24px 48px -12px var(--glass-accent-rgba),
+    var(--glass-shadow-overlay);
+}
+
+/* Double-bezel specular ring — the key "liquid glass" visual */
+.glass-surface::before,
+.glass-elevation-0::before,
+.glass-elevation-1::before,
+.glass-elevation-2::before,
+.glass-elevation-3::before,
+.glass-elevation-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+  box-shadow:
+    var(--glass-inner-highlight),
+    var(--glass-inner-highlight-soft),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.15);
+  background:
+    var(--glass-glossy-overlay),
+    var(--glass-specular-sheen);
+}
+
+/* Inner core for content — concentric radius */
+.glass-inner {
+  position: relative;
+  z-index: 1;
+  border-radius: calc(20px - 2px);
+}
+
+/* Interactive glass hover/focus states */
+.glass-interactive {
+  transition: box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1), transform 150ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.glass-interactive:hover,
+.glass-interactive:focus-within {
+  box-shadow:
+    var(--glass-inner-highlight),
+    var(--glass-inner-highlight-soft),
+    0 12px 32px -8px rgba(0, 122, 255, 0.28),
+    var(--glass-shadow-high);
+  transform: translateY(-2px);
+}
+.glass-interactive:active {
+  transform: scale(0.985);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.08),
+    0 2px 8px -4px var(--glass-accent-rgba),
+    var(--glass-shadow-base);
+}
+.glass-interactive:focus-visible {
+  outline: 3px solid rgba(0, 122, 255, 0.4);
+  outline-offset: 2px;
+}
+
+/* Glass button utilities */
+.glass-btn-primary {
+  background: var(--glass-accent);
+  border: none;
+  color: #fff;
+  box-shadow: 0 4px 14px -4px rgba(0, 122, 255, 0.45);
+}
+.glass-btn-primary:hover {
+  box-shadow: 0 6px 20px -4px rgba(0, 122, 255, 0.55);
+}
+.glass-btn-secondary {
+  background: var(--glass-bg-base);
+  backdrop-filter: var(--glass-backdrop-standard);
+  -webkit-backdrop-filter: var(--glass-backdrop-standard);
+  border: 1px solid var(--glass-border);
+  color: #1d1d1f;
+  box-shadow:
+    var(--glass-inner-highlight),
+    var(--glass-inner-highlight-soft),
+    0 4px 12px -4px var(--glass-accent-rgba),
+    var(--glass-shadow-base);
+}
+.glass-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow:
+    var(--glass-inner-highlight),
+    var(--glass-inner-highlight-soft),
+    0 8px 20px -4px var(--glass-accent-rgba),
+    var(--glass-shadow-medium);
+}
+.glass-btn-ghost {
+  background: transparent;
+  border: none;
+  color: var(--glass-accent);
+}
+.glass-btn-ghost:hover {
+  box-shadow:
+    var(--glass-inner-highlight),
+    var(--glass-inner-highlight-soft),
+    0 4px 12px -4px var(--glass-accent-rgba),
+    var(--glass-shadow-base);
+}
+.glass-btn-destructive {
+  background: #ff3b30;
+  border: none;
+  color: #fff;
+  box-shadow: 0 4px 14px -4px rgba(255, 59, 48, 0.45);
+}
+.glass-btn-destructive:hover {
+  box-shadow: 0 6px 20px -4px rgba(255, 59, 48, 0.55);
+}
+
+/* Glass input utility */
+.glass-input {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: var(--glass-backdrop-standard);
+  -webkit-backdrop-filter: var(--glass-backdrop-standard);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  box-shadow: inset 0 1px 2px rgba(0, 30, 80, 0.04);
+  transition: box-shadow 150ms ease, border-color 150ms ease;
+}
+.glass-input:focus,
+.glass-input:focus-within {
+  outline: none;
+  border-color: var(--glass-accent);
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15), var(--glass-inner-highlight);
+}
+
+/* Glass tag/badge utility */
+.glass-tag {
+  background: var(--glass-bg-base);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid var(--glass-border);
+  border-radius: 9999px;
+  box-shadow:
+    var(--glass-inner-highlight),
+    0 2px 6px -2px var(--glass-accent-rgba),
+    var(--glass-shadow-base);
+}
+
+/* Noise texture overlay — subtle tactile grain */
+.glass-noise::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0.02 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+@media (prefers-reduced-transparency: reduce) {
+  .glass-noise::after {
+    display: none;
+  }
+}
+
+/* Specular highlight tracking — applied via inline style by components */
+.glass-specular-highlight {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 3;
+  opacity: 0;
+  transition: opacity 120ms ease;
+  background: radial-gradient(ellipse 140px 90px at var(--specular-x, 50%) var(--specular-y, 50%), rgba(255, 255, 255, 0.35), transparent 65%);
+}
+
+/* ============================================================================
+ * END GLASSMORPHISM UTILITIES
+ * ============================================================================ */

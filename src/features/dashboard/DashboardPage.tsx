@@ -1,4 +1,4 @@
-import { Card, Col, Row, Typography, Tag, Empty, Skeleton } from 'antd';
+import { Col, Row, Typography, Tag, Empty, Skeleton } from 'antd';
 import {
   FileTextOutlined,
   CalendarOutlined,
@@ -6,7 +6,7 @@ import {
   CheckCircleOutlined,
   RightOutlined,
 } from '@ant-design/icons';
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import dayjs from 'dayjs';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuerellas } from '@/features/querellas/api';
@@ -14,8 +14,10 @@ import { useAudiencias } from '@/features/audiencias/api';
 import { calcularTermino } from '@/shared/terminos/diasHabiles';
 import { ESTADO_LABEL } from '@/features/querellas/types';
 import { useAuth } from '@/shared/auth/auth';
-import { ELEVACION, PALETA } from '@/theme/theme';
+import { PALETA } from '@/theme/theme';
+import { GlassCard, GlassTile } from '@/shared/components/glass/GlassPanel';
 import { MVP } from '@/app/mvp';
+import { DailyBriefCard } from './DailyBriefCard';
 
 const { Title, Text } = Typography;
 
@@ -35,20 +37,15 @@ function StatCard({
   destino: string;
 }) {
   const navigate = useNavigate();
-  const [hover, setHover] = useState(false);
   return (
-    <Card
-      variant="borderless"
-      style={{
-        boxShadow: hover ? ELEVACION.media : ELEVACION.base,
-        height: '100%',
-        cursor: 'pointer',
-        transform: hover ? 'translateY(-2px)' : 'none',
-        transition: 'box-shadow 0.25s ease, transform 0.25s ease',
-      }}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
+    <GlassCard
+      elevation="level2"
       onClick={() => navigate(destino)}
+      accent={color}
+      style={{ height: '100%' }}
+      role="button"
+      aria-label={`${label}: ${valor}`}
+      tabIndex={0}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
         <div
@@ -74,7 +71,7 @@ function StatCard({
           <Text type="secondary">{label}</Text>
         </div>
       </div>
-    </Card>
+    </GlassCard>
   );
 }
 
@@ -90,38 +87,70 @@ function FilaCaso({
   extremo: ReactNode;
 }) {
   return (
-    <Link to={to} style={{ display: 'block' }}>
+    <Link to={to} style={{ display: 'block', textDecoration: 'none' }}>
+      <GlassTile
+        padding="11px 14px"
+        radius={16}
+        accent={PALETA.azul}
+        elevation="level1"
+        style={{ marginBottom: 8 }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ color: PALETA.texto }}>{principal}</div>
+            <div
+              style={{
+                fontSize: 12.5,
+                color: PALETA.textoSuave,
+                marginTop: 1,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {secundario}
+            </div>
+          </div>
+          {extremo}
+          <RightOutlined style={{ color: PALETA.textoTenue, fontSize: 11 }} />
+        </div>
+      </GlassTile>
+    </Link>
+  );
+}
+
+function GlassCardWithHeader({
+  title,
+  extra,
+  children,
+  elevation = 'level2',
+  ...props
+}: {
+  title: ReactNode;
+  extra?: ReactNode;
+  children: ReactNode;
+  elevation?: 'level1' | 'level2' | 'level3';
+  style?: React.CSSProperties;
+}) {
+  return (
+    <GlassCard elevation={elevation} {...props}>
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 14,
-          padding: '11px 14px',
-          borderRadius: 16,
-          transition: 'background 0.2s ease',
+          justifyContent: 'space-between',
+          marginBottom: 10,
+          paddingBottom: 10,
+          borderBottom: `1px solid ${PALETA.borde}`,
         }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = '#f7f9fc')}
-        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
       >
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ color: PALETA.texto }}>{principal}</div>
-          <div
-            style={{
-              fontSize: 12.5,
-              color: PALETA.textoSuave,
-              marginTop: 1,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}
-          >
-            {secundario}
-          </div>
-        </div>
-        {extremo}
-        <RightOutlined style={{ color: PALETA.textoTenue, fontSize: 11 }} />
+        <Title level={5} style={{ margin: 0, fontSize: 17, fontWeight: 600 }}>
+          {title}
+        </Title>
+        {extra && <div style={{ flexShrink: 0 }}>{extra}</div>}
       </div>
-    </Link>
+      {children}
+    </GlassCard>
   );
 }
 
@@ -155,15 +184,11 @@ export function DashboardPage() {
 
   if (isLoading) {
     return (
-      <Card variant="borderless" style={{ boxShadow: ELEVACION.base }}>
+      <GlassCard elevation="level1" style={{ padding: 32 }}>
         <Skeleton active paragraph={{ rows: 6 }} />
-      </Card>
+      </GlassCard>
     );
   }
-
-  // En MVP, no mostramos tarjetas de módulos diferidos (audiencias, actas-firmeza, etc.)
-  // La tarjeta de audiencias se mantiene porque alimenta querellas
-  // Pero los enlaces a módulos diferidos se ocultan
 
   return (
     <div>
@@ -204,7 +229,7 @@ export function DashboardPage() {
                 valor={audiencias}
                 icono={<CalendarOutlined />}
                 color={PALETA.verde}
-                fondo="#e6f4ea"
+                fondo="#e3f5e9"
                 destino="/panel/audiencias"
               />
             </Col>
@@ -213,8 +238,8 @@ export function DashboardPage() {
                 label="En firmeza"
                 valor={enFirmeza}
                 icono={<CheckCircleOutlined />}
-                color="#9334e6"
-                fondo="#f3e8fd"
+                color="#5b3a9e"
+                fondo="#f0e8f5"
                 destino="/panel/actas-firmeza"
               />
             </Col>
@@ -226,7 +251,7 @@ export function DashboardPage() {
             valor={porVencer.length}
             icono={<WarningOutlined />}
             color={PALETA.rojo}
-            fondo="#fce8e6"
+            fondo="#ffe0db"
             destino="/panel/querellas"
           />
         </Col>
@@ -235,14 +260,9 @@ export function DashboardPage() {
       <Row gutter={[20, 20]} style={{ marginTop: 24 }}>
         {/* Términos por vencer */}
         <Col xs={24} lg={13}>
-          <Card
-            variant="borderless"
+          <GlassCardWithHeader
+            elevation="level2"
             title="Casos con término por vencer"
-            style={{ boxShadow: ELEVACION.base, height: '100%' }}
-            styles={{
-              header: { fontSize: 17, fontWeight: 600, borderBottom: 'none', paddingBottom: 0 },
-              body: { paddingTop: 10 },
-            }}
             extra={
               <Link to="/panel/querellas">
                 Ver todas <RightOutlined style={{ fontSize: 11 }} />
@@ -278,19 +298,14 @@ export function DashboardPage() {
                 ))}
               </div>
             )}
-          </Card>
+          </GlassCardWithHeader>
         </Col>
 
-        {/* Agenda de audiencias - mantener en MVP porque alimenta querellas */}
+        {/* Agenda de audiencias */}
         <Col xs={24} lg={11}>
-          <Card
-            variant="borderless"
+          <GlassCardWithHeader
+            elevation="level2"
             title="Próximas audiencias"
-            style={{ boxShadow: ELEVACION.base, height: '100%' }}
-            styles={{
-              header: { fontSize: 17, fontWeight: 600, borderBottom: 'none', paddingBottom: 0 },
-              body: { paddingTop: 10 },
-            }}
             extra={
               <Link to="/panel/audiencias">
                 Ver agenda <RightOutlined style={{ fontSize: 11 }} />
@@ -336,7 +351,56 @@ export function DashboardPage() {
                 })}
               </div>
             )}
-          </Card>
+          </GlassCardWithHeader>
+        </Col>
+      </Row>
+
+      {/* Bloque "Noticias / tarea del día" */}
+      <Row gutter={[20, 20]} style={{ marginTop: 24 }}>
+        <Col xs={24} lg={13}>
+          <DailyBriefCard />
+        </Col>
+        <Col xs={24} lg={11}>
+          <GlassCard elevation="level2" style={{ height: '100%' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+              <CalendarOutlined style={{ color: PALETA.azul, fontSize: 18 }} />
+              <Title level={5} style={{ margin: 0 }}>
+                Accesos rápidos
+              </Title>
+            </div>
+            <Text type="secondary" style={{ fontSize: 12.5, display: 'block', marginBottom: 14 }}>
+              Atajos a los módulos que usas a diario.
+            </Text>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[
+                { to: '/panel/radicador', label: 'Radicar solicitud', icon: <FileTextOutlined /> },
+                { to: '/panel/actas-firmeza', label: 'Actas de firmeza', icon: <CheckCircleOutlined /> },
+                { to: '/panel/audiencias', label: 'Audiencias', icon: <CalendarOutlined /> },
+                { to: '/panel/querellas', label: 'Querellas', icon: <FileTextOutlined /> },
+              ].map((a) => (
+                <Link
+                  key={a.to}
+                  to={a.to}
+                  style={{ textDecoration: 'none', display: 'block' }}
+                >
+                  <GlassTile
+                    padding="10px 14px"
+                    radius={14}
+                    accent={PALETA.azul}
+                    elevation="level1"
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <span style={{ color: PALETA.azul, fontSize: 16 }}>{a.icon}</span>
+                      <Text style={{ flex: 1, fontSize: 13.5, color: PALETA.texto }}>
+                        {a.label}
+                      </Text>
+                      <RightOutlined style={{ color: PALETA.textoTenue, fontSize: 11 }} />
+                    </div>
+                  </GlassTile>
+                </Link>
+              ))}
+            </div>
+          </GlassCard>
         </Col>
       </Row>
     </div>

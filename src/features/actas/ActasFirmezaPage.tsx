@@ -20,8 +20,10 @@ import {
   SearchOutlined,
   SafetyCertificateOutlined,
   RobotOutlined,
+  UnorderedListOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import { Link } from 'react-router-dom';
 import {
   generarActaFirmeza,
   liquidarMulta,
@@ -310,9 +312,16 @@ export function ActasFirmezaPage() {
       <Tarjeta style={{ marginBottom: 22 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <Text strong>Cola de trabajo — actas de firmeza ({bd.length})</Text>
-          <Tag color={origenBd === 'archivo' ? 'green' : 'blue'}>
-            {origenBd === 'archivo' ? 'BD del despacho' : 'BD de demostración'}
-          </Tag>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Link to="/panel/cola">
+              <Button size="small" icon={<UnorderedListOutlined />}>
+                Ver cola general
+              </Button>
+            </Link>
+            <Tag color={origenBd === 'archivo' ? 'green' : 'blue'}>
+              {origenBd === 'archivo' ? 'BD del despacho' : 'BD de demostración'}
+            </Tag>
+          </div>
         </div>
         <Table<Comparendo>
           size="small"
@@ -569,7 +578,7 @@ export function ActasFirmezaPage() {
             </CampoActa>
 
             {/* Liquidación */}
-            <div style={{ background: '#f6f7f9', borderRadius: 16, padding: '12px 16px' }}>
+            <div style={{ background: '#eef4fa', borderRadius: 16, padding: '12px 16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5 }}>
                 <Text type="secondary">
                   Multa tipo {liq.tipo} ({liq.smdlvLetras} SMDLV)
@@ -718,7 +727,7 @@ export function ActasFirmezaPage() {
             <CampoActa label="Membrete de la alcaldía (encabezado del acta)">
               <div
                 style={{
-                  background: inspeccion.membreteDataUrl ? PALETA.azulSuave : '#f1f3f4',
+                  background: inspeccion.membreteDataUrl ? PALETA.azulSuave : '#eef4fa',
                   borderRadius: 12,
                   padding: '10px 14px',
                   fontSize: 13,

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { TopBar } from './TopBar';
 import { Dock } from './dock/Dock';
@@ -13,6 +13,17 @@ export function AppLayout() {
   const [launchpadAbierto, setLaunchpadAbierto] = useState(false);
 
   const esPaginaFullBleed = location.pathname.startsWith('/panel/nuevo-caso');
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'l' || e.key === 'L')) {
+        e.preventDefault();
+        setLaunchpadAbierto((a) => !a);
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   return (
     <div
@@ -30,7 +41,7 @@ export function AppLayout() {
           display: 'flex',
           flexDirection: 'column',
           minWidth: 0,
-          paddingLeft: 96,
+          paddingLeft: 128,
         }}
       >
         <TopBar />

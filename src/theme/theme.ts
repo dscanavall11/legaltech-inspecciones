@@ -53,7 +53,7 @@ export function buildTheme(opts: {
       colorBorderSecondary: PALETA.borde,
       colorBorder: PALETA.borde,
       fontFamily:
-        "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        "-apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif",
       fontSize,
       // Encabezados contenidos — menos peso visual, más minimalista.
       fontSizeHeading1: 26,

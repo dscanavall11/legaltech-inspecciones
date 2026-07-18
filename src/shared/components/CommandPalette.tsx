@@ -6,7 +6,6 @@ import {
   SafetyCertificateOutlined,
   FileOutlined,
   SearchOutlined,
-  FolderOpenOutlined,
   BookOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
@@ -28,7 +27,6 @@ const COMANDOS: Comando[] = [
   { id: 'queja', label: 'Nueva queja', icon: <MessageOutlined />, ruta: '/panel/nuevo-caso?tipo=queja' },
   { id: 'actas', label: 'Actas de firmeza', icon: <SafetyCertificateOutlined />, ruta: '/panel/actas-firmeza' },
   { id: 'normas', label: 'Buscar norma', shortcut: '', icon: <BookOutlined />, ruta: '/panel/normas' },
-  { id: 'archivo', label: 'Archivo digital', icon: <FolderOpenOutlined />, ruta: '/panel/archivo' },
 ];
 
 export function CommandPalette() {

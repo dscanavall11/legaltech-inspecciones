@@ -19,29 +19,39 @@ export function AppLayout() {
       style={{
         minHeight: '100vh',
         display: 'flex',
-        flexDirection: 'column',
         background: PALETA.fondo,
       }}
     >
-      <TopBar />
+      <Dock onAbrirLaunchpad={() => setLaunchpadAbierto(true)} />
 
-      <main
+      <div
         style={{
           flex: 1,
-          padding: esPaginaFullBleed ? 0 : '28px 28px 120px',
-          maxWidth: esPaginaFullBleed ? 'none' : 1280,
-          width: '100%',
-          margin: '0 auto',
-          overflow: esPaginaFullBleed ? 'hidden' : undefined,
+          display: 'flex',
+          flexDirection: 'column',
+          minWidth: 0,
+          paddingLeft: 96,
         }}
       >
-        {/* key por ruta: cada vista entra con la animación orquestada */}
-        <div key={location.pathname} className="vista-animada">
-          <Outlet />
-        </div>
-      </main>
+        <TopBar />
 
-      <Dock onAbrirLaunchpad={() => setLaunchpadAbierto(true)} />
+        <main
+          style={{
+            flex: 1,
+            padding: esPaginaFullBleed ? 0 : 28,
+            maxWidth: esPaginaFullBleed ? 'none' : 1280,
+            width: '100%',
+            margin: '0 auto',
+            overflow: esPaginaFullBleed ? 'hidden' : undefined,
+          }}
+        >
+          {/* key por ruta: cada vista entra con la animación orquestada */}
+          <div key={location.pathname} className="vista-animada">
+            <Outlet />
+          </div>
+        </main>
+      </div>
+
       <Launchpad abierto={launchpadAbierto} onCerrar={() => setLaunchpadAbierto(false)} />
 
       <AiAssistant />

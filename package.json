@@ -9,7 +9,7 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx",
-    "type-check": "tsc -b --noEmit",
+    "type-check": "tsc -b",
     "test": "vitest",
     "test:run": "vitest run",
     "deploy": "npm run build && aws s3 sync dist/ s3://legaltech-web-app --delete --cache-control \"max-age=31536000, public\" --exclude \"index.html\" --exclude \"mockServiceWorker.js\" && aws s3 cp dist/index.html s3://legaltech-web-app/index.html --cache-control \"no-cache, no-store, must-revalidate\" && aws cloudfront create-invalidation --distribution-id E2DDD5J2GYCJDS --paths \"/*\""

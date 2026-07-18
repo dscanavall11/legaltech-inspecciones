@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { PALETA, ELEVACION } from '@/theme/theme';
+import { usePrefersReducedTransparency } from '@/shared/hooks/usePrefersReducedTransparency';
 
 interface LaunchpadTileProps {
   icon: ReactNode;
@@ -8,6 +9,8 @@ interface LaunchpadTileProps {
 }
 
 export function LaunchpadTile({ icon, label, onClick }: LaunchpadTileProps) {
+  const reducirTransparencia = usePrefersReducedTransparency();
+
   return (
     <button
       onClick={onClick}
@@ -20,7 +23,8 @@ export function LaunchpadTile({ icon, label, onClick }: LaunchpadTileProps) {
         padding: '20px 12px',
         borderRadius: 20,
         border: `1px solid ${PALETA.borde}`,
-        background: 'rgba(255,255,255,0.85)',
+        background: reducirTransparencia ? PALETA.superficie : 'rgba(255,255,255,0.85)',
+        backdropFilter: reducirTransparencia ? 'none' : undefined,
         boxShadow: ELEVACION.base,
         cursor: 'pointer',
         transition: 'transform 160ms ease, box-shadow 160ms ease',

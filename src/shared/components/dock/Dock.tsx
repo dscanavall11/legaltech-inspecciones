@@ -15,6 +15,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { DOCK_ITEMS, type DockIconKey } from './dockItems';
 import { DockIcon } from './DockIcon';
 import { PALETA, ELEVACION } from '@/theme/theme';
+import { usePrefersReducedTransparency } from '@/shared/hooks/usePrefersReducedTransparency';
 
 const ICONOS_DOCK: Record<DockIconKey, ReactNode> = {
   inicio: <AppstoreOutlined />,
@@ -32,6 +33,7 @@ interface DockProps {
 
 export function Dock({ onAbrirLaunchpad }: DockProps) {
   const reducirMovimiento = useReducedMotion();
+  const reducirTransparencia = usePrefersReducedTransparency();
   const mouseX = useMotionValue(Infinity);
   const location = useLocation();
   const navigate = useNavigate();
@@ -52,9 +54,9 @@ export function Dock({ onAbrirLaunchpad }: DockProps) {
         gap: 6,
         padding: '8px 12px',
         borderRadius: 22,
-        background: 'rgba(255, 255, 255, 0.72)',
-        backdropFilter: 'blur(20px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+        background: reducirTransparencia ? PALETA.superficie : 'rgba(255, 255, 255, 0.72)',
+        backdropFilter: reducirTransparencia ? 'none' : 'blur(20px) saturate(180%)',
+        WebkitBackdropFilter: reducirTransparencia ? 'none' : 'blur(20px) saturate(180%)',
         border: `1px solid ${PALETA.borde}`,
         boxShadow: ELEVACION.media,
         zIndex: 20,

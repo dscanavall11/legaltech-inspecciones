@@ -1,10 +1,12 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { InboxOutlined, DollarOutlined, RobotOutlined, SettingOutlined } from '@ant-design/icons';
 import { LAUNCHPAD_ITEMS, type LaunchpadIconKey, type LaunchpadItem } from './launchpadItems';
 import { LaunchpadTile } from './LaunchpadTile';
 import { useOverlayStore } from '@/store/overlayStore';
+import { PALETA } from '@/theme/theme';
+import { usePrefersReducedTransparency } from '@/shared/hooks/usePrefersReducedTransparency';
 
 const ICONOS_LAUNCHPAD: Record<LaunchpadIconKey, ReactNode> = {
   cola: <InboxOutlined />,
@@ -20,18 +22,48 @@ interface LaunchpadProps {
 
 export function Launchpad({ abierto, onCerrar }: LaunchpadProps) {
   const reducirMovimiento = useReducedMotion();
+  const reducirTransparencia = usePrefersReducedTransparency();
   const navigate = useNavigate();
   const abrirAiAssistant = useOverlayStore((s) => s.abrirAiAssistant);
   const abrirConfigAssistant = useOverlayStore((s) => s.abrirConfigAssistant);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const elementoPrevioRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!abierto) return;
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onCerrar();
+      if (e.key === 'Escape') {
+        onCerrar();
+        return;
+      }
+      if (e.key === 'Tab') {
+        const focoables = gridRef.current?.querySelectorAll<HTMLButtonElement>('button');
+        if (!focoables || focoables.length === 0) return;
+        const primero = focoables[0];
+        const ultimo = focoables[focoables.length - 1];
+        if (e.shiftKey && document.activeElement === primero) {
+          e.preventDefault();
+          ultimo.focus();
+        } else if (!e.shiftKey && document.activeElement === ultimo) {
+          e.preventDefault();
+          primero.focus();
+        }
+      }
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [abierto, onCerrar]);
+
+  useEffect(() => {
+    if (abierto) {
+      elementoPrevioRef.current = document.activeElement as HTMLElement | null;
+      const primerTile = gridRef.current?.querySelector<HTMLButtonElement>('button');
+      primerTile?.focus();
+    } else {
+      elementoPrevioRef.current?.focus();
+      elementoPrevioRef.current = null;
+    }
+  }, [abierto]);
 
   function ejecutar(item: LaunchpadItem) {
     if (item.accion.tipo === 'ruta') navigate(item.accion.ruta);
@@ -55,9 +87,9 @@ export function Launchpad({ abierto, onCerrar }: LaunchpadProps) {
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(250, 250, 250, 0.78)',
-            backdropFilter: 'blur(24px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+            background: reducirTransparencia ? PALETA.superficie : 'rgba(250, 250, 250, 0.78)',
+            backdropFilter: reducirTransparencia ? 'none' : 'blur(24px) saturate(180%)',
+            WebkitBackdropFilter: reducirTransparencia ? 'none' : 'blur(24px) saturate(180%)',
             zIndex: 30,
             display: 'flex',
             alignItems: 'center',
@@ -65,6 +97,7 @@ export function Launchpad({ abierto, onCerrar }: LaunchpadProps) {
           }}
         >
           <motion.div
+            ref={gridRef}
             onClick={(e) => e.stopPropagation()}
             initial={{ opacity: 0, scale: reducirMovimiento ? 1 : 0.94 }}
             animate={{ opacity: 1, scale: 1 }}

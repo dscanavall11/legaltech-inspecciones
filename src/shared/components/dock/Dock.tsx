@@ -15,6 +15,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { DOCK_ITEMS, type DockIconKey } from './dockItems';
 import { DockIcon } from './DockIcon';
 import { PALETA, ELEVACION } from '@/theme/theme';
+import { sombraGlass, fondoGlass } from '@/theme/glass';
 import { usePrefersReducedTransparency } from '@/shared/hooks/usePrefersReducedTransparency';
 
 const ICONOS_DOCK: Record<DockIconKey, ReactNode> = {
@@ -34,34 +35,37 @@ interface DockProps {
 export function Dock({ onAbrirLaunchpad }: DockProps) {
   const reducirMovimiento = useReducedMotion();
   const reducirTransparencia = usePrefersReducedTransparency();
-  const mouseX = useMotionValue(Infinity);
+  const mouseY = useMotionValue(Infinity);
   const location = useLocation();
   const navigate = useNavigate();
 
   return (
     <motion.div
       onPointerMove={(e) => {
-        if (!reducirMovimiento) mouseX.set(e.clientX);
+        if (!reducirMovimiento) mouseY.set(e.clientY);
       }}
-      onPointerLeave={() => mouseX.set(Infinity)}
+      onPointerLeave={() => mouseY.set(Infinity)}
       style={{
         position: 'fixed',
-        left: '50%',
-        bottom: 16,
-        transform: 'translateX(-50%)',
+        left: 16,
+        top: '50%',
+        transform: 'translateY(-50%)',
         display: 'flex',
-        alignItems: 'flex-end',
-        gap: 6,
-        padding: '8px 12px',
-        borderRadius: 22,
-        background: reducirTransparencia ? PALETA.superficie : 'rgba(255, 255, 255, 0.72)',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 10,
+        padding: '16px 10px',
+        borderRadius: 24,
+        background: reducirTransparencia
+          ? PALETA.superficie
+          : fondoGlass('rgba(255, 255, 255, 0.72)'),
         backdropFilter: reducirTransparencia ? 'none' : 'blur(20px) saturate(180%)',
         WebkitBackdropFilter: reducirTransparencia ? 'none' : 'blur(20px) saturate(180%)',
         border: `1px solid ${PALETA.borde}`,
-        boxShadow: ELEVACION.media,
+        boxShadow: sombraGlass(ELEVACION.media),
         zIndex: 20,
-        maxWidth: 'calc(100vw - 24px)',
-        overflowX: 'auto',
+        maxHeight: 'calc(100vh - 32px)',
+        overflowY: 'auto',
       }}
     >
       {DOCK_ITEMS.map((item) => {
@@ -74,19 +78,20 @@ export function Dock({ onAbrirLaunchpad }: DockProps) {
             key={item.key}
             icon={ICONOS_DOCK[item.iconKey]}
             label={item.label}
+            color={item.color}
             destacado={item.destacado}
             activo={activo}
             onClick={() => navigate(item.ruta)}
-            mouseX={mouseX}
+            mouseY={mouseY}
           />
         );
       })}
 
       <div
-        style={{ width: 1, alignSelf: 'stretch', background: PALETA.borde, margin: '4px 2px' }}
+        style={{ height: 1, alignSelf: 'stretch', background: PALETA.borde, margin: '2px 4px' }}
       />
 
-      <Tooltip title="Más">
+      <Tooltip title="Más" placement="right">
         <motion.button
           onClick={onAbrirLaunchpad}
           aria-label="Abrir Launchpad"

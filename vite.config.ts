@@ -1,11 +1,9 @@
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, __dirname, '');
-
+export default defineConfig(() => {
   return {
     plugins: [react()],
     resolve: {
@@ -28,17 +26,18 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: Number(process.env.PORT ?? 5173),
-      // Proxy hacia los microservicios en desarrollo (cuando el mock esté
-      // apagado). Por defecto apunta al API de producción, igual que hacía
-      // el proxy.conf.json del app Angular. Se puede sobreescribir con
-      // VITE_DEV_PROXY_TARGET (ej: http://localhost:8080).
-      proxy: {
-        '/api': {
-          target: env.VITE_DEV_PROXY_TARGET ?? 'https://legaltech.com.co',
-          changeOrigin: true,
-          secure: false,
-        },
-      },
+      // Sin proxy de dev: `VITE_API_BASE_URL` apunta DIRECTO a
+      // `policia-legaltech-service` (una sola URL base para TODO --
+      // dominio CRUD Y rutas de IA, ver .env.example). El navegador NUNCA
+      // habla directo con `orchestrator` (decision confirmada con el
+      // usuario): las rutas de IA las reenvia `policia-legaltech-service`
+      // server-to-server hacia `orchestrator`/`legal` (ver
+      // policia-legaltech-service/src/common/ai/ai.controller.ts -- hoy
+      // mock local, con TODO explicito de reemplazar por el reenvio real).
+      // Cada servicio de
+      // celula valida el JWT por su cuenta (CognitoJwtGuard, ver
+      // policia-legaltech-service/src/common/auth). CORS ya habilitado en
+      // policia-legaltech-service/src/main.ts (app.enableCors()).
     },
   };
 });

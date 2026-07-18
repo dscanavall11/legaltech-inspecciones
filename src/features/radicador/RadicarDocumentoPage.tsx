@@ -1,13 +1,9 @@
 import { useRef, useState, useEffect } from 'react';
 import {
   Button,
-  Input,
-  DatePicker,
-  message,
-  Card,
-  Form,
-  Divider,
   Typography,
+  Input,
+  App,
 } from 'antd';
 import {
   UploadOutlined,
@@ -18,11 +14,13 @@ import {
   CloseOutlined,
   SendOutlined,
   CheckCircleOutlined,
+  RobotOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { apiFetch } from '@/shared/api/client';
 import { PALETA, ELEVACION } from '@/theme/theme';
 import type { ReactNode } from 'react';
+import { useRadicacionIA, type RadicacionDraft } from './useRadicacionIA';
 
 const { Text } = Typography;
 
@@ -51,52 +49,101 @@ function tipoDesdeNombre(nombre: string): Anexo['tipo'] {
   return 'otro';
 }
 
-interface FormData {
-  radicadoOrigen: string;
-  partes: string;
-  fechaDecision: string;
-  sustento: string;
-  documentos: Anexo[];
+function Campo({
+  label,
+  valor,
+  onChange,
+  destacado,
+  multiline,
+  placeholder = '',
+}: {
+  label: string;
+  valor: string;
+  onChange: (v: string) => void;
+  destacado?: boolean;
+  multiline?: boolean;
+  placeholder?: string;
+}) {
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div
+        style={{
+          fontSize: 10.5,
+          fontWeight: 600,
+          letterSpacing: '0.08em',
+          textTransform: 'uppercase',
+          color: destacado ? PALETA.azulOscuro : PALETA.textoTenue,
+          marginBottom: 5,
+          paddingLeft: 14,
+          transition: 'color 0.4s ease',
+        }}
+      >
+        {label}
+      </div>
+      <div
+        style={{
+          borderRadius: 14,
+          backgroundColor: destacado ? PALETA.azulSuave : '#f6f7f9',
+          transition: 'background-color 1.6s ease',
+          padding: multiline ? '7px 14px 8px' : '7px 14px',
+        }}
+      >
+        {multiline ? (
+          <Input.TextArea
+            variant="borderless"
+            autoSize={{ minRows: 2, maxRows: 5 }}
+            value={valor}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder}
+            style={{ padding: 0, resize: 'none', fontSize: 14 }}
+          />
+        ) : (
+          <Input
+            variant="borderless"
+            value={valor}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder}
+            style={{ padding: 0, fontSize: 14 }}
+          />
+        )}
+      </div>
+    </div>
+  );
 }
 
-/** Componente interno para disparar el pulso de éxito */
-function PulsoDisparador({ activo, ref, children }: { activo: boolean; ref: React.RefObject<HTMLElement>; children: ReactNode }) {
-  useEffect(() => {
-    if (!activo) return;
-    const el = ref.current;
-    if (!el) return;
-    // La animación está en index.css (.pulso-exito)
-    el.classList.add('pulso-exito');
-    const handler = () => {
-      el.classList.remove('pulso-exito');
-      el.removeEventListener('animationend', handler);
-    };
-    el.addEventListener('animationend', handler);
-  }, [activo, ref]);
-  return <>{children}</>;
-}
-
+/**
+ * Radicación guiada por chat de Apelación y Fallo de 2ª instancia.
+ * Replica la interfaz del radicador de quejas/querellas: chat a la izquierda,
+ * ficha a la derecha que se completa en tiempo real. El humano aporta los
+ * datos fácticos; la IA solo redacta la fundamentación (campo sustento).
+ */
 export function RadicarDocumentoPage() {
+  const { message: msg } = App.useApp();
   const navigate = useNavigate();
   const location = useLocation();
   const tipo = (location.pathname.split('/').pop() ?? 'apelacion') as TipoRadicar;
 
-  const [form] = Form.useForm();
+  const { mensajes, draft, setDraft, cargando, recentFields, enviar, completoMinimo } =
+    useRadicacionIA(tipo);
+
+  const [inputText, setInputText] = useState('');
   const [anexos, setAnexos] = useState<Anexo[]>([]);
-  const [cargando, setCargando] = useState(false);
-  const [pulsoActivo, setPulsoActivo] = useState(false);
+  const [radicando, setRadicando] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const pulsoRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const titulo = tipo === 'apelacion' ? 'Apelación' : 'Fallo (2.ª instancia)';
   const icono = tipo === 'apelacion' ? <FileOutlined /> : <CheckCircleOutlined />;
   const colorIcono = tipo === 'apelacion' ? '#f9ab00' : '#9334e6';
   const colorFondo = tipo === 'apelacion' ? '#fff8e1' : '#f3e8fd';
-
   const terminoTexto =
     tipo === 'apelacion'
-      ? '3 días hábiles (art. 223 num. 4 Ley 1801/2016 — término por confirmar con el equipo jurídico)'
+      ? '3 días hábiles (art. 223 num. 4 Ley 1801/2016)'
       : 'Según resolución recurrida';
+
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  }, [mensajes]);
 
   function agregarAnexos(files: FileList | null) {
     if (!files || files.length === 0) return;
@@ -115,207 +162,185 @@ export function RadicarDocumentoPage() {
     setAnexos((prev) => prev.filter((a) => a.id !== id));
   }
 
-  function pulsoDisparar() {
-    setPulsoActivo(true);
-    setTimeout(() => setPulsoActivo(false), 600);
+  function setField<K extends keyof RadicacionDraft>(k: K, v: RadicacionDraft[K]) {
+    setDraft((prev) => ({ ...prev, [k]: v }));
   }
 
-  async function onSubmit(values: Omit<FormData, 'documentos'>) {
-    if (anexos.length === 0) {
-      message.warning('Debe adjuntar al menos un documento (PDF, imagen o texto).');
+  async function asistirFundamentacion() {
+    if (!draft.partes && !draft.radicadoOrigen) {
+      msg.warning('Indique primero el radicado de origen y las partes para que la IA redacte.');
       return;
     }
+    await enviar(
+      `Redacta la FUNDAMENTACIÓN jurídica de esta ${titulo.toLowerCase()} citando los artículos ` +
+        `pertinentes de la Ley 1801 de 2016 (arts. 223, 223A, 77, 92 según aplique) a partir de ` +
+        `los hechos que le he dado. La respuesta debe comenzar por "FUNDAMENTACIÓN:".`,
+    );
+  }
 
-    setCargando(true);
+  async function radicar() {
+    if (!completoMinimo) return;
+    setRadicando(true);
     try {
       const formData = new FormData();
       formData.append('tipo', tipo);
-      formData.append('radicadoOrigen', values.radicadoOrigen);
-      formData.append('partes', values.partes);
-      formData.append('fechaDecision', values.fechaDecision);
-      formData.append('sustento', values.sustento);
+      formData.append('radicadoOrigen', draft.radicadoOrigen);
+      formData.append('partes', draft.partes);
+      formData.append('fechaDecision', draft.fechaDecision);
+      formData.append('sustento', draft.sustento);
       anexos.forEach((a) => formData.append('documentos', a.file));
 
-      const res = await apiFetch<{ id: string; radicado: string; fechaRadicacion: string; estado: string }>('/radicaciones', {
-        method: 'POST',
-        body: formData,
-      });
-
-      message.success(`${titulo} radicada exitosamente: ${res.radicado}`);
-      pulsoDisparar();
+      const res = await apiFetch<{ id: string; radicado: string; fechaRadicacion: string; estado: string }>(
+        '/radicaciones',
+        { method: 'POST', body: formData },
+      );
+      msg.success(`${titulo} radicada exitosamente: ${res.radicado}`);
       setTimeout(() => navigate('/panel/cola'), 650);
     } catch {
-      message.error('No se pudo radicar el documento. Intente de nuevo.');
-    } finally {
-      setCargando(false);
+      msg.error('No se pudo radicar el documento. Intente de nuevo.');
+      setRadicando(false);
     }
   }
 
   return (
-    <Form form={form} layout="vertical" onFinish={onSubmit} style={{ maxWidth: 720, margin: '0 auto' }}>
-      <div className="vista-animada" style={{ marginBottom: 24 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-          <PulsoDisparador activo={pulsoActivo} ref={pulsoRef}>
+    <div style={{ height: 'calc(100vh - 64px)', display: 'flex', gap: 0, overflow: 'hidden', background: '#f4f6f9' }}>
+      {/* Panel izquierdo: chat */}
+      <div style={{ flex: '1 1 62%', display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
+        <div style={{ padding: '20px 32px 6px', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div
-              ref={pulsoRef}
               style={{
-                width: 48,
-                height: 48,
+                width: 44,
+                height: 44,
                 borderRadius: 14,
                 background: colorFondo,
                 color: colorIcono,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: 22,
-                flexShrink: 0,
+                fontSize: 20,
               }}
             >
               {icono}
             </div>
-          </PulsoDisparador>
-          <div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: PALETA.texto }}>Radicación de {titulo}</div>
-            <Text type="secondary">Complete el formulario y adjunte el documento de la resolución recurrida.</Text>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 600, color: PALETA.texto }}>Asistente de radicación — {titulo}</div>
+              <div style={{ fontSize: 12.5, color: PALETA.textoSuave }}>
+                Cuénteme los hechos; iré completando la ficha automáticamente.
+              </div>
+            </div>
           </div>
         </div>
 
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            background: PALETA.amarillo + '15',
-            color: PALETA.amarillo + 'cc',
-            padding: '4px 12px',
-            borderRadius: 999,
-            fontSize: 12,
-            fontWeight: 600,
-            border: `1px solid ${PALETA.amarillo}40`,
-          }}
-        >
-          <span>Término: </span>
-          <span>{terminoTexto}</span>
+        <div ref={scrollRef} style={{ flex: 1, overflow: 'auto', padding: '18px 32px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {mensajes.map((m, i) => (
+            <div
+              key={i}
+              style={{
+                display: 'flex',
+                justifyContent: m.rol === 'inspector' ? 'flex-end' : 'flex-start',
+              }}
+            >
+              <div
+                style={{
+                  maxWidth: '80%',
+                  padding: '10px 14px',
+                  borderRadius: 12,
+                  background: m.rol === 'inspector' ? PALETA.azul : '#fff',
+                  color: m.rol === 'inspector' ? '#fff' : PALETA.texto,
+                  whiteSpace: 'pre-wrap',
+                  boxShadow: ELEVACION.base,
+                }}
+              >
+                {m.texto || <Text type="secondary" italic>Escribiendo…</Text>}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ padding: '6px 24px 20px', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, background: PALETA.superficie, borderRadius: 26, padding: '8px 8px 8px 10px', boxShadow: ELEVACION.media }}>
+            <Input.TextArea
+              autoSize={{ minRows: 1, maxRows: 5 }}
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  const t = inputText.trim();
+                  if (t) {
+                    setInputText('');
+                    void enviar(t);
+                  }
+                }
+              }}
+              variant="borderless"
+              placeholder="Describa la situación o responda al asistente…"
+              style={{ resize: 'none', fontSize: 14, padding: '8px 0' }}
+              disabled={cargando}
+            />
+            <Button type="primary" shape="circle" icon={<SendOutlined />} onClick={() => {
+              const t = inputText.trim();
+              if (t) { setInputText(''); void enviar(t); }
+            }} disabled={cargando || !inputText.trim()} style={{ flexShrink: 0 }} />
+          </div>
         </div>
       </div>
 
-      <Card variant="borderless" style={{ boxShadow: ELEVACION.base, marginBottom: 20 }}>
-        <Form.Item name="radicadoOrigen" label="Radicado de origen" rules={[{ required: true, message: 'Requerido' }]}>
-          <Input placeholder="Ej: 2026-00123" style={{ width: '100%' }} />
-        </Form.Item>
-
-        <Form.Item name="partes" label="Partes (querellante / querellado)" rules={[{ required: true, message: 'Requerido' }]}>
-          <Input.TextArea
-            rows={2}
-            placeholder="Nombre completo del querellante y del querellado"
-            style={{ width: '100%' }}
-          />
-        </Form.Item>
-
-        <Form.Item name="fechaDecision" label="Fecha de la decisión recurrida" rules={[{ required: true, message: 'Requerido' }]}>
-          <DatePicker
-            style={{ width: '100%' }}
-            format="DD/MM/YYYY"
-            placeholder="Seleccione la fecha"
-          />
-        </Form.Item>
-
-        <Form.Item name="sustento" label="Sustento de la apelación / fallo" rules={[{ required: true, message: 'Requerido' }]}>
-          <Input.TextArea
-            rows={4}
-            placeholder="Fundamentos fácticos y jurídicos del recurso..."
-            style={{ width: '100%' }}
-          />
-        </Form.Item>
-
-        <Divider style={{ margin: '20px 0' }} />
-        <div style={{ marginBottom: 8 }}>
-          <div style={{ fontSize: 12.5, fontWeight: 600, color: PALETA.textoTenue, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
-            Documentos adjuntos
+      {/* Panel derecho: ficha */}
+      <div style={{ flex: '0 0 38%', maxWidth: 480, display: 'flex', flexDirection: 'column', padding: '20px 24px 20px 4px', overflow: 'hidden' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: PALETA.superficie, borderRadius: 24, boxShadow: ELEVACION.media, overflow: 'hidden' }}>
+          <div style={{ padding: '22px 24px 14px', flexShrink: 0 }}>
+            <div style={{ fontSize: 17, fontWeight: 600, color: PALETA.texto }}>Ficha de radicación</div>
+            <div style={{ fontSize: 12, color: PALETA.textoTenue, marginTop: 4, textTransform: 'capitalize' }}>
+              {titulo} · término {terminoTexto}
+            </div>
           </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.doc,.docx"
-            style={{ display: 'none' }}
-            onChange={(e) => agregarAnexos(e.target.files)}
-          />
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-            <Button
-              type="dashed"
-              icon={<UploadOutlined />}
-              onClick={() => fileInputRef.current?.click()}
-              style={{ borderRadius: 14 }}
-            >
-              Subir documentos (PDF, imagen, texto)
-            </Button>
+
+          <div style={{ flex: 1, overflow: 'auto', padding: '4px 20px 8px' }}>
+            <Campo label="Radicado de origen" valor={draft.radicadoOrigen} onChange={(v) => setField('radicadoOrigen', v)} destacado={recentFields.has('radicadoOrigen')} placeholder="2026-00123" />
+            <Campo label="Partes (querellante / querellado)" valor={draft.partes} onChange={(v) => setField('partes', v)} destacado={recentFields.has('partes')} multiline placeholder="Nombres completos de las partes" />
+            <Campo
+              label="Fecha de la decisión recurrida"
+              valor={draft.fechaDecision}
+              onChange={(v) => setField('fechaDecision', v)}
+              placeholder="DD/MM/AAAA"
+            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <Button size="small" icon={<RobotOutlined />} onClick={() => void asistirFundamentacion()} loading={cargando}>
+                IA: redactar fundamentación
+              </Button>
+            </div>
+            <Campo label="Sustento / fundamentación" valor={draft.sustento} onChange={(v) => setField('sustento', v)} destacado={recentFields.has('sustento')} multiline placeholder="La IA redacta la fundamentación jurídica; usted la revisa y ajusta." />
+
             {anexos.length > 0 && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: 8, color: PALETA.textoSuave, fontSize: 13 }}>
-                {anexos.length} archivo{anexos.length > 1 ? 's' : ''} seleccionado{anexos.length > 1 ? 's' : ''}
-              </span>
+              <div style={{ marginTop: 6 }}>
+                <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: PALETA.textoTenue, marginBottom: 6, paddingLeft: 14 }}>
+                  Anexos ({anexos.length})
+                </div>
+                {anexos.map((a) => (
+                  <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#f6f7f9', borderRadius: 14, padding: '8px 14px', fontSize: 13, color: PALETA.texto, marginBottom: 6 }}>
+                    {ICONO_ANEXO[a.tipo]}
+                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.nombre}</span>
+                    <span style={{ fontSize: 11.5, color: PALETA.textoTenue }}>{a.tamano}</span>
+                    <Button type="text" size="small" shape="circle" icon={<CloseOutlined style={{ fontSize: 10 }} />} onClick={() => quitarAnexo(a.id)} />
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 
-          {anexos.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {anexos.map((a) => (
-                <div
-                  key={a.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    background: '#f6f7f9',
-                    borderRadius: 14,
-                    padding: '8px 14px',
-                    fontSize: 13,
-                    color: PALETA.texto,
-                  }}
-                >
-                  {ICONO_ANEXO[a.tipo]}
-                  <span
-                    style={{
-                      flex: 1,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {a.nombre}
-                  </span>
-                  <span style={{ fontSize: 11.5, color: PALETA.textoTenue, flexShrink: 0 }}>
-                    {a.tamano}
-                  </span>
-                  <Button
-                    type="text"
-                    size="small"
-                    shape="circle"
-                    icon={<CloseOutlined style={{ fontSize: 10 }} />}
-                    aria-label={`Quitar ${a.nombre}`}
-                    onClick={() => quitarAnexo(a.id)}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
+          <div style={{ padding: '10px 20px 20px', flexShrink: 0 }}>
+            <input ref={fileInputRef} type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.doc,.docx" style={{ display: 'none' }} onChange={(e) => agregarAnexos(e.target.files)} />
+            <Button icon={<UploadOutlined />} block onClick={() => fileInputRef.current?.click()} style={{ marginBottom: 10, borderRadius: 12 }}>
+              Adjuntar resolución recurrida
+            </Button>
+            <Button type="primary" block size="large" disabled={!completoMinimo} loading={radicando} onClick={() => void radicar()} style={{ fontWeight: 600, borderRadius: 12 }}>
+              Radicar {titulo}
+            </Button>
+          </div>
         </div>
-      </Card>
-
-      <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-        <Button onClick={() => navigate(-1)} style={{ borderRadius: 14 }}>
-          Volver
-        </Button>
-        <Button
-          type="primary"
-          htmlType="submit"
-          loading={cargando}
-          icon={<SendOutlined />}
-          style={{ borderRadius: 14, fontWeight: 600, minWidth: 180 }}
-        >
-          Radicar {titulo}
-        </Button>
       </div>
-    </Form>
+    </div>
   );
 }

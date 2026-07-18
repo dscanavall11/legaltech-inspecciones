@@ -62,9 +62,6 @@ const ActasFirmezaPage = lazy(() =>
 const NormasPage = lazy(() =>
   import('@/features/normas/NormasPage').then((m) => ({ default: m.NormasPage })),
 );
-const ArchivoDigitalPage = lazy(() =>
-  import('@/features/normas/ArchivoDigitalPage').then((m) => ({ default: m.ArchivoDigitalPage })),
-);
 
 // MVP pages (lazy loaded)
 const RadicadorPage = lazy(() =>
@@ -124,7 +121,6 @@ export const router = createBrowserRouter([
       { path: 'analisis', element: <Cargando><AnalisisPage /></Cargando> },
       { path: 'procesos', element: <Cargando><CasosPage /></Cargando> },
       { path: 'normas', element: <Cargando><NormasPage /></Cargando> },
-      { path: 'archivo', element: <Cargando><ArchivoDigitalPage /></Cargando> },
       // MVP: Radicador y Cola de trabajo
       { path: 'radicador', element: <Cargando><RadicadorPage /></Cargando> },
       { path: 'radicar/:tipo', element: <Cargando><RadicarDocumentoPage /></Cargando> },

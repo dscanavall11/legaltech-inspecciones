@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Card, Typography } from 'antd';
 import {
   FileTextOutlined,
-  SafetyCertificateOutlined,
   FileOutlined,
   MessageOutlined,
   CheckCircleOutlined,
@@ -121,16 +120,6 @@ export function RadicadorPage() {
       colorFondo: '#e6f4ea',
     },
     {
-      icono: <SafetyCertificateOutlined />,
-      titulo: 'Acta de firmeza',
-      descripcion: 'Constancia de firmeza de multa general (art. 223A Ley 1801). Importación desde PDF comparendo o BD Excel.',
-      termino: '5 días hábiles (art. 223A)',
-      via: 'Acta administrativa',
-      destino: '/panel/actas-firmeza',
-      colorIcono: '#d93025',
-      colorFondo: '#fce8e6',
-    },
-    {
       icono: <FileOutlined />,
       titulo: 'Apelación',
       descripcion: 'Recurso de apelación contra resolución de primera instancia. Subida de documento + formulario breve.',
@@ -159,7 +148,7 @@ export function RadicadorPage() {
           Radicador
         </Title>
         <Text type="secondary" style={{ fontSize: 16 }}>
-          Centro unificado para radicar los 5 tipos de solicitudes de inspección de policía.
+          Centro unificado para radicar las solicitudes de inspección de policía.
           Seleccione el tipo para iniciar el trámite correspondiente.
         </Text>
       </div>

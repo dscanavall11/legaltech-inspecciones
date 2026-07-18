@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Layout, Menu, Avatar, Typography, Grid, Dropdown } from 'antd';
+import { Layout, Menu, Avatar, Typography, Grid, Dropdown, Button } from 'antd';
 import {
   AppstoreOutlined,
   FileTextOutlined,
@@ -9,7 +9,6 @@ import {
   DollarOutlined,
   UserOutlined,
   LogoutOutlined,
-  FolderOpenOutlined,
   BookOutlined,
   LeftOutlined,
   InboxOutlined,
@@ -93,11 +92,6 @@ const MENU_ITEMS_COMPLETO = [
         icon: <BookOutlined />,
         label: <Link to="/panel/normas">Normas nacionales</Link>,
       },
-      {
-        key: '/panel/archivo',
-        icon: <FolderOpenOutlined />,
-        label: <Link to="/panel/archivo">Archivo digital</Link>,
-      },
     ],
   },
 ];
@@ -108,11 +102,11 @@ const NAV_RUTAS_COMPLETO = [
   '/panel/quejas',
   '/panel/audiencias',
   '/panel/radicador',
+  '/panel/radicar',
   '/panel/cola',
   '/panel/actas-firmeza',
   '/panel/medidas-correctivas',
   '/panel/normas',
-  '/panel/archivo',
 ];
 
 function getMenuItems() {
@@ -184,6 +178,27 @@ export function AppLayout() {
             <span style={{ fontWeight: 700, fontSize: 18, color: PALETA.texto }}>LegalTech</span>
           )}
         </div>
+
+        {/* Botón Radicar: siempre visible, pegado al lateral izquierdo debajo del logo */}
+        {!colapsado && (
+          <div style={{ padding: '4px 16px 12px' }}>
+            <Button
+              type="primary"
+              block
+              icon={<PlusSquareOutlined />}
+              onClick={() => navigate('/panel/radicador')}
+              style={{
+                height: 42,
+                borderRadius: 12,
+                fontWeight: 600,
+                fontSize: 14,
+                boxShadow: ELEVACION.base,
+              }}
+            >
+              Radicar
+            </Button>
+          </div>
+        )}
 
         <Menu
           mode="inline"

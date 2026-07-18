@@ -10,6 +10,7 @@ import {
   Tag,
   Typography,
   App,
+  Table,
 } from 'antd';
 import {
   DownloadOutlined,
@@ -18,6 +19,7 @@ import {
   UploadOutlined,
   SearchOutlined,
   SafetyCertificateOutlined,
+  RobotOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import {
@@ -36,6 +38,7 @@ import { extraerComparendoPdf } from './extraerComparendoPdf';
 import { descargarActaPdf } from './actaPdf';
 import { ELEVACION, PALETA } from '@/theme/theme';
 import { useInspeccionStore } from '@/store/inspeccionStore';
+import { useAiChat } from '@/shared/ai/useAiChat';
 
 const { Title, Text } = Typography;
 
@@ -153,6 +156,42 @@ export function ActasFirmezaPage() {
     setDatos((prev) => ({ ...prev, [k]: v }));
   }
 
+  // ── Asistencia de IA (HITL): la IA redacta los hechos y sugiere la causal,
+  //    el humano revisa y ajusta. No se delega el trabajo completo a la IA. ──
+  const { mensajes: msjIA, enviar: enviarIA, detener: detenerIA, enviando: enviandoIA } = useAiChat({
+    tipo: 'redaccion-acta-firmeza',
+    id: datos.comparendo || 'borrador',
+  });
+  const [sugeridaCausal, setSugeridaCausal] = useState<CausalIncremento | null>(null);
+
+  async function asistirConIA() {
+    if (!datos.comparendo) {
+      message.warning('Seleccione o cargue un comparendo antes de pedir asistencia.');
+      return;
+    }
+    const fuente = [datos.hechos, datos.hechos, `Descargos: N/A`]
+      .filter(Boolean)
+      .join('\n');
+    await enviarIA(
+      `Redacta el párrafo de HECHOS del acta de firmeza para el comparendo ${datos.comparendo} ` +
+        `con base en la conducta y los descargos del infractor. Luego, en una línea que empiece ` +
+        `por "CAUSAL:", indica la causal de incremento sugerida (ninguna, reiteracion_dentro_del_anio, ` +
+        `reiteracion_despues_del_anio, moroso_bdme). No inventes datos que no estén en el texto.\n\n${fuente}`,
+    );
+  }
+
+  // Cuando la IA responde, extrae la causal sugerida (línea "CAUSAL:") para que
+  // el inspector la aplique con un clic (HITL, no automático).
+  useEffect(() => {
+    const ultimo = msjIA[msjIA.length - 1];
+    if (ultimo?.rol === 'asistente' && ultimo.contenido.includes('CAUSAL:')) {
+      const match = /CAUSAL:\s*([a-z_]+)/i.exec(ultimo.contenido);
+      if (match && ['ninguna', 'reiteracion_dentro_del_anio', 'reiteracion_despues_del_anio', 'moroso_bdme'].includes(match[1])) {
+        setSugeridaCausal(match[1] as CausalIncremento);
+      }
+    }
+  }, [msjIA]);
+
   // El despacho (municipio, inspección, inspector) se recuerda entre sesiones.
   useEffect(() => {
     const { municipio, inspeccion, inspectorNombre, inspectorCargo } = datos;
@@ -266,6 +305,80 @@ export function ActasFirmezaPage() {
           (art. 223A, literal e, Ley 1801 de 2016, adicionado por la Ley 2197 de 2022).
         </Text>
       </div>
+
+      {/* ── Cola de trabajo: actas de firmeza cargadas desde el CSV/Excel ── */}
+      <Tarjeta style={{ marginBottom: 22 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <Text strong>Cola de trabajo — actas de firmeza ({bd.length})</Text>
+          <Tag color={origenBd === 'archivo' ? 'green' : 'blue'}>
+            {origenBd === 'archivo' ? 'BD del despacho' : 'BD de demostración'}
+          </Tag>
+        </div>
+        <Table<Comparendo>
+          size="small"
+          pagination={{ pageSize: 8, hideOnSinglePage: true }}
+          dataSource={bd}
+          rowKey={(c) => c.comparendo}
+          onRow={(c) => ({
+            onClick: () => seleccionarComparendo(c.comparendo),
+            style: { cursor: 'pointer' },
+          })}
+          columns={[
+            { title: 'Comparendo', dataIndex: 'comparendo', key: 'comparendo', width: 150 },
+            { title: 'Infractor', dataIndex: 'solicitado', key: 'solicitado', ellipsis: true },
+            {
+              title: 'Multa',
+              dataIndex: 'tipoMulta',
+              key: 'tipoMulta',
+              width: 80,
+              render: (t: TipoMulta) => `Tipo ${t}`,
+            },
+            {
+              title: 'Reincidencia',
+              dataIndex: 'causal',
+              key: 'causal',
+              width: 160,
+              render: (c: CausalIncremento) =>
+                c === 'ninguna' ? (
+                  <Tag color="default">Sin reincidencia</Tag>
+                ) : (
+                  <Tag color="volcano">{INCREMENTO_LABEL[c]}</Tag>
+                ),
+            },
+            {
+              title: 'Estado',
+              key: 'estado',
+              width: 110,
+              render: (_: unknown, c: Comparendo) =>
+                datos.comparendo === c.comparendo ? (
+                  <Tag color="processing">En edición</Tag>
+                ) : (
+                  <Tag color="default">Pendiente</Tag>
+                ),
+            },
+            {
+              title: '',
+              key: 'accion',
+              width: 90,
+              render: (_: unknown, c: Comparendo) => (
+                <Button
+                  size="small"
+                  type={datos.comparendo === c.comparendo ? 'primary' : 'default'}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    seleccionarComparendo(c.comparendo);
+                  }}
+                >
+                  {datos.comparendo === c.comparendo ? 'Abierto' : 'Abrir'}
+                </Button>
+              ),
+            },
+          ]}
+        />
+        <div style={{ fontSize: 12, color: PALETA.textoTenue, marginTop: 8 }}>
+          Seleccione un comparendo de la cola para cargarlo en el editor (HITL) y generar su acta.
+        </div>
+      </Tarjeta>
 
       <div style={{ display: 'flex', gap: 22, alignItems: 'flex-start', flexWrap: 'wrap' }}>
         {/* ── Columna izquierda ─────────────────────────────────── */}
@@ -540,10 +653,38 @@ export function ActasFirmezaPage() {
             </CampoActa>
 
             <CampoActa label="Hechos (descripción del comportamiento)">
+              <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                <Button
+                  icon={<RobotOutlined />}
+                  onClick={() => void asistirConIA()}
+                  loading={enviandoIA}
+                  disabled={enviandoIA}
+                >
+                  Asistir con IA (redacta hechos)
+                </Button>
+                {enviandoIA && (
+                  <Button size="small" danger onClick={() => detenerIA()}>
+                    Detener
+                  </Button>
+                )}
+                {sugeridaCausal && sugeridaCausal !== datos.causal && (
+                  <Tag
+                    color="blue"
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => {
+                      set('causal', sugeridaCausal);
+                      message.info(`Causal sugerida aplicada: ${INCREMENTO_LABEL[sugeridaCausal]}`);
+                    }}
+                  >
+                    IA sugiere causal: {INCREMENTO_LABEL[sugeridaCausal]} ✓
+                  </Tag>
+                )}
+              </div>
               <Input.TextArea
                 autoSize={{ minRows: 3, maxRows: 6 }}
                 value={datos.hechos}
                 onChange={(e) => set('hechos', e.target.value)}
+                placeholder="La IA redacta este párrafo a partir de la conducta y los descargos; usted lo revisa y ajusta."
               />
             </CampoActa>
 

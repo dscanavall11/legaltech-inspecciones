@@ -17,7 +17,17 @@ async function enableMocking() {
     import.meta.env.VITE_USE_MSW !== undefined
       ? import.meta.env.VITE_USE_MSW === 'true'
       : import.meta.env.VITE_ENABLE_MOCKS === 'true';
-  if (!useMsw) return;
+  if (!useMsw) {
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (const reg of registrations) {
+        if (reg.active?.scriptURL?.includes('mockServiceWorker')) {
+          await reg.unregister();
+        }
+      }
+    }
+    return;
+  }
   const { worker } = await import('./mocks/browser');
   await worker.start({
     onUnhandledRequest: 'bypass', // deja pasar lo que no esté mockeado (assets, etc.)

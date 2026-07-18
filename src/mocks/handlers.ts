@@ -517,9 +517,64 @@ export const handlers = [
   // La respuesta incluye marcadores <case_update>{json}</case_update> que el frontend
   // extrae para poblar la ficha de radicación en tiempo real.
   http.post(`${API}/intake/chat`, async ({ request }) => {
-    const body = (await request.json()) as { mensaje: string; turno: number };
-    const { mensaje, turno } = body;
+    const body = (await request.json()) as { mensaje: string; turno: number; tipo?: string };
+    const { mensaje, turno, tipo } = body;
     const msg = mensaje.toLowerCase();
+
+    // ── Radicación de Apelación / Fallo (2ª instancia) ──────────────────────
+    if (tipo === 'apelacion' || tipo === 'fallo') {
+      const esApelacion = tipo === 'apelacion';
+      const termino = esApelacion
+        ? '3 días hábiles (art. 223 num. 4 Ley 1801/2016)'
+        : 'Según la resolución recurrida';
+      let respuesta: string;
+
+      if (turno === 0) {
+        const upd = JSON.stringify({
+          radicadoOrigen: '',
+          partes: '',
+          sustento: '',
+        });
+        respuesta =
+          `Iniciaremos la ${esApelacion ? 'apelación' : 'radicación del fallo de segunda instancia'}. ` +
+          `Cuénteme: ¿cuál es el **radicado de la decisión de primera instancia** y quiénes son las **partes** (querellante / querellado)?\n\n` +
+          `Término: ${termino}.\n<case_update>${upd}</case_update>`;
+      } else if (turno === 1) {
+        const upd = JSON.stringify({ radicadoOrigen: mensaje.trim() });
+        respuesta = `Radicado de origen registrado: **${mensaje.trim()}**.\n\nAhora indíqueme el **nombre completo de las partes** y, si la conoce, la **fecha de la decisión recurrida**.\n<case_update>${upd}</case_update>`;
+      } else if (turno === 2) {
+        const upd = JSON.stringify({ partes: mensaje.trim() });
+        respuesta = `Partes registradas: **${mensaje.trim()}**.\n\nA continuación redactaré la **fundamentación jurídica** a partir de los hechos. ` +
+          `Pulse **"IA: redactar fundamentación"** y revisaré el borrador en el panel derecho.\n<case_update>${upd}</case_update>`;
+      } else if (msg.includes('fundamentación') || msg.startsWith('fundamentacion')) {
+        const fundamentacion =
+          `${esApelacion ? 'FUNDAMENTACIÓN:' : 'FUNDAMENTACIÓN (fallo 2ª instancia):'} ` +
+          `La decisión recurrida vulnera el debido proceso y la valoración probatoria consagrada en los ` +
+          `artículos 77 y 92 de la Ley 1801 de 2016. En virtud del artículo 223A ibídem, corresponde a esta ` +
+          `Segunda Instancia confirmar, modificar o revocar lo resuelto, garantizando el derecho de defensa de ` +
+          `las partes. Lo anterior con sustento en la inspección ocular y los medios de prueba documentales ` +
+          `aportados al expediente.`;
+        const upd = JSON.stringify({ sustento: fundamentacion });
+        respuesta = `${fundamentacion}\n\nRevise el texto en la ficha y ajústelo si lo considera necesario antes de radicar.\n<case_update>${upd}</case_update>`;
+      } else {
+        respuesta = `Los datos están casi completos. Use el botón **"IA: redactar fundamentación"** para generar ` +
+          `la sustentación jurídica, o indíqueme más hechos para complementarla.`;
+      }
+
+      const palabras = respuesta.split(' ');
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        async start(controller) {
+          for (const p of palabras) {
+            controller.enqueue(encoder.encode(p + ' '));
+            await delay(28);
+          }
+          controller.close();
+        },
+      });
+      return new HttpResponse(stream, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+    }
+
 
     let respuesta: string;
 

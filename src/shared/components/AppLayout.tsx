@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { TopBar } from './TopBar';
-import { GlassSidebar } from './GlassSidebar';
+import { Dock } from './dock/Dock';
 import { Launchpad } from './launchpad/Launchpad';
 import { CommandPalette } from './CommandPalette';
 import { AiAssistant } from '@/shared/ai/AiAssistant';
@@ -10,7 +10,6 @@ import { ConfigAssistant } from '@/shared/ai/ConfigAssistant';
 export function AppLayout() {
   const location = useLocation();
   const [launchpadAbierto, setLaunchpadAbierto] = useState(false);
-  const [colapsado, setColapsado] = useState(false);
 
   const esPaginaFullBleed = location.pathname.startsWith('/panel/nuevo-caso');
 
@@ -32,7 +31,7 @@ export function AppLayout() {
         display: 'flex',
       }}
     >
-      <GlassSidebar collapsed={colapsado} onToggle={() => setColapsado((c) => !c)} />
+      <Dock onAbrirLaunchpad={() => setLaunchpadAbierto(true)} />
 
       <div
         style={{
@@ -40,7 +39,7 @@ export function AppLayout() {
           display: 'flex',
           flexDirection: 'column',
           minWidth: 0,
-          paddingLeft: colapsado ? 80 : 248,
+          paddingLeft: 72,
         }}
       >
         <TopBar />
@@ -55,7 +54,6 @@ export function AppLayout() {
             overflow: esPaginaFullBleed ? 'hidden' : undefined,
           }}
         >
-          {/* key por ruta: cada vista entra con la animación orquestada */}
           <div key={location.pathname} className="vista-animada">
             <Outlet />
           </div>

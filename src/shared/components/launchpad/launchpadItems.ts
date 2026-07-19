@@ -58,7 +58,7 @@ export const LAUNCHPAD_ITEMS: LaunchpadItem[] = [
   },
   {
     key: 'asistente-ia',
-    label: 'Asistente IA',
+    label: 'Chat IA',
     iconKey: 'asistente-ia',
     area: 'consultas',
     accion: { tipo: 'ai-assistant' },

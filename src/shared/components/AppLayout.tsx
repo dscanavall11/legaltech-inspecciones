@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { TopBar } from './TopBar';
-import { Dock } from './dock/Dock';
+import { GlassSidebar } from './GlassSidebar';
 import { Launchpad } from './launchpad/Launchpad';
 import { CommandPalette } from './CommandPalette';
 import { AiAssistant } from '@/shared/ai/AiAssistant';
 import { ConfigAssistant } from '@/shared/ai/ConfigAssistant';
-import { PALETA } from '@/theme/theme';
 
 export function AppLayout() {
   const location = useLocation();
   const [launchpadAbierto, setLaunchpadAbierto] = useState(false);
+  const [colapsado, setColapsado] = useState(false);
 
   const esPaginaFullBleed = location.pathname.startsWith('/panel/nuevo-caso');
 
@@ -30,10 +30,9 @@ export function AppLayout() {
       style={{
         minHeight: '100vh',
         display: 'flex',
-        background: PALETA.fondo,
       }}
     >
-      <Dock onAbrirLaunchpad={() => setLaunchpadAbierto(true)} />
+      <GlassSidebar collapsed={colapsado} onToggle={() => setColapsado((c) => !c)} />
 
       <div
         style={{
@@ -41,7 +40,7 @@ export function AppLayout() {
           display: 'flex',
           flexDirection: 'column',
           minWidth: 0,
-          paddingLeft: 128,
+          paddingLeft: colapsado ? 80 : 248,
         }}
       >
         <TopBar />

@@ -10,8 +10,8 @@ import {
   BookOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { PALETA } from '@/theme/palette';
-import { glassBackground, glassShadowLiquid, glassOverlayBackground } from '@/theme/glass';
+import { PALETA } from '@/theme/theme';
+import { glassChrome, glassBackdrop } from '@/theme/glass';
 import { usePrefersReducedTransparency } from '@/shared/hooks/usePrefersReducedTransparency';
 
 const { Text } = Typography;
@@ -19,7 +19,6 @@ const { Text } = Typography;
 interface Comando {
   id: string;
   label: string;
-  shortcut?: string;
   icon: React.ReactNode;
   ruta: string;
 }
@@ -66,10 +65,6 @@ export function CommandPalette() {
     navigate(c.ruta);
   }
 
-  const overlayBg = glassOverlayBackground(reducirTransparencia);
-  const panelBg = glassBackground(reducirTransparencia, 'strong');
-  const panelShadow = glassShadowLiquid(PALETA.azul, 'high');
-
   return (
     <AnimatePresence>
       {abierto && (
@@ -89,7 +84,7 @@ export function CommandPalette() {
             display: 'flex',
             justifyContent: 'center',
             paddingTop: '16vh',
-            ...overlayBg,
+            ...glassBackdrop(reducirTransparencia),
           }}
         >
           <motion.div
@@ -104,11 +99,11 @@ export function CommandPalette() {
               width: 420,
               maxWidth: 'calc(100vw - 32px)',
               height: 'fit-content',
-              borderRadius: 18,
+              borderRadius: 14,
               overflow: 'hidden',
-              ...panelBg,
+              ...glassChrome(reducirTransparencia),
               border: `1px solid ${PALETA.borde}`,
-              boxShadow: panelShadow,
+              boxShadow: '0 12px 32px rgba(32,33,36,.18)',
             }}
           >
             <div
@@ -151,11 +146,11 @@ export function CommandPalette() {
                     gap: 12,
                     padding: '9px 16px',
                     cursor: 'pointer',
-                    borderRadius: 10,
+                    borderRadius: 8,
                     margin: '0 6px',
                     transition: 'background 120ms ease',
                   }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = '#eef4fa'; }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = '#f1f3f4'; }}
                   onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
                 >
                   <span style={{ color: PALETA.textoSuave, fontSize: 14, width: 18, textAlign: 'center' }}>{c.icon}</span>

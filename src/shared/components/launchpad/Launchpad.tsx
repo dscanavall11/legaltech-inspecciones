@@ -18,6 +18,7 @@ import {
 import { LaunchpadTile } from './LaunchpadTile';
 import { useOverlayStore } from '@/store/overlayStore';
 import { PALETA } from '@/theme/theme';
+import { glassBackdrop } from '@/theme/glass';
 import { usePrefersReducedTransparency } from '@/shared/hooks/usePrefersReducedTransparency';
 
 const ICONOS_LAUNCHPAD: Record<LaunchpadIconKey, ReactNode> = {
@@ -101,9 +102,7 @@ export function Launchpad({ abierto, onCerrar }: LaunchpadProps) {
           style={{
             position: 'fixed',
             inset: 0,
-            background: reducirTransparencia ? PALETA.superficie : 'rgba(238, 244, 250, 0.72)',
-            backdropFilter: reducirTransparencia ? 'none' : 'blur(24px) saturate(180%)',
-            WebkitBackdropFilter: reducirTransparencia ? 'none' : 'blur(24px) saturate(180%)',
+            ...glassBackdrop(reducirTransparencia),
             zIndex: 30,
             display: 'flex',
             alignItems: 'center',

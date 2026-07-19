@@ -1,47 +1,21 @@
 import type { ThemeConfig } from 'antd';
 import { theme as antdTheme } from 'antd';
-import {
-  PALETA,
-  glassShadowLiquid,
-  glassShadowLiquidHover,
-} from './glass';
+import { PALETA, ELEVACION } from './palette';
+
+export { PALETA, ELEVACION } from './palette';
 
 /**
- * Sistema de diseño — estética Apple Liquid Glass + degradado azul sutil.
- *
- * Fondos fríos con degradado azul muy tenue, superficies blanco/cristal
- * translúcidas con borde interior brillante, sombras tintadas azuladas y
- * acento azul Apple (#007AFF). La voz tipográfica del despacho (serif
- * editorial Newsreader) se conserva para títulos y radicados.
- *
- * Paleta institucional (Liquid Glass + azul Apple):
- *  superficie #ffffff · fondo #f5f8fc · acento azul #007aff
- */
-export { PALETA } from './glass';
-export { ELEVACION } from './palette';
-
-// Re-export glass system for consumers
-export {
-  type GlassElevation,
-  glassShadowLiquid,
-  glassShadowLiquidHover,
-} from './glass';
-
-/**
- * Ant Design theme with Liquid Glass integration.
- * The glass system provides elevation variants that components can opt into.
+ * Sistema de diseño — superficies planas estilo Google/Material (como
+ * resguardo-saas): blanco sólido, borde de 1px, una sola sombra discreta.
+ * Nada de backdrop-filter ni sombras en capas en el contenido principal — el
+ * cristal se reserva para el Dock, el buscador y el fondo del Launchpad
+ * (ver theme/glass.ts), que son la única "chrome" flotante de la app.
  */
 export function buildTheme(opts: {
   fontSize: number;
   highContrast: boolean;
-  reduceTransparency?: boolean;
 }): ThemeConfig {
-  const { fontSize, highContrast, reduceTransparency = false } = opts;
-
-  // Base glass background for Ant Design components
-  const glassBg = reduceTransparency
-    ? PALETA.superficie
-    : 'rgba(255, 255, 255, 0.72)';
+  const { fontSize, highContrast } = opts;
 
   return {
     algorithm: highContrast
@@ -59,39 +33,34 @@ export function buildTheme(opts: {
       colorBorderSecondary: PALETA.borde,
       colorBorder: PALETA.borde,
       fontFamily:
-        "-apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif",
+        "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
       fontSize,
-      // Encabezados contenidos — gravedad editorial sin gritar.
-      fontSizeHeading1: 26,
-      fontSizeHeading2: 21,
-      fontSizeHeading3: 17,
-      fontSizeHeading4: 15,
+      fontSizeHeading1: 24,
+      fontSizeHeading2: 20,
+      fontSizeHeading3: 16,
+      fontSizeHeading4: 14,
       fontSizeHeading5: 13,
-      lineHeight: 1.55,
+      lineHeight: 1.5,
       borderRadius: 10,
-      borderRadiusLG: 20,
+      borderRadiusLG: 12,
       controlHeight: 38,
       wireframe: false,
-
-      // Glass-specific tokens (available via CSS-in-JS or custom components)
-      colorBgContainer: glassBg,
-      colorBgElevated: glassBg,
     },
     components: {
       Layout: {
-        headerBg: glassBg,
+        headerBg: PALETA.superficie,
         headerHeight: 60,
-        siderBg: glassBg,
+        siderBg: PALETA.superficie,
         bodyBg: PALETA.fondo,
       },
       Menu: {
         itemBg: 'transparent',
         itemHeight: 42,
-        itemBorderRadius: 20,
+        itemBorderRadius: 10,
         itemSelectedBg: PALETA.azulSuave,
         itemSelectedColor: PALETA.azulOscuro,
         itemColor: PALETA.textoSuave,
-        itemHoverBg: reduceTransparency ? '#eef4fa' : 'rgba(0, 122, 255, 0.08)',
+        itemHoverBg: '#f1f3f4',
         fontSize,
         iconSize: fontSize + 1,
         itemHoverColor: PALETA.texto,
@@ -99,29 +68,23 @@ export function buildTheme(opts: {
       },
       Button: {
         controlHeight: 40,
-        borderRadius: 20,
-        borderRadiusLG: 24,
+        borderRadius: 999,
+        borderRadiusLG: 999,
         fontWeight: 500,
-        primaryShadow: '0 4px 14px -4px rgba(0, 122, 255, 0.45)',
+        primaryShadow: 'none',
         defaultShadow: 'none',
-        // Glass button overrides
-        defaultBg: reduceTransparency ? PALETA.superficie : 'rgba(255, 255, 255, 0.72)',
+        defaultBg: PALETA.superficie,
         defaultBorderColor: PALETA.borde,
-        defaultHoverBg: reduceTransparency ? '#eef4fa' : 'rgba(255, 255, 255, 0.85)',
-        defaultActiveBg: reduceTransparency ? '#e3f0ff' : 'rgba(0, 122, 255, 0.12)',
+        defaultHoverBg: '#f1f3f4',
+        defaultActiveBg: PALETA.azulSuave,
       },
       Card: {
-        borderRadiusLG: 20,
+        borderRadiusLG: 12,
         paddingLG: 22,
-        // Glass card base
-        colorBgContainer: glassBg,
+        colorBgContainer: PALETA.superficie,
         colorBorderSecondary: PALETA.borde,
-        boxShadow: reduceTransparency
-          ? 'none'
-          : glassShadowLiquid(PALETA.azul, 'base'),
-        boxShadowSecondary: reduceTransparency
-          ? 'none'
-          : glassShadowLiquidHover(PALETA.azul, 'base'),
+        boxShadow: 'none',
+        boxShadowSecondary: ELEVACION.base,
       },
       Table: {
         cellPaddingBlock: 14,
@@ -129,115 +92,49 @@ export function buildTheme(opts: {
         headerColor: PALETA.textoTenue,
         headerSplitColor: 'transparent',
         borderColor: PALETA.borde,
-        rowHoverBg: reduceTransparency ? '#eef4fa' : 'rgba(0, 122, 255, 0.06)',
+        rowHoverBg: '#f1f3f4',
       },
       Tabs: { titleFontSize: fontSize },
       Input: {
-        borderRadius: 20,
+        borderRadius: 10,
         controlHeight: 40,
-        colorBgContainer: reduceTransparency
-          ? PALETA.superficie
-          : 'rgba(255, 255, 255, 0.85)',
+        colorBgContainer: PALETA.superficie,
         colorBorder: PALETA.borde,
-        boxShadow: reduceTransparency ? 'none' : 'inset 0 1px 2px rgba(0, 30, 80, 0.04)',
         paddingBlock: 8,
-        paddingInline: 16,
+        paddingInline: 14,
       },
       Select: {
-        borderRadius: 20,
+        borderRadius: 10,
         controlHeight: 40,
-        colorBgContainer: reduceTransparency
-          ? PALETA.superficie
-          : 'rgba(255, 255, 255, 0.85)',
+        colorBgContainer: PALETA.superficie,
         colorBorder: PALETA.borde,
         optionSelectedBg: PALETA.azulSuave,
         optionSelectedColor: PALETA.azulOscuro,
       },
       Segmented: {
-        borderRadius: 16,
-        trackBg: reduceTransparency ? '#e3eaf2' : 'rgba(0, 122, 255, 0.08)',
-        itemSelectedBg: reduceTransparency ? PALETA.superficie : 'rgba(255, 255, 255, 0.9)',
+        borderRadius: 10,
+        trackBg: '#f1f3f4',
+        itemSelectedBg: PALETA.superficie,
         itemSelectedColor: PALETA.azul,
-        itemHoverBg: reduceTransparency ? '#eef4fa' : 'rgba(255, 255, 255, 0.72)',
+        itemHoverBg: 'rgba(0,0,0,0.04)',
       },
       Tag: {
         borderRadiusSM: 999,
         lineWidth: 0,
-        colorBgContainer: reduceTransparency
-          ? PALETA.superficie
-          : 'rgba(255, 255, 255, 0.72)',
+        colorBgContainer: '#f1f3f4',
         colorBorder: PALETA.borde,
       },
-Modal: {
-        borderRadiusLG: 20,
-        contentBg: glassBg,
-        boxShadow: reduceTransparency
-          ? '0 12px 32px rgba(0, 30, 80, 0.15)'
-          : glassShadowLiquid(PALETA.azul, 'high'),
-      },
-      Drawer: {
-        borderRadiusLG: 20,
-        boxShadow: reduceTransparency
-          ? '0 12px 32px rgba(0, 30, 80, 0.15)'
-          : glassShadowLiquid(PALETA.azul, 'high'),
-      },
-      Popover: {
-        borderRadiusLG: 16,
-        colorBgContainer: glassBg,
-        boxShadow: reduceTransparency
-          ? '0 4px 12px rgba(0, 30, 80, 0.10)'
-          : glassShadowLiquid(PALETA.azul, 'medium'),
-      },
-      Tooltip: {
-        borderRadius: 12,
-        colorBgContainer: reduceTransparency
-          ? 'rgba(30, 30, 35, 0.95)'
-          : 'rgba(30, 30, 35, 0.85)',
-        boxShadow: reduceTransparency
-          ? '0 4px 12px rgba(0, 30, 80, 0.15)'
-          : glassShadowLiquid(PALETA.azul, 'high'),
-      },
-      Dropdown: {
-        borderRadiusLG: 16,
-        colorBgContainer: glassBg,
-        boxShadow: reduceTransparency
-          ? '0 4px 12px rgba(0, 30, 80, 0.10)'
-          : glassShadowLiquid(PALETA.azul, 'medium'),
-      },
+      Modal: { borderRadiusLG: 16, contentBg: PALETA.superficie, boxShadow: ELEVACION.media },
+      Drawer: { borderRadiusLG: 16, boxShadow: ELEVACION.media },
+      Popover: { borderRadiusLG: 12, colorBgContainer: PALETA.superficie, boxShadow: ELEVACION.media },
+      Tooltip: { borderRadius: 8, colorBgContainer: 'rgba(32,33,36,0.92)', boxShadow: ELEVACION.base },
+      Dropdown: { borderRadiusLG: 12, colorBgContainer: PALETA.superficie, boxShadow: ELEVACION.media },
       Descriptions: { itemPaddingBottom: 14, colonMarginRight: 0 },
-      Pagination: {
-        borderRadius: 12,
-        itemBg: reduceTransparency ? PALETA.superficie : 'rgba(255, 255, 255, 0.72)',
-        itemActiveBg: PALETA.azul,
-      },
-      Breadcrumb: {
-        separatorColor: PALETA.textoTenue,
-        linkColor: PALETA.textoSuave,
-      },
-      Alert: {
-        borderRadiusLG: 16,
-        colorBgContainer: reduceTransparency
-          ? PALETA.superficie
-          : 'rgba(255, 255, 255, 0.72)',
-        colorBorder: PALETA.borde,
-      },
-      Message: {
-        colorBgContainer: reduceTransparency
-          ? PALETA.superficie
-          : 'rgba(255, 255, 255, 0.85)',
-        boxShadow: reduceTransparency
-          ? '0 8px 24px rgba(0, 30, 80, 0.15)'
-          : glassShadowLiquid(PALETA.azul, 'high'),
-      },
-      Notification: {
-        borderRadiusLG: 16,
-        colorBgContainer: reduceTransparency
-          ? PALETA.superficie
-          : 'rgba(255, 255, 255, 0.85)',
-        boxShadow: reduceTransparency
-          ? '0 8px 24px rgba(0, 30, 80, 0.15)'
-          : glassShadowLiquid(PALETA.azul, 'high'),
-      },
+      Pagination: { borderRadius: 8, itemBg: PALETA.superficie, itemActiveBg: PALETA.azul },
+      Breadcrumb: { separatorColor: PALETA.textoTenue, linkColor: PALETA.textoSuave },
+      Alert: { borderRadiusLG: 12, colorBgContainer: PALETA.superficie, colorBorder: PALETA.borde },
+      Message: { colorBgContainer: PALETA.superficie, boxShadow: ELEVACION.media },
+      Notification: { borderRadiusLG: 12, colorBgContainer: PALETA.superficie, boxShadow: ELEVACION.media },
     },
   };
 }

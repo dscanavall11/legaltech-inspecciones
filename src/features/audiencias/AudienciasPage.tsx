@@ -1,5 +1,5 @@
 import { useMemo, useState, type CSSProperties } from 'react';
-import { Typography, Empty, Skeleton, Alert, Tag } from 'antd';
+import { Card, Typography, Empty, Skeleton, Alert, Tag } from 'antd';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import {
   LeftOutlined,
@@ -12,8 +12,8 @@ import type { Dayjs } from 'dayjs';
 import { useAudiencias, useProgramarAudiencia, type Audiencia } from './api';
 import { useQuerellas } from '@/features/querellas/api';
 import type { EstadoQuerella } from '@/features/querellas/types';
-import { ELEVACION, PALETA } from '@/theme/theme';
-import { sombraGlass, fondoGlass, focusBlurOverlay, sombraOpal } from '@/theme/glass';
+import { PALETA } from '@/theme/theme';
+import { glassChrome, glassBackdrop } from '@/theme/glass';
 import { usePrefersReducedTransparency } from '@/shared/hooks/usePrefersReducedTransparency';
 
 const { Title, Text } = Typography;
@@ -25,24 +25,11 @@ function claveDia(d: Dayjs): string {
   return d.format('YYYY-MM-DD');
 }
 
-const navBtnStyle: CSSProperties = {
-  width: 32,
-  height: 32,
-  borderRadius: 10,
-  border: `1px solid ${PALETA.borde}`,
-  background: 'transparent',
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  color: PALETA.textoSuave,
-};
-
 const ghostBtnStyle: CSSProperties = {
   padding: '7px 14px',
-  borderRadius: 12,
+  borderRadius: 10,
   border: `1px solid ${PALETA.borde}`,
-  background: 'transparent',
+  background: PALETA.superficie,
   cursor: 'pointer',
   fontSize: 13,
   color: PALETA.textoSuave,
@@ -50,14 +37,13 @@ const ghostBtnStyle: CSSProperties = {
 
 const primaryBtnStyle: CSSProperties = {
   padding: '7px 16px',
-  borderRadius: 12,
+  borderRadius: 10,
   border: 'none',
   cursor: 'pointer',
   fontSize: 13,
   fontWeight: 600,
   color: '#fff',
-  background: `linear-gradient(135deg, ${PALETA.azul}, ${PALETA.azulOscuro})`,
-  boxShadow: sombraOpal(PALETA.azul, ELEVACION.base),
+  background: PALETA.azul,
 };
 
 export function AudienciasPage() {
@@ -124,21 +110,11 @@ export function AudienciasPage() {
     );
   }
 
-  const superficieGlass: CSSProperties = {
-    borderRadius: 20,
-    padding: 18,
-    background: reducirTransparencia ? PALETA.superficie : fondoGlass('rgba(255,255,255,0.7)'),
-    backdropFilter: reducirTransparencia ? 'none' : 'blur(18px) saturate(180%)',
-    WebkitBackdropFilter: reducirTransparencia ? 'none' : 'blur(18px) saturate(180%)',
-    border: `1px solid ${PALETA.borde}`,
-    boxShadow: sombraGlass(ELEVACION.base),
-  };
-
   if (isLoading || cargandoQuerellas) {
     return (
-      <div style={superficieGlass}>
+      <Card variant="borderless">
         <Skeleton active paragraph={{ rows: 8 }} />
-      </div>
+      </Card>
     );
   }
 
@@ -159,36 +135,62 @@ export function AudienciasPage() {
         }}
       >
         <div>
-          <Title level={2} style={{ margin: 0 }}>
+          <Title level={3} style={{ margin: 0 }}>
             Audiencias
           </Title>
-          <Text type="secondary" style={{ fontSize: 15 }}>
+          <Text type="secondary" style={{ fontSize: 13.5 }}>
             {casoSeleccionado
               ? 'Ahora selecciona un día en el calendario para agendar este caso.'
               : 'Calendario de audiencias — agenda los casos sin fecha desde la lista.'}
           </Text>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+
+        {/* Navegador de mes — un solo control segmentado, no botones sueltos */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            border: `1px solid ${PALETA.borde}`,
+            borderRadius: 10,
+            overflow: 'hidden',
+          }}
+        >
           <button
             aria-label="Mes anterior"
             onClick={() => setMesActual((m) => m.subtract(1, 'month'))}
-            style={navBtnStyle}
+            style={navSegmentStyle}
           >
-            <LeftOutlined />
+            <LeftOutlined style={{ fontSize: 12 }} />
           </button>
-          <Text strong style={{ fontSize: 15, minWidth: 150, textAlign: 'center', textTransform: 'capitalize' }}>
+          <div
+            style={{
+              padding: '0 14px',
+              fontSize: 13.5,
+              fontWeight: 600,
+              minWidth: 128,
+              textAlign: 'center',
+              textTransform: 'capitalize',
+              color: PALETA.texto,
+              borderLeft: `1px solid ${PALETA.borde}`,
+              borderRight: `1px solid ${PALETA.borde}`,
+              height: 34,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
             {mesActual.format('MMMM YYYY')}
-          </Text>
+          </div>
           <button
             aria-label="Mes siguiente"
             onClick={() => setMesActual((m) => m.add(1, 'month'))}
-            style={navBtnStyle}
+            style={navSegmentStyle}
           >
-            <RightOutlined />
+            <RightOutlined style={{ fontSize: 12 }} />
           </button>
           <button
             onClick={() => setMesActual(dayjs().startOf('month'))}
-            style={{ ...navBtnStyle, width: 'auto', padding: '0 14px', fontSize: 13 }}
+            style={{ ...navSegmentStyle, width: 'auto', padding: '0 14px', borderLeft: `1px solid ${PALETA.borde}` }}
           >
             Hoy
           </button>
@@ -199,8 +201,8 @@ export function AudienciasPage() {
         <Alert type="error" showIcon message="No se pudieron cargar las audiencias" style={{ marginBottom: 16 }} />
       )}
 
-      <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-        <div style={{ ...superficieGlass, flex: '1 1 560px', minWidth: 320 }}>
+      <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+        <Card variant="borderless" style={{ flex: '1 1 560px', minWidth: 320 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, marginBottom: 6 }}>
             {['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'].map((d) => (
               <div
@@ -231,7 +233,7 @@ export function AudienciasPage() {
                   style={{
                     aspectRatio: '1',
                     border: 'none',
-                    borderRadius: 12,
+                    borderRadius: 10,
                     cursor: 'pointer',
                     display: 'flex',
                     flexDirection: 'column',
@@ -245,7 +247,7 @@ export function AudienciasPage() {
                     transition: 'background 150ms ease',
                   }}
                   onMouseEnter={(e) => {
-                    if (enMes) e.currentTarget.style.background = esHoy ? PALETA.azulSuave : '#eef4fa';
+                    if (enMes) e.currentTarget.style.background = esHoy ? PALETA.azulSuave : '#f1f3f4';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background = esHoy ? PALETA.azulSuave : 'transparent';
@@ -263,9 +265,9 @@ export function AudienciasPage() {
               );
             })}
           </div>
-        </div>
+        </Card>
 
-        <div style={{ ...superficieGlass, flex: '0 1 300px', minWidth: 260 }}>
+        <Card variant="borderless" style={{ flex: '0 1 300px', minWidth: 260 }}>
           <Text strong style={{ fontSize: 14 }}>
             Casos sin audiencia programada
           </Text>
@@ -284,14 +286,14 @@ export function AudienciasPage() {
                     style={{
                       textAlign: 'left',
                       border: `1px solid ${activo ? PALETA.azul : PALETA.borde}`,
-                      borderRadius: 14,
+                      borderRadius: 10,
                       padding: '9px 12px',
                       cursor: 'pointer',
                       background: activo ? PALETA.azulSuave : 'transparent',
                       transition: 'background 150ms ease, border-color 150ms ease',
                     }}
                   >
-                    <div className="font-display" style={{ fontSize: 12.5, fontWeight: 600, color: PALETA.texto }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 600, color: PALETA.texto }}>
                       Radicado {q.radicado}
                     </div>
                     <div
@@ -311,9 +313,10 @@ export function AudienciasPage() {
               })
             )}
           </div>
-        </div>
+        </Card>
       </div>
 
+      {/* Panel flotante de día — este sí es "chrome" real por encima del contenido: blur-focus. */}
       <AnimatePresence>
         {diaSeleccionado && (
           <motion.div
@@ -332,7 +335,7 @@ export function AudienciasPage() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              ...focusBlurOverlay(reducirTransparencia),
+              ...glassBackdrop(reducirTransparencia),
             }}
           >
             <motion.div
@@ -344,16 +347,14 @@ export function AudienciasPage() {
               style={{
                 width: 380,
                 maxWidth: 'calc(100vw - 32px)',
-                borderRadius: 20,
+                borderRadius: 16,
                 padding: 22,
-                background: reducirTransparencia ? PALETA.superficie : fondoGlass('rgba(255,255,255,0.82)'),
-                backdropFilter: reducirTransparencia ? 'none' : 'blur(24px) saturate(180%)',
-                WebkitBackdropFilter: reducirTransparencia ? 'none' : 'blur(24px) saturate(180%)',
+                ...glassChrome(reducirTransparencia),
                 border: `1px solid ${PALETA.borde}`,
-                boxShadow: sombraGlass(ELEVACION.media),
+                boxShadow: '0 12px 32px rgba(32,33,36,.18)',
               }}
             >
-              <Text className="font-display" strong style={{ fontSize: 15 }}>
+              <Text strong style={{ fontSize: 15 }}>
                 {diaSeleccionado.format('D [de] MMMM')}
               </Text>
 
@@ -407,3 +408,16 @@ export function AudienciasPage() {
     </div>
   );
 }
+
+const navSegmentStyle: CSSProperties = {
+  width: 34,
+  height: 34,
+  border: 'none',
+  background: 'transparent',
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  fontSize: 13,
+  color: PALETA.textoSuave,
+};

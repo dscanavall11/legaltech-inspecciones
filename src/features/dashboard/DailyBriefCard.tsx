@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Input, Typography, Tag } from 'antd';
+import { Card, Input, Typography, Tag } from 'antd';
 import {
   BulbOutlined,
   ReadOutlined,
   EditOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import { GlassPanel } from '@/shared/components/glass/GlassPanel';
 import { PALETA } from '@/theme/theme';
 
 const { Text, Title } = Typography;
@@ -64,7 +63,7 @@ export function DailyBriefCard() {
   }
 
   return (
-    <GlassPanel padding="22" accent={PALETA.azul} style={{ height: '100%' }}>
+    <Card variant="borderless" style={{ height: '100%' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
         <BulbOutlined style={{ color: PALETA.azul, fontSize: 18 }} />
         <Title level={5} style={{ margin: 0 }}>
@@ -107,8 +106,8 @@ export function DailyBriefCard() {
             key={n.titulo}
             style={{
               padding: '10px 14px',
-              borderRadius: 14,
-              background: 'rgba(238, 244, 250, 0.55)',
+              borderRadius: 10,
+              background: PALETA.fondo,
               border: `1px solid ${PALETA.borde}`,
             }}
           >
@@ -137,6 +136,6 @@ export function DailyBriefCard() {
           </div>
         ))}
       </div>
-    </GlassPanel>
+    </Card>
   );
 }

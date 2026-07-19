@@ -1,4 +1,4 @@
-import { Col, Row, Typography, Tag, Empty, Skeleton } from 'antd';
+import { Card, Col, Row, Typography, Tag, Empty, Skeleton } from 'antd';
 import {
   FileTextOutlined,
   CalendarOutlined,
@@ -15,7 +15,6 @@ import { calcularTermino } from '@/shared/terminos/diasHabiles';
 import { ESTADO_LABEL } from '@/features/querellas/types';
 import { useAuth } from '@/shared/auth/auth';
 import { PALETA } from '@/theme/theme';
-import { GlassCard, GlassTile } from '@/shared/components/glass/GlassPanel';
 import { MVP } from '@/app/mvp';
 import { DailyBriefCard } from './DailyBriefCard';
 
@@ -38,40 +37,37 @@ function StatCard({
 }) {
   const navigate = useNavigate();
   return (
-    <GlassCard
-      elevation="level2"
+    <Card
+      variant="borderless"
+      hoverable
       onClick={() => navigate(destino)}
-      accent={color}
       style={{ height: '100%' }}
-      role="button"
-      aria-label={`${label}: ${valor}`}
-      tabIndex={0}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
         <div
           style={{
-            width: 52,
-            height: 52,
-            borderRadius: 16,
+            width: 48,
+            height: 48,
+            borderRadius: 12,
             background: fondo,
             color,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: 24,
+            fontSize: 22,
             flexShrink: 0,
           }}
         >
           {icono}
         </div>
         <div>
-          <div style={{ fontSize: 30, fontWeight: 700, lineHeight: 1.1, color: PALETA.texto }}>
+          <div style={{ fontSize: 28, fontWeight: 700, lineHeight: 1.1, color: PALETA.texto }}>
             {valor}
           </div>
           <Text type="secondary">{label}</Text>
         </div>
       </div>
-    </GlassCard>
+    </Card>
   );
 }
 
@@ -87,70 +83,38 @@ function FilaCaso({
   extremo: ReactNode;
 }) {
   return (
-    <Link to={to} style={{ display: 'block', textDecoration: 'none' }}>
-      <GlassTile
-        padding="11px 14px"
-        radius={16}
-        accent={PALETA.azul}
-        elevation="level1"
-        style={{ marginBottom: 8 }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ color: PALETA.texto }}>{principal}</div>
-            <div
-              style={{
-                fontSize: 12.5,
-                color: PALETA.textoSuave,
-                marginTop: 1,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
-            >
-              {secundario}
-            </div>
-          </div>
-          {extremo}
-          <RightOutlined style={{ color: PALETA.textoTenue, fontSize: 11 }} />
-        </div>
-      </GlassTile>
-    </Link>
-  );
-}
-
-function GlassCardWithHeader({
-  title,
-  extra,
-  children,
-  elevation = 'level2',
-  ...props
-}: {
-  title: ReactNode;
-  extra?: ReactNode;
-  children: ReactNode;
-  elevation?: 'level1' | 'level2' | 'level3';
-  style?: React.CSSProperties;
-}) {
-  return (
-    <GlassCard elevation={elevation} {...props}>
+    <Link to={to} style={{ display: 'block' }}>
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: 10,
-          paddingBottom: 10,
-          borderBottom: `1px solid ${PALETA.borde}`,
+          gap: 14,
+          padding: '11px 14px',
+          borderRadius: 10,
+          transition: 'background 0.15s ease',
         }}
+        onMouseEnter={(e) => (e.currentTarget.style.background = '#f1f3f4')}
+        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
       >
-        <Title level={5} style={{ margin: 0, fontSize: 17, fontWeight: 600 }}>
-          {title}
-        </Title>
-        {extra && <div style={{ flexShrink: 0 }}>{extra}</div>}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ color: PALETA.texto }}>{principal}</div>
+          <div
+            style={{
+              fontSize: 12.5,
+              color: PALETA.textoSuave,
+              marginTop: 1,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            {secundario}
+          </div>
+        </div>
+        {extremo}
+        <RightOutlined style={{ color: PALETA.textoTenue, fontSize: 11 }} />
       </div>
-      {children}
-    </GlassCard>
+    </Link>
   );
 }
 
@@ -180,37 +144,28 @@ export function DashboardPage() {
     .sort((a, b) => a.fecha.localeCompare(b.fecha))
     .slice(0, 4);
 
-  const fechaHoy = dayjs().format('dddd, D [de] MMMM [de] YYYY');
+  const fechaHoy = dayjs().format('dddd, D [de] MMMM');
 
   if (isLoading) {
     return (
-      <GlassCard elevation="level1" style={{ padding: 32 }}>
+      <Card variant="borderless">
         <Skeleton active paragraph={{ rows: 6 }} />
-      </GlassCard>
+      </Card>
     );
   }
 
   return (
     <div>
-      <div
-        style={{
-          fontSize: 12,
-          letterSpacing: '0.08em',
-          textTransform: 'uppercase',
-          color: PALETA.textoTenue,
-          marginBottom: 6,
-        }}
-      >
-        {fechaHoy}
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 4 }}>
+        <Title level={3} style={{ margin: 0 }}>
+          {usuario?.nombre?.split(' ')[0]}
+        </Title>
+        <Text type="secondary" style={{ fontSize: 13, textTransform: 'capitalize' }}>
+          {fechaHoy}
+        </Text>
       </div>
-      <Title level={2} style={{ marginTop: 0, marginBottom: 4 }}>
-        Buen día, {usuario?.nombre?.split(' ')[0]}
-      </Title>
-      <Text type="secondary" style={{ fontSize: 16 }}>
-        Este es el estado de tu despacho hoy.
-      </Text>
 
-      <Row gutter={[20, 20]} style={{ marginTop: 28 }}>
+      <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
         <Col xs={24} sm={12} lg={6}>
           <StatCard
             label="En trámite"
@@ -229,7 +184,7 @@ export function DashboardPage() {
                 valor={audiencias}
                 icono={<CalendarOutlined />}
                 color={PALETA.verde}
-                fondo="#e3f5e9"
+                fondo="#e6f4ea"
                 destino="/panel/audiencias"
               />
             </Col>
@@ -251,18 +206,22 @@ export function DashboardPage() {
             valor={porVencer.length}
             icono={<WarningOutlined />}
             color={PALETA.rojo}
-            fondo="#ffe0db"
+            fondo="#fce8e6"
             destino="/panel/querellas"
           />
         </Col>
       </Row>
 
-      <Row gutter={[20, 20]} style={{ marginTop: 24 }}>
-        {/* Términos por vencer */}
+      <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
         <Col xs={24} lg={13}>
-          <GlassCardWithHeader
-            elevation="level2"
+          <Card
+            variant="borderless"
             title="Casos con término por vencer"
+            style={{ height: '100%' }}
+            styles={{
+              header: { fontSize: 15, fontWeight: 600, borderBottom: `1px solid ${PALETA.borde}` },
+              body: { paddingTop: 10 },
+            }}
             extra={
               <Link to="/panel/querellas">
                 Ver todas <RightOutlined style={{ fontSize: 11 }} />
@@ -280,11 +239,7 @@ export function DashboardPage() {
                   <FilaCaso
                     key={q.id}
                     to={`/panel/querellas/${q.id}`}
-                    principal={
-                      <span className="font-display" style={{ fontSize: 15.5 }}>
-                        Radicado {q.radicado}
-                      </span>
-                    }
+                    principal={<span style={{ fontSize: 14.5 }}>Radicado {q.radicado}</span>}
                     secundario={`${q.asunto} · ${ESTADO_LABEL[q.estado]}`}
                     extremo={
                       <Tag
@@ -298,14 +253,18 @@ export function DashboardPage() {
                 ))}
               </div>
             )}
-          </GlassCardWithHeader>
+          </Card>
         </Col>
 
-        {/* Agenda de audiencias */}
         <Col xs={24} lg={11}>
-          <GlassCardWithHeader
-            elevation="level2"
+          <Card
+            variant="borderless"
             title="Próximas audiencias"
+            style={{ height: '100%' }}
+            styles={{
+              header: { fontSize: 15, fontWeight: 600, borderBottom: `1px solid ${PALETA.borde}` },
+              body: { paddingTop: 10 },
+            }}
             extra={
               <Link to="/panel/audiencias">
                 Ver agenda <RightOutlined style={{ fontSize: 11 }} />
@@ -332,7 +291,7 @@ export function DashboardPage() {
                           style={{
                             textAlign: 'center',
                             background: PALETA.azulSuave,
-                            borderRadius: 14,
+                            borderRadius: 10,
                             padding: '6px 12px',
                             lineHeight: 1.25,
                             flexShrink: 0,
@@ -351,56 +310,47 @@ export function DashboardPage() {
                 })}
               </div>
             )}
-          </GlassCardWithHeader>
+          </Card>
         </Col>
       </Row>
 
-      {/* Bloque "Noticias / tarea del día" */}
-      <Row gutter={[20, 20]} style={{ marginTop: 24 }}>
+      <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
         <Col xs={24} lg={13}>
           <DailyBriefCard />
         </Col>
         <Col xs={24} lg={11}>
-          <GlassCard elevation="level2" style={{ height: '100%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-              <CalendarOutlined style={{ color: PALETA.azul, fontSize: 18 }} />
-              <Title level={5} style={{ margin: 0 }}>
-                Accesos rápidos
-              </Title>
-            </div>
-            <Text type="secondary" style={{ fontSize: 12.5, display: 'block', marginBottom: 14 }}>
+          <Card variant="borderless" title="Accesos rápidos" style={{ height: '100%' }}>
+            <Text type="secondary" style={{ fontSize: 12.5, display: 'block', marginBottom: 12 }}>
               Atajos a los módulos que usas a diario.
             </Text>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {[
                 { to: '/panel/radicador', label: 'Radicar solicitud', icon: <FileTextOutlined /> },
                 { to: '/panel/actas-firmeza', label: 'Actas de firmeza', icon: <CheckCircleOutlined /> },
                 { to: '/panel/audiencias', label: 'Audiencias', icon: <CalendarOutlined /> },
                 { to: '/panel/querellas', label: 'Querellas', icon: <FileTextOutlined /> },
               ].map((a) => (
-                <Link
-                  key={a.to}
-                  to={a.to}
-                  style={{ textDecoration: 'none', display: 'block' }}
-                >
-                  <GlassTile
-                    padding="10px 14px"
-                    radius={14}
-                    accent={PALETA.azul}
-                    elevation="level1"
+                <Link key={a.to} to={a.to} style={{ textDecoration: 'none' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      padding: '9px 10px',
+                      borderRadius: 10,
+                      transition: 'background 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = '#f1f3f4')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <span style={{ color: PALETA.azul, fontSize: 16 }}>{a.icon}</span>
-                      <Text style={{ flex: 1, fontSize: 13.5, color: PALETA.texto }}>
-                        {a.label}
-                      </Text>
-                      <RightOutlined style={{ color: PALETA.textoTenue, fontSize: 11 }} />
-                    </div>
-                  </GlassTile>
+                    <span style={{ color: PALETA.azul, fontSize: 16 }}>{a.icon}</span>
+                    <Text style={{ flex: 1, fontSize: 13.5, color: PALETA.texto }}>{a.label}</Text>
+                    <RightOutlined style={{ color: PALETA.textoTenue, fontSize: 11 }} />
+                  </div>
                 </Link>
               ))}
             </div>
-          </GlassCard>
+          </Card>
         </Col>
       </Row>
     </div>

@@ -2,12 +2,9 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import {
-  InboxOutlined,
   DollarOutlined,
   RobotOutlined,
   SettingOutlined,
-  MessageOutlined,
-  BookOutlined,
 } from '@ant-design/icons';
 import {
   LAUNCHPAD_ITEMS,
@@ -22,9 +19,6 @@ import { glassBackdrop } from '@/theme/glass';
 import { usePrefersReducedTransparency } from '@/shared/hooks/usePrefersReducedTransparency';
 
 const ICONOS_LAUNCHPAD: Record<LaunchpadIconKey, ReactNode> = {
-  quejas: <MessageOutlined />,
-  normas: <BookOutlined />,
-  cola: <InboxOutlined />,
   'medidas-correctivas': <DollarOutlined />,
   'asistente-ia': <RobotOutlined />,
   'config-inspeccion': <SettingOutlined />,

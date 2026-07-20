@@ -1,4 +1,12 @@
-/* Reset mínimo. El sistema de diseño vive en el tema de Ant Design (src/theme). */
+/*
+ * Reset + sistema de diseño. Los componentes AntDesign se tematizan desde
+ * src/theme (buildTheme, PALETA, ELEVACION) — estas variables CSS y clases
+ * son el equivalente para todo lo que NO es AntDesign (Dock, tarjetas,
+ * badges, nav-items), portado 1:1 de resguardo-saas
+ * (SAS entidades territoriales indigenas/resguardo-saas/src/app/globals.css)
+ * para que las páginas hereden el mismo look sin reinventarlo por página.
+ * Los valores deben mantenerse en sync con PALETA/ELEVACION (src/theme/palette.ts).
+ */
 
 * {
   box-sizing: border-box;
@@ -56,6 +64,280 @@ body {
   --anim-dur: 420ms;
   --anim-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --stagger-delay: 40ms;
+
+  /* Superficies (=PALETA.superficie/fondo + 2 tintes extra sólo usados por CSS) */
+  --surface-0: #ffffff;
+  --surface-1: #f8f9fa;
+  --surface-2: #f1f3f4;
+  --surface-3: #e8eaed;
+
+  /* Texto (=PALETA.texto/textoSuave/textoTenue) */
+  --text-primary: #202124;
+  --text-secondary: #5f6368;
+  --text-disabled: #9aa0a6;
+
+  /* Acento (=PALETA.azul/azulSuave/azulOscuro) */
+  --accent: #1a73e8;
+  --accent-light: #e8f0fe;
+  --accent-hover: #1557b0;
+
+  /* Semáforo (=PALETA.verde/verdeBg, amarillo/amarilloBg, rojo/rojoBg) */
+  --green: #137333;
+  --green-bg: #e6f4ea;
+  --yellow: #b06000;
+  --yellow-bg: #fef9e0;
+  --red: #c5221f;
+  --red-bg: #fce8e6;
+  --blue: #1a73e8;
+  --blue-bg: #e8f0fe;
+
+  /* Bordes */
+  --border: #dadce0;
+  --border-focus: #1a73e8;
+
+  /* Sombras Google — neutras, sin halos de color (lección de una sesión previa). */
+  --shadow-1: 0 1px 2px rgba(60, 64, 67, 0.3), 0 1px 3px 1px rgba(60, 64, 67, 0.15);
+  --shadow-2: 0 1px 3px rgba(60, 64, 67, 0.3), 0 4px 8px 3px rgba(60, 64, 67, 0.15);
+}
+
+/* ── Botones ─────────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  transition: all 150ms ease;
+  user-select: none;
+  cursor: pointer;
+  outline: none;
+}
+.btn:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 1px;
+}
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+.btn-primary:hover {
+  background: var(--accent-hover);
+  box-shadow: var(--shadow-1);
+}
+.btn-primary:active {
+  background: #174ea6;
+}
+.btn-outlined {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--accent);
+}
+.btn-outlined:hover {
+  background: var(--accent-light);
+  border-color: var(--accent);
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+}
+.btn-ghost:hover {
+  background: var(--surface-2);
+  color: var(--text-primary);
+}
+
+/* ── Cards ───────────────────────────────────────────────────────────────── */
+.card {
+  background: var(--surface-0);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+}
+.card-flat {
+  background: var(--surface-0);
+  border-radius: 12px;
+  padding: 24px;
+}
+.stat-card {
+  background: var(--surface-0);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  transition: box-shadow 150ms ease;
+}
+.stat-card:hover {
+  box-shadow: var(--shadow-1);
+}
+
+/* ── Badges ──────────────────────────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.badge-green {
+  background: var(--green-bg);
+  color: var(--green);
+}
+.badge-yellow {
+  background: var(--yellow-bg);
+  color: var(--yellow);
+}
+.badge-red {
+  background: var(--red-bg);
+  color: var(--red);
+}
+.badge-blue {
+  background: var(--blue-bg);
+  color: var(--blue);
+}
+.badge-gray {
+  background: var(--surface-2);
+  color: var(--text-secondary);
+}
+
+/* ── Input ───────────────────────────────────────────────────────────────── */
+.input {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  border: 1px solid var(--border);
+  background: var(--surface-0);
+  color: var(--text-primary);
+  transition: all 150ms ease;
+}
+.input:hover {
+  border-color: var(--text-secondary);
+}
+.input:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 2px var(--accent-light);
+}
+.input::placeholder {
+  color: var(--text-disabled);
+}
+
+/* ── Table ───────────────────────────────────────────────────────────────── */
+.table-auto {
+  width: 100%;
+  font-size: 14px;
+  border-collapse: collapse;
+}
+.table-auto th {
+  text-align: left;
+  padding: 12px 16px;
+  font-weight: 500;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-1);
+}
+.table-auto td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--surface-2);
+  color: var(--text-primary);
+}
+.table-auto tr:hover td {
+  background: var(--surface-1);
+}
+.table-auto tr:last-child td {
+  border-bottom: none;
+}
+
+/* ── Nav item (Dock) ─────────────────────────────────────────────────────── */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 14px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 100ms ease;
+}
+.nav-item:hover {
+  background: var(--surface-2);
+  color: var(--text-primary);
+}
+.nav-item.active {
+  background: var(--accent-light);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* ── Divider ─────────────────────────────────────────────────────────────── */
+.divider {
+  border: none;
+  border-top: 1px solid var(--border);
+}
+
+/* ── Empty state ─────────────────────────────────────────────────────────── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 0;
+  text-align: center;
+  color: var(--text-disabled);
+}
+.empty-state svg {
+  margin-bottom: 12px;
+  opacity: 0.4;
+}
+.empty-state p {
+  font-size: 14px;
+}
+
+/* ── Chip ────────────────────────────────────────────────────────────────── */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  background: var(--surface-0);
+}
+.chip.selected {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-light);
+}
+
+/* ── Page header ─────────────────────────────────────────────────────────── */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+/* ── Stats grid ──────────────────────────────────────────────────────────── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
 }
 
 @keyframes aparecer {

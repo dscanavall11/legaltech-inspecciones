@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { TopBar } from './TopBar';
-import { GlassSidebar } from './GlassSidebar';
+import { Dock } from './dock/Dock';
 import { Launchpad } from './launchpad/Launchpad';
 import { CommandPalette } from './CommandPalette';
 import { AiAssistant } from '@/shared/ai/AiAssistant';
@@ -31,7 +31,7 @@ export function AppLayout() {
         display: 'flex',
       }}
     >
-      <GlassSidebar onAbrirLaunchpad={() => setLaunchpadAbierto(true)} />
+      <Dock onAbrirLaunchpad={() => setLaunchpadAbierto(true)} />
 
       <div
         style={{
@@ -39,7 +39,7 @@ export function AppLayout() {
           display: 'flex',
           flexDirection: 'column',
           minWidth: 0,
-          paddingLeft: 240,
+          paddingLeft: 96,
         }}
       >
         <TopBar />

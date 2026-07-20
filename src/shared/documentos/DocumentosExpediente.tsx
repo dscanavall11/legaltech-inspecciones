@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Upload, Typography, App } from 'antd';
+import { Button, Upload, Typography, App, Drawer, Tooltip } from 'antd';
 import {
   FilePdfOutlined,
   FileImageOutlined,
@@ -7,6 +7,7 @@ import {
   FileOutlined,
   DownloadOutlined,
   PlusOutlined,
+  EyeOutlined,
 } from '@ant-design/icons';
 import type { ReactNode } from 'react';
 import dayjs from 'dayjs';
@@ -16,6 +17,7 @@ import {
   type DocumentoCaso,
   type TipoDocumento,
 } from './types';
+import { PdfViewer } from './PdfViewer';
 import { PALETA } from '@/theme/theme';
 
 const { Text } = Typography;
@@ -27,7 +29,15 @@ const ESTILO_TIPO: Record<TipoDocumento, { icono: ReactNode; color: string; fond
   otro: { icono: <FileOutlined />, color: PALETA.textoSuave, fondo: '#f1f3f4' },
 };
 
-function FilaDocumento({ doc }: { doc: DocumentoCaso }) {
+function FilaDocumento({
+  doc,
+  tieneVisorDisponible,
+  onVer,
+}: {
+  doc: DocumentoCaso;
+  tieneVisorDisponible: boolean;
+  onVer: () => void;
+}) {
   const estilo = ESTILO_TIPO[doc.tipo];
   return (
     <div
@@ -75,6 +85,18 @@ function FilaDocumento({ doc }: { doc: DocumentoCaso }) {
           {doc.tamano ? ` · ${doc.tamano}` : ''}
         </div>
       </div>
+      {doc.tipo === 'pdf' && (
+        <Tooltip title={tieneVisorDisponible ? 'Ver' : 'Vista previa no disponible en modo demo'}>
+          <Button
+            type="text"
+            shape="circle"
+            icon={<EyeOutlined />}
+            disabled={!tieneVisorDisponible}
+            onClick={onVer}
+            aria-label={`Ver ${doc.nombre}`}
+          />
+        </Tooltip>
+      )}
       <Button type="text" shape="circle" icon={<DownloadOutlined />} aria-label={`Descargar ${doc.nombre}`} />
     </div>
   );
@@ -88,6 +110,11 @@ function FilaDocumento({ doc }: { doc: DocumentoCaso }) {
 export function DocumentosExpediente({ iniciales }: { iniciales: DocumentoCaso[] }) {
   const { message } = App.useApp();
   const [incorporados, setIncorporados] = useState<DocumentoCaso[]>([]);
+  // Sólo los documentos incorporados en esta sesión tienen un File real
+  // disponible para previsualizar — los `iniciales` vienen del mock, sin
+  // archivo real detrás.
+  const [archivos, setArchivos] = useState<Map<string, File>>(new Map());
+  const [docEnVista, setDocEnVista] = useState<DocumentoCaso | null>(null);
   const documentos = [...iniciales, ...incorporados];
 
   return (
@@ -101,7 +128,12 @@ export function DocumentosExpediente({ iniciales }: { iniciales: DocumentoCaso[]
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2, margin: '0 -14px' }}>
           {documentos.map((d) => (
-            <FilaDocumento key={d.id} doc={d} />
+            <FilaDocumento
+              key={d.id}
+              doc={d}
+              tieneVisorDisponible={archivos.has(d.id)}
+              onVer={() => setDocEnVista(d)}
+            />
           ))}
         </div>
       )}
@@ -112,8 +144,9 @@ export function DocumentosExpediente({ iniciales }: { iniciales: DocumentoCaso[]
           accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.doc,.docx"
           showUploadList={false}
           beforeUpload={(file) => {
+            const id = `doc-${crypto.randomUUID().slice(0, 8)}`;
             const doc: DocumentoCaso = {
-              id: `doc-${crypto.randomUUID().slice(0, 8)}`,
+              id,
               nombre: file.name,
               tipo: tipoDesdeNombre(file.name),
               origen: 'incorporado',
@@ -121,6 +154,9 @@ export function DocumentosExpediente({ iniciales }: { iniciales: DocumentoCaso[]
               tamano: `${Math.max(1, Math.round(file.size / 1024))} KB`,
             };
             setIncorporados((prev) => [...prev, doc]);
+            if (doc.tipo === 'pdf') {
+              setArchivos((prev) => new Map(prev).set(id, file));
+            }
             message.success(`«${file.name}» incorporado al expediente.`);
             return false; // modo demo: sin subida real al servidor
           }}
@@ -128,6 +164,17 @@ export function DocumentosExpediente({ iniciales }: { iniciales: DocumentoCaso[]
           <Button icon={<PlusOutlined />}>Incorporar documento</Button>
         </Upload>
       </div>
+
+      <Drawer
+        title={docEnVista?.nombre}
+        open={docEnVista !== null}
+        onClose={() => setDocEnVista(null)}
+        width={720}
+      >
+        {docEnVista && archivos.has(docEnVista.id) && (
+          <PdfViewer archivo={archivos.get(docEnVista.id)!} />
+        )}
+      </Drawer>
     </div>
   );
 }

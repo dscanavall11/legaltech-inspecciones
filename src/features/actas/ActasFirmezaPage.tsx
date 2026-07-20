@@ -38,6 +38,7 @@ import { calcularTermino } from '@/shared/terminos/diasHabiles';
 import { COMPARENDOS_DEMO, parsearBdComparendos, type Comparendo, type ReporteImportacion } from './comparendos';
 import { extraerComparendoPdf } from './extraerComparendoPdf';
 import { descargarActaPdf } from './actaPdf';
+import { PdfViewer } from '@/shared/documentos/PdfViewer';
 import { ELEVACION, PALETA } from '@/theme/theme';
 import { useInspeccionStore } from '@/store/inspeccionStore';
 import { useAiChat } from '@/shared/ai/useAiChat';
@@ -150,6 +151,7 @@ export function ActasFirmezaPage() {
   const [extrayendo, setExtrayendo] = useState(false);
   const [camposExtraidos, setCamposExtraidos] = useState<(keyof Comparendo)[]>([]);
   const [pdfEscaneado, setPdfEscaneado] = useState(false);
+  const [archivoComparendo, setArchivoComparendo] = useState<File | null>(null);
   const [reporteImportacion, setReporteImportacion] = useState<ReporteImportacion | null>(null);
   const archivoBdRef = useRef<HTMLInputElement>(null);
   const archivoPdfRef = useRef<HTMLInputElement>(null);
@@ -209,6 +211,9 @@ export function ActasFirmezaPage() {
     setExtrayendo(true);
     setPdfEscaneado(false);
     setCamposExtraidos([]);
+    // Se guarda el File aunque falle la extracción — el inspector debe poder
+    // ver el PDF subido incluso si no se detectó ningún campo automáticamente.
+    setArchivoComparendo(archivo);
     try {
       const { datos: extraidos, camposDetectados, textoDisponible } =
         await extraerComparendoPdf(archivo);
@@ -447,6 +452,23 @@ export function ActasFirmezaPage() {
                   El sistema extrae los datos del comparendo; el número de acta, la fecha y la
                   reincidencia se diligencian en el formulario.
                 </div>
+                {archivoComparendo && (
+                  <div
+                    style={{
+                      marginTop: 14,
+                      paddingTop: 14,
+                      borderTop: `1px solid ${PALETA.borde}`,
+                    }}
+                  >
+                    <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>
+                      Comparendo subido — verifique visualmente los campos extraídos contra el
+                      original:
+                    </Text>
+                    <div style={{ maxHeight: 480, overflowY: 'auto' }}>
+                      <PdfViewer archivo={archivoComparendo} />
+                    </div>
+                  </div>
+                )}
               </>
             ) : (
               <>

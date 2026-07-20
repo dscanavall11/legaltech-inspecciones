@@ -16,7 +16,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useReducedMotion } from 'motion/react';
 import { DOCK_SECTIONS, type DockIconKey } from './dockItems';
 import { DockIcon } from './DockIcon';
-import { calcularEscalaDock } from './dockMagnification';
+import { calcularEfectoDock } from './dockMagnification';
 import { PALETA } from '@/theme/palette';
 import { glassBackground, glassShadowLiquid } from '@/theme/glass';
 import { usePrefersReducedTransparency } from '@/shared/hooks/usePrefersReducedTransparency';
@@ -57,28 +57,53 @@ export function Dock({ onAbrirLaunchpad }: DockProps) {
   const navigate = useNavigate();
   const glassBg = glassBackground(reducirTransparencia);
 
+  interface ControladorIcono {
+    setEscala: (v: number) => void;
+    setDesplazamiento: (v: number) => void;
+    estado: { escala: number; y: number };
+  }
+
   const elementosRef = useRef(new Map<string, HTMLDivElement>());
-  const quickToRef = useRef(new Map<string, (valor: number) => void>());
+  const controladoresRef = useRef(new Map<string, ControladorIcono>());
   const refCallbacksRef = useRef(new Map<string, (el: HTMLDivElement | null) => void>());
 
   // Un callback de ref estable por item (memoizado a mano, no useCallback en
   // un loop) — evita que React desmonte/remonte el ref en cada render, que
-  // recrearia el tween de gsap.quickTo innecesariamente.
+  // recrearia los tweens de gsap.quickTo innecesariamente.
+  //
+  // No se anima la propiedad CSS independiente `scale`/`translate` con
+  // gsap.quickTo(el, 'scale', ...): en algunos navegadores/entornos esa
+  // propiedad se aplica al computed style (y hasta afecta getBoundingClientRect)
+  // pero NO SE PINTA — verificado a mano en devtools, `transform: scale(...)`
+  // si pinta correctamente. Para no depender de ese comportamiento, se anima
+  // un objeto de estado plano y se escribe `el.style.transform` a mano en
+  // cada tick, combinando escala + desplazamiento en una sola matriz.
+  function obtenerControlador(key: string, el: HTMLDivElement): ControladorIcono {
+    const existente = controladoresRef.current.get(key);
+    if (existente) return existente;
+    const estado = { escala: 1, y: 0 };
+    function aplicar() {
+      el.style.transform = `translateY(${estado.y}px) scale(${estado.escala})`;
+    }
+    const controlador: ControladorIcono = {
+      estado,
+      setEscala: gsap.quickTo(estado, 'escala', { duration: 0.25, ease: 'power3.out', onUpdate: aplicar }),
+      setDesplazamiento: gsap.quickTo(estado, 'y', { duration: 0.25, ease: 'power3.out', onUpdate: aplicar }),
+    };
+    controladoresRef.current.set(key, controlador);
+    return controlador;
+  }
+
   function obtenerRegistrador(key: string) {
     let fn = refCallbacksRef.current.get(key);
     if (!fn) {
       fn = (el) => {
         if (el) {
           elementosRef.current.set(key, el);
-          if (!quickToRef.current.has(key)) {
-            quickToRef.current.set(
-              key,
-              gsap.quickTo(el, 'scale', { duration: 0.25, ease: 'power3.out' }),
-            );
-          }
+          obtenerControlador(key, el);
         } else {
           elementosRef.current.delete(key);
-          quickToRef.current.delete(key);
+          controladoresRef.current.delete(key);
         }
       };
       refCallbacksRef.current.set(key, fn);
@@ -90,27 +115,30 @@ export function Dock({ onAbrirLaunchpad }: DockProps) {
     if (reducirMovimiento) return;
     elementosRef.current.forEach((el, key) => {
       const rect = el.getBoundingClientRect();
-      const distancia = e.clientY - (rect.top + rect.height / 2);
-      const escala = calcularEscalaDock(distancia);
+      const distancia = rect.top + rect.height / 2 - e.clientY;
+      const { escala, desplazamiento } = calcularEfectoDock(distancia);
       // El item agrandado se sobrepone a sus vecinos y al glass del dock —
       // sin este bump, quedaria detras de los items de abajo (orden DOM).
       el.style.zIndex = escala > 1.03 ? '5' : '1';
-      quickToRef.current.get(key)?.(escala);
+      const controlador = controladoresRef.current.get(key);
+      controlador?.setEscala(escala);
+      controlador?.setDesplazamiento(desplazamiento);
     });
   }
 
   function onPointerLeave() {
-    quickToRef.current.forEach((setter, key) => {
-      setter(1);
+    controladoresRef.current.forEach((controlador, key) => {
+      controlador.setEscala(1);
+      controlador.setDesplazamiento(0);
       const el = elementosRef.current.get(key);
       if (el) el.style.zIndex = '1';
     });
   }
 
   useEffect(() => {
-    const elementos = elementosRef.current;
+    const controladores = controladoresRef.current;
     return () => {
-      elementos.forEach((el) => gsap.killTweensOf(el));
+      controladores.forEach((c) => gsap.killTweensOf(c.estado));
     };
   }, []);
 
@@ -136,8 +164,8 @@ export function Dock({ onAbrirLaunchpad }: DockProps) {
           padding: '14px 10px',
           borderRadius: 24,
           ...glassBg,
-          border: '1px solid rgba(255,255,255,0.5)',
-          boxShadow: glassShadowLiquid(PALETA.azul, 'low'),
+          border: '1px solid rgba(255,255,255,0.65)',
+          boxShadow: `inset 0 1px 0 rgba(255,255,255,0.6), ${glassShadowLiquid(PALETA.azul, 'medium')}`,
           // Sin overflow clip: un icono agrandado por la magnetizacion debe
           // poder sobresalir del pill y superponerse al glass, no quedar
           // recortado en el borde. Con ~10 items entra en la mayoria de

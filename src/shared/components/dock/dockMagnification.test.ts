@@ -1,33 +1,42 @@
 import { describe, it, expect } from 'vitest';
-import { calcularEscalaDock, MAGNIFICACION_DOCK_DEFAULT } from './dockMagnification';
+import { calcularEfectoDock, EFECTO_DOCK_DEFAULT } from './dockMagnification';
 
-describe('calcularEscalaDock', () => {
-  it('devuelve la escala maxima cuando el cursor esta exactamente sobre el icono', () => {
-    expect(calcularEscalaDock(0)).toBe(MAGNIFICACION_DOCK_DEFAULT.escalaMax);
+describe('calcularEfectoDock', () => {
+  it('escala maxima y sin desplazamiento cuando el cursor esta exactamente sobre el icono', () => {
+    const r = calcularEfectoDock(0);
+    expect(r.escala).toBeCloseTo(EFECTO_DOCK_DEFAULT.escalaMax);
+    expect(r.desplazamiento).toBeCloseTo(0);
   });
 
-  it('devuelve la escala base fuera del radio de influencia', () => {
-    expect(calcularEscalaDock(200)).toBe(MAGNIFICACION_DOCK_DEFAULT.escalaBase);
+  it('escala base en el borde del radio de influencia', () => {
+    const r = calcularEfectoDock(EFECTO_DOCK_DEFAULT.radioInfluenciaPx);
+    expect(r.escala).toBeCloseTo(1);
   });
 
-  it('devuelve la escala base justo en el limite del radio', () => {
-    expect(calcularEscalaDock(MAGNIFICACION_DOCK_DEFAULT.radioInfluenciaPx)).toBe(
-      MAGNIFICACION_DOCK_DEFAULT.escalaBase,
-    );
+  it('desplazamiento maximo (con signo) en el borde del radio', () => {
+    const abajo = calcularEfectoDock(EFECTO_DOCK_DEFAULT.radioInfluenciaPx);
+    const arriba = calcularEfectoDock(-EFECTO_DOCK_DEFAULT.radioInfluenciaPx);
+    expect(abajo.desplazamiento).toBeCloseTo(EFECTO_DOCK_DEFAULT.desplazamientoMaxPx);
+    expect(arriba.desplazamiento).toBeCloseTo(-EFECTO_DOCK_DEFAULT.desplazamientoMaxPx);
   });
 
-  it('interpola linealmente entre base y maxima dentro del radio', () => {
-    const opts = { radioInfluenciaPx: 100, escalaBase: 1, escalaMax: 2 };
-    expect(calcularEscalaDock(50, opts)).toBeCloseTo(1.5);
-    expect(calcularEscalaDock(25, opts)).toBeCloseTo(1.75);
+  it('fuera del radio, el desplazamiento queda fijo en el maximo (no vuelve a 0 de golpe)', () => {
+    const r = calcularEfectoDock(500);
+    expect(r.escala).toBe(1);
+    expect(r.desplazamiento).toBeCloseTo(EFECTO_DOCK_DEFAULT.desplazamientoMaxPx);
   });
 
-  it('trata la distancia como valor absoluto (simetrico a ambos lados del cursor)', () => {
-    const opts = { radioInfluenciaPx: 100, escalaBase: 1, escalaMax: 2 };
-    expect(calcularEscalaDock(-50, opts)).toBe(calcularEscalaDock(50, opts));
+  it('es simetrico en escala respecto del signo de la distancia', () => {
+    const opts = { radioInfluenciaPx: 100, escalaMax: 2, desplazamientoMaxPx: 20 };
+    const a = calcularEfectoDock(40, opts);
+    const b = calcularEfectoDock(-40, opts);
+    expect(a.escala).toBeCloseTo(b.escala);
+    expect(a.desplazamiento).toBeCloseTo(-b.desplazamiento);
   });
 
   it('funciona con distancia Infinity (estado inicial sin cursor sobre el dock)', () => {
-    expect(calcularEscalaDock(Infinity)).toBe(MAGNIFICACION_DOCK_DEFAULT.escalaBase);
+    const r = calcularEfectoDock(Infinity);
+    expect(r.escala).toBe(1);
+    expect(r.desplazamiento).toBe(0);
   });
 });

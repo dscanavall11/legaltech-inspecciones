@@ -1,6 +1,6 @@
 // ─── Tipos ──────────────────────────────────────────────────────────────────
 
-export type DockIconKey =
+export type SidebarIconKey =
   | 'inicio'
   | 'querellas'
   | 'quejas'
@@ -12,25 +12,27 @@ export type DockIconKey =
   | 'calendario'
   | 'chat-ia';
 
-export interface DockItem {
+export interface SidebarItem {
   key: string;
   label: string;
-  iconKey: DockIconKey;
+  iconKey: SidebarIconKey;
   ruta: string;
   color: string;
   destacado?: boolean;
   enConstruccion?: boolean;
 }
 
-export interface DockSection {
+export interface SidebarSection {
   titulo: string;
-  items: DockItem[];
+  items: SidebarItem[];
 }
 
 // ─── Nav sections — distribución inspirada en resguardo-saas ────────────────
-// Cada sección lleva un color google Material distinto por item.
+// Cada sección lleva un color google Material distinto por item. "Radicar"
+// lleva destacado:true porque el GlassSidebar lo saca de la lista y lo
+// renderiza como botón primario aparte, no como un ítem más.
 
-export const DOCK_SECTIONS: DockSection[] = [
+export const SIDEBAR_SECTIONS: SidebarSection[] = [
   {
     titulo: 'Casos',
     items: [
@@ -65,10 +67,10 @@ export const DOCK_SECTIONS: DockSection[] = [
   },
 ];
 
-/** Todas las rutas del dock (para cobertura de tests). */
-export const DOCK_RUTAS: string[] = DOCK_SECTIONS.flatMap((s) =>
+/** Todas las rutas del sidebar (para cobertura de tests). */
+export const SIDEBAR_RUTAS: string[] = SIDEBAR_SECTIONS.flatMap((s) =>
   s.items.filter((i) => !i.enConstruccion).map((i) => i.ruta),
 );
 
-/** Flat list de items (para el dock icon rendering). */
-export const DOCK_ITEMS = DOCK_SECTIONS.flatMap((s) => s.items);
+/** Flat list de items (para el rendering del sidebar). */
+export const SIDEBAR_ITEMS = SIDEBAR_SECTIONS.flatMap((s) => s.items);

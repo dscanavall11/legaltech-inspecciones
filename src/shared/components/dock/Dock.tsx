@@ -2,7 +2,6 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import gsap from 'gsap';
 import { Tooltip } from 'antd';
 import {
-  HomeOutlined,
   FileTextOutlined,
   MessageOutlined,
   CalendarOutlined,
@@ -22,8 +21,13 @@ import { PALETA } from '@/theme/palette';
 import { glassBackground, glassShadowLiquid } from '@/theme/glass';
 import { usePrefersReducedTransparency } from '@/shared/hooks/usePrefersReducedTransparency';
 
+// El item "Inicio" lleva la marca LegalTech en vez de un icono de casa —
+// mismo glifo "L" que el badge del logo en TopBar.tsx, coloreado por la
+// misma logica activo/inactivo que el resto de los items del dock.
+const LOGO_LEGALTECH = <span style={{ fontWeight: 800 }}>L</span>;
+
 const ICONOS_DOCK: Record<DockIconKey, ReactNode> = {
-  inicio: <HomeOutlined />,
+  inicio: LOGO_LEGALTECH,
   querellas: <FileTextOutlined />,
   quejas: <MessageOutlined />,
   audiencias: <CalendarOutlined />,
@@ -53,9 +57,9 @@ export function Dock({ onAbrirLaunchpad }: DockProps) {
   const navigate = useNavigate();
   const glassBg = glassBackground(reducirTransparencia);
 
-  const elementosRef = useRef(new Map<string, HTMLButtonElement>());
+  const elementosRef = useRef(new Map<string, HTMLDivElement>());
   const quickToRef = useRef(new Map<string, (valor: number) => void>());
-  const refCallbacksRef = useRef(new Map<string, (el: HTMLButtonElement | null) => void>());
+  const refCallbacksRef = useRef(new Map<string, (el: HTMLDivElement | null) => void>());
 
   // Un callback de ref estable por item (memoizado a mano, no useCallback en
   // un loop) — evita que React desmonte/remonte el ref en cada render, que
@@ -88,12 +92,19 @@ export function Dock({ onAbrirLaunchpad }: DockProps) {
       const rect = el.getBoundingClientRect();
       const distancia = e.clientY - (rect.top + rect.height / 2);
       const escala = calcularEscalaDock(distancia);
+      // El item agrandado se sobrepone a sus vecinos y al glass del dock —
+      // sin este bump, quedaria detras de los items de abajo (orden DOM).
+      el.style.zIndex = escala > 1.03 ? '5' : '1';
       quickToRef.current.get(key)?.(escala);
     });
   }
 
   function onPointerLeave() {
-    quickToRef.current.forEach((setter) => setter(1));
+    quickToRef.current.forEach((setter, key) => {
+      setter(1);
+      const el = elementosRef.current.get(key);
+      if (el) el.style.zIndex = '1';
+    });
   }
 
   useEffect(() => {
@@ -127,9 +138,11 @@ export function Dock({ onAbrirLaunchpad }: DockProps) {
           ...glassBg,
           border: '1px solid rgba(255,255,255,0.5)',
           boxShadow: glassShadowLiquid(PALETA.azul, 'low'),
-          maxHeight: 'calc(100vh - 64px)',
-          overflowY: 'auto',
-          overflowX: 'hidden',
+          // Sin overflow clip: un icono agrandado por la magnetizacion debe
+          // poder sobresalir del pill y superponerse al glass, no quedar
+          // recortado en el borde. Con ~10 items entra en la mayoria de
+          // pantallas sin necesitar scroll — si algun dia no entra, hay que
+          // resolverlo reduciendo items, no clippeando la magnificacion.
         }}
       >
         {DOCK_SECTIONS.map((section, i) => (

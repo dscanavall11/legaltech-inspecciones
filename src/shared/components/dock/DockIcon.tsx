@@ -19,16 +19,27 @@ const TAMANO_DESTACADO = 56;
 
 /**
  * Item del dock. No usa motion/react para la magnificacion — Dock.tsx toma
- * el <button> por ref y anima su `scale` directamente con gsap.quickTo
- * (misma tecnica que demos.gsap.com/demo/macos-dock-effect), asi que este
- * componente no sabe nada de la posicion del cursor.
+ * el div envoltorio por ref y anima su `scale` directamente con
+ * gsap.quickTo (misma tecnica que demos.gsap.com/demo/macos-dock-effect),
+ * asi que este componente no sabe nada de la posicion del cursor.
+ *
+ * El ref se pone en un <div> propio ANTES del <Tooltip>, no en el <button>
+ * de adentro: el Tooltip de AntDesign clona su hijo para adjuntar sus
+ * propios handlers, y un ref externo puesto directo en ese hijo corre
+ * riesgo de perderse en el clonado — envolver evita ese problema por
+ * completo en vez de confiar en que el clonado lo reenvie bien.
+ *
+ * `transformOrigin: left center` para que el icono crezca hacia la derecha
+ * (hacia el contenido, alejandose del borde izquierdo del dock) y se
+ * superponga visualmente al glass del dock al agrandarse — "se sale del
+ * dock", no crece hacia adentro sobre si mismo.
  *
  * Estilo de fila/activo fiel al patron real de resguardo-saas (.nav-item):
  * el fondo activo es siempre accent-light + texto accent, sin importar el
  * color de la seccion — solo el glifo del icono toma `color` cuando esta
  * activo; inactivo, el glifo es gris (--text-disabled).
  */
-export const DockIcon = forwardRef<HTMLButtonElement, DockIconProps>(function DockIcon(
+export const DockIcon = forwardRef<HTMLDivElement, DockIconProps>(function DockIcon(
   { icon, label, color, destacado, enConstruccion, activo, onClick },
   ref,
 ) {
@@ -54,12 +65,12 @@ export const DockIcon = forwardRef<HTMLButtonElement, DockIconProps>(function Do
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, width: '100%' }}>
+      <div ref={ref} style={{ position: 'relative', transformOrigin: 'left center', zIndex: 1 }}>
       <Tooltip
         title={enConstruccion ? `${label} (en construcción)` : label}
         placement="right"
       >
         <button
-          ref={ref}
           onClick={onClick}
           disabled={enConstruccion}
           onMouseEnter={() => setHover(true)}
@@ -134,6 +145,7 @@ export const DockIcon = forwardRef<HTMLButtonElement, DockIconProps>(function Do
           </span>
         </button>
       </Tooltip>
+      </div>
       {destacado && (
         <span style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-secondary)', lineHeight: 1 }}>{label}</span>
       )}

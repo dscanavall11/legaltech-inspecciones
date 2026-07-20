@@ -24,8 +24,20 @@ body {
   font-family:
     'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     'Helvetica Neue', Arial, sans-serif;
-  /* Fondo plano — el cristal se reserva para el chrome flotante (Dock, buscador, Launchpad). */
-  background-color: #f8f9fa;
+  /*
+   * Fondo "vivo": tres manchas de color suaves (azul/verde/morado, mismos
+   * tonos que las secciones del dock) sobre la superficie base. Sin esto,
+   * el glassmorphism del Dock/Launchpad/Spotlight no tiene nada detras que
+   * distorsionar — un panel translúcido sobre un fondo plano casi del mismo
+   * color se ve como una caja blanca lisa, no como vidrio. El resto de la
+   * página (cards, tablas) sigue plana/sólida — el "vivo" es solo el fondo.
+   */
+  background:
+    radial-gradient(900px 520px at 8% -10%, var(--accent-light) 0%, transparent 60%),
+    radial-gradient(760px 480px at 105% 20%, var(--green-bg) 0%, transparent 55%),
+    radial-gradient(720px 520px at 25% 115%, var(--purple-bg) 0%, transparent 55%),
+    var(--surface-1);
+  background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -90,6 +102,8 @@ body {
   --red-bg: #fce8e6;
   --blue: #1a73e8;
   --blue-bg: #e8f0fe;
+  --purple: #a142f4;
+  --purple-bg: #f3e8fd;
 
   /* Bordes */
   --border: #dadce0;

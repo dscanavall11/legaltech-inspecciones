@@ -53,9 +53,9 @@ export function glassBackground(reduceTransparency: boolean): React.CSSPropertie
     };
   }
   return {
-    background: 'rgba(255, 255, 255, 0.45)',
-    backdropFilter: 'blur(24px) saturate(180%)',
-    WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+    background: 'rgba(255, 255, 255, 0.38)',
+    backdropFilter: 'blur(32px) saturate(190%)',
+    WebkitBackdropFilter: 'blur(32px) saturate(190%)',
   };
 }
 

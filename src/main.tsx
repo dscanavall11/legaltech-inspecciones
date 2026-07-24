@@ -2,6 +2,8 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { App } from './App';
 import './index.css';
+import { resolveWorkspaceContext } from '@/shared/api/workspaceContext';
+import { useWorkspaceContextStore } from '@/store/workspaceContextStore';
 
 /**
  * Arranca la app. Si los mocks están activos, inicia MSW antes de renderizar
@@ -50,7 +52,12 @@ async function enableMocking() {
   console.info('[MSW] Mocks activos: la app funciona sin backend.');
 }
 
-enableMocking().then(() => {
+// Microsite bootstrap: resuelve el workspace del subdominio actual antes de
+// renderizar, en paralelo con MSW. apiFetch adjunta X-Workspace-Context a
+// partir de aca (ver src/shared/api/client.ts).
+Promise.all([enableMocking(), resolveWorkspaceContext()]).then(([, context]) => {
+  useWorkspaceContextStore.getState().setContext(context);
+
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
       <App />

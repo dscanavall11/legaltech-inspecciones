@@ -1,4 +1,5 @@
 import { limpiarSesion, tokenActual } from '@/shared/auth/auth';
+import { useWorkspaceContextStore } from '@/store/workspaceContextStore';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api';
 
@@ -34,6 +35,13 @@ export async function apiFetch<T>(
   const token = tokenActual();
   if (token && !AUTH_ENDPOINT_RE.test(path)) {
     headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  // Resuelto una vez al arrancar (ver src/main.tsx); ausente hasta entonces
+  // o si el subdominio no matchea ningun workspace.
+  const contextId = useWorkspaceContextStore.getState().context?.contextId;
+  if (contextId) {
+    headers.set('X-Workspace-Context', contextId);
   }
 
   const res = await fetch(`${BASE_URL}${path}`, { ...options, headers });

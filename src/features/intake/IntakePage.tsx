@@ -21,11 +21,13 @@ import { useIntakeChat } from './useIntakeChat';
 import { ELEVACION, PALETA } from '@/theme/theme';
 
 // Anexo aportado en el chat antes de radicar (prueba documental del caso).
+// Conserva el File real: sin él no hay nada que enviarle a /api/legal/recepcion.
 interface Anexo {
   id: string;
   nombre: string;
   tipo: TipoDocumento;
   tamano: string;
+  archivo: File;
 }
 
 const ICONO_ANEXO: Record<TipoDocumento, ReactNode> = {
@@ -201,6 +203,7 @@ export function IntakePage() {
       nombre: f.name,
       tipo: tipoDesdeNombre(f.name),
       tamano: `${Math.max(1, Math.round(f.size / 1024))} KB`,
+      archivo: f,
     }));
     setAnexos((prev) => [...prev, ...nuevos]);
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -217,7 +220,13 @@ export function IntakePage() {
     const texto = inputText.trim();
     if (!texto) return;
     setInputText('');
-    void enviar(texto);
+    // anexos stays populated (not cleared here): radicar() below still needs
+    // the full list to build documentos, and the agent benefits from seeing
+    // every attached document again each turn, not just what's new.
+    void enviar(
+      texto,
+      anexos.map((a) => a.archivo),
+    );
   }
 
   async function radicar() {

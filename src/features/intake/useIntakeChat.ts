@@ -82,7 +82,7 @@ export function useIntakeChat() {
   }, []);
 
   const enviar = useCallback(
-    async (texto: string) => {
+    async (texto: string, archivos?: File[]) => {
       if (!texto.trim() || cargando) return;
 
       setMensajes((prev) => [
@@ -99,6 +99,7 @@ export function useIntakeChat() {
         // token stream - no streaming endpoint exists in the real backend yet.
         const body = new FormData();
         body.append('data', texto.trim());
+        (archivos ?? []).forEach((archivo) => body.append('files', archivo, archivo.name));
         const res = await fetch(`${API_BASE}/legal/recepcion`, {
           method: 'POST',
           headers: token ? { Authorization: `Bearer ${token}` } : undefined,

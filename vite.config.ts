@@ -26,18 +26,14 @@ export default defineConfig(() => {
     },
     server: {
       port: Number(process.env.PORT ?? 5173),
-      // Sin proxy de dev: `VITE_API_BASE_URL` apunta DIRECTO a
-      // `policia-legaltech-service` (una sola URL base para TODO --
-      // dominio CRUD Y rutas de IA, ver .env.example). El navegador NUNCA
-      // habla directo con `orchestrator` (decision confirmada con el
-      // usuario): las rutas de IA las reenvia `policia-legaltech-service`
-      // server-to-server hacia `orchestrator`/`legal` (ver
-      // policia-legaltech-service/src/common/ai/ai.controller.ts -- hoy
-      // mock local, con TODO explicito de reemplazar por el reenvio real).
-      // Cada servicio de
-      // celula valida el JWT por su cuenta (CognitoJwtGuard, ver
-      // policia-legaltech-service/src/common/auth). CORS ya habilitado en
-      // policia-legaltech-service/src/main.ts (app.enableCors()).
+      // Sin proxy de dev: `VITE_API_BASE_URL` apunta DIRECTO a `orchestrator`
+      // (unico BFF del stack, ver .env.example). CORS y el bypass de
+      // Cognito para este origen ya estan resueltos en orchestrator bajo
+      // SPRING_PROFILES_ACTIVE=local (LocalSecurityConfig).
+      // allowedHosts: microsite demo por subdominio (inspeccionConvivenciaYPaz.
+      // Legaltech.com.co) — sin esto Vite rechaza el Host header de un
+      // dominio que no sea localhost/127.0.0.1.
+      allowedHosts: ['.legaltech.com.co'],
     },
   };
 });

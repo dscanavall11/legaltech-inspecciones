@@ -63,7 +63,6 @@ export function useRadicacionIA(tipo: TipoRadicacionIA) {
   const [draft, setDraft] = useState<RadicacionDraft>(DRAFT_INICIAL);
   const [cargando, setCargando] = useState(false);
   const [recentFields, setRecentFields] = useState<Set<keyof RadicacionDraft>>(new Set());
-  const turnoRef = useRef(0);
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(
@@ -83,8 +82,6 @@ export function useRadicacionIA(tipo: TipoRadicacionIA) {
   const enviar = useCallback(
     async (texto: string) => {
       if (!texto.trim() || cargando) return;
-      const turno = turnoRef.current;
-      turnoRef.current += 1;
 
       setMensajes((prev) => [
         ...prev,
@@ -95,35 +92,24 @@ export function useRadicacionIA(tipo: TipoRadicacionIA) {
 
       try {
         const token = tokenActual();
-        const res = await fetch(`${API_BASE}/intake/chat`, {
+        // legal's /api/legal/radicador (radicadorChat) takes the raw message
+        // as a plain-text body and returns one ApiResponse<String> JSON
+        // reply, not a token stream - there's no streaming endpoint in the
+        // real backend yet, so the "agente" message is filled in one shot.
+        const res = await fetch(`${API_BASE}/legal/radicador`, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'text/plain',
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
-          body: JSON.stringify({ mensaje: texto.trim(), turno, tipo }),
+          body: texto.trim(),
         });
 
-        if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const { data: respuesta } = (await res.json()) as { data: string };
 
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let acumulado = '';
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          acumulado += decoder.decode(value, { stream: true });
-          const visible = limpiarMarcadores(acumulado);
-          setMensajes((prev) => {
-            const copia = [...prev];
-            copia[copia.length - 1] = { rol: 'agente', texto: visible, streaming: true };
-            return copia;
-          });
-        }
-
-        const actualiza = parseCaseUpdate(acumulado);
-        const visible = limpiarMarcadores(acumulado);
+        const actualiza = parseCaseUpdate(respuesta);
+        const visible = limpiarMarcadores(respuesta);
         setMensajes((prev) => {
           const copia = [...prev];
           copia[copia.length - 1] = { rol: 'agente', texto: visible };

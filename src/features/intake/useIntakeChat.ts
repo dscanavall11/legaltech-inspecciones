@@ -65,7 +65,6 @@ export function useIntakeChat() {
   const [draft, setDraft] = useState<CasoDraft>(DRAFT_INICIAL);
   const [cargando, setCargando] = useState(false);
   const [recentFields, setRecentFields] = useState<Set<keyof CasoDraft>>(new Set());
-  const turnoRef = useRef(0);
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(
@@ -86,9 +85,6 @@ export function useIntakeChat() {
     async (texto: string) => {
       if (!texto.trim() || cargando) return;
 
-      const turno = turnoRef.current;
-      turnoRef.current += 1;
-
       setMensajes((prev) => [
         ...prev,
         { rol: 'inspector', texto: texto.trim() },
@@ -98,35 +94,22 @@ export function useIntakeChat() {
 
       try {
         const token = tokenActual();
-        const res = await fetch(`${API_BASE}/intake/chat`, {
+        // legal's /api/legal/recepcion (intakeChat) is multipart (data part +
+        // optional files) and returns one ApiResponse<String> reply, not a
+        // token stream - no streaming endpoint exists in the real backend yet.
+        const body = new FormData();
+        body.append('data', texto.trim());
+        const res = await fetch(`${API_BASE}/legal/recepcion`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({ mensaje: texto.trim(), turno }),
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          body,
         });
 
-        if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const { data: respuesta } = (await res.json()) as { data: string };
 
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let acumulado = '';
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          acumulado += decoder.decode(value, { stream: true });
-          const visible = limpiarMarcadores(acumulado);
-          setMensajes((prev) => {
-            const copia = [...prev];
-            copia[copia.length - 1] = { rol: 'agente', texto: visible, streaming: true };
-            return copia;
-          });
-        }
-
-        const actualiza = parseCaseUpdate(acumulado);
-        const visible = limpiarMarcadores(acumulado);
+        const actualiza = parseCaseUpdate(respuesta);
+        const visible = limpiarMarcadores(respuesta);
 
         setMensajes((prev) => {
           const copia = [...prev];

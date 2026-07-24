@@ -33,7 +33,7 @@ export default defineConfig(() => {
       // allowedHosts: microsite demo por subdominio (inspeccionConvivenciaYPaz.
       // Legaltech.com.co) — sin esto Vite rechaza el Host header de un
       // dominio que no sea localhost/127.0.0.1.
-      allowedHosts: ['.legaltech.com.co'],
+      allowedHosts: ['inspeccionconvivenciaypaz.legaltech.com.co', '.legaltech.com.co'],
     },
   };
 });

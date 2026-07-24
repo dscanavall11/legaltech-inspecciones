@@ -22,6 +22,13 @@ export interface ChatMessage {
   streaming?: boolean;
 }
 
+export interface CasoRadicado {
+  id: string;
+  filingNumber: string;
+  currentStateCode: string;
+  readyForFallo: boolean;
+}
+
 const DRAFT_INICIAL: CasoDraft = {
   tipo: '',
   viaProcesal: '',
@@ -35,6 +42,7 @@ const DRAFT_INICIAL: CasoDraft = {
 };
 
 const CASE_UPDATE_RE = /<case_update>([\s\S]*?)<\/case_update>/;
+const CASE_FILED_RE = /<case_filed>([\s\S]*?)<\/case_filed>/;
 
 function parseCaseUpdate(texto: string): Partial<CasoDraft> {
   const match = CASE_UPDATE_RE.exec(texto);
@@ -46,11 +54,24 @@ function parseCaseUpdate(texto: string): Partial<CasoDraft> {
   }
 }
 
+// Only present once IntakeCaseCreationGate (legal) actually filed the case -
+// see recepcionRules.st's listoParaRadicar contract.
+function parseCaseFiled(texto: string): CasoRadicado | null {
+  const match = CASE_FILED_RE.exec(texto);
+  if (!match) return null;
+  try {
+    return JSON.parse(match[1]) as CasoRadicado;
+  } catch {
+    return null;
+  }
+}
+
 function limpiarMarcadores(texto: string): string {
-  // Remove complete markers first
   let result = texto.replace(/<case_update>[\s\S]*?<\/case_update>/g, '');
+  result = result.replace(/<case_filed>[\s\S]*?<\/case_filed>/g, '');
   // Remove any partial/open marker still being streamed (no closing tag yet)
   result = result.replace(/<case_update>[\s\S]*/, '');
+  result = result.replace(/<case_filed>[\s\S]*/, '');
   return result.trim();
 }
 
@@ -65,6 +86,7 @@ export function useIntakeChat() {
   const [draft, setDraft] = useState<CasoDraft>(DRAFT_INICIAL);
   const [cargando, setCargando] = useState(false);
   const [recentFields, setRecentFields] = useState<Set<keyof CasoDraft>>(new Set());
+  const [casoRadicado, setCasoRadicado] = useState<CasoRadicado | null>(null);
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(
@@ -110,6 +132,7 @@ export function useIntakeChat() {
         const { data: respuesta } = (await res.json()) as { data: string };
 
         const actualiza = parseCaseUpdate(respuesta);
+        const radicado = parseCaseFiled(respuesta);
         const visible = limpiarMarcadores(respuesta);
 
         setMensajes((prev) => {
@@ -122,6 +145,7 @@ export function useIntakeChat() {
           setDraft((prev) => ({ ...prev, ...actualiza }));
           flashFields(Object.keys(actualiza) as (keyof CasoDraft)[]);
         }
+        if (radicado) setCasoRadicado(radicado);
       } catch {
         setMensajes((prev) => {
           const copia = [...prev];
@@ -144,5 +168,5 @@ export function useIntakeChat() {
     draft.querellado.trim() !== '' &&
     draft.comportamiento.trim() !== '';
 
-  return { mensajes, draft, setDraft, cargando, recentFields, enviar, completoMinimo };
+  return { mensajes, draft, setDraft, cargando, recentFields, enviar, completoMinimo, casoRadicado };
 }

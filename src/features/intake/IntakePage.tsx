@@ -189,7 +189,8 @@ const CAMPOS_MINIMOS: (keyof CasoDraft)[] = ['tipo', 'querellante', 'querellado'
 export function IntakePage() {
   const navigate = useNavigate();
   const [messageApi, contextHolder] = antMessage.useMessage();
-  const { mensajes, draft, setDraft, cargando, recentFields, enviar, completoMinimo } = useIntakeChat();
+  const { mensajes, draft, setDraft, cargando, recentFields, enviar, completoMinimo, casoRadicado } =
+    useIntakeChat();
   const [inputText, setInputText] = useState('');
   const [radicando, setRadicando] = useState(false);
   const [anexos, setAnexos] = useState<Anexo[]>([]);
@@ -312,6 +313,37 @@ export function IntakePage() {
               Cuénteme la situación: iré completando la ficha automáticamente
             </div>
           </div>
+
+          {casoRadicado && (
+            <div
+              style={{
+                margin: '0 32px 12px',
+                padding: '12px 16px',
+                borderRadius: 10,
+                background: PALETA.verdeBg,
+                border: `1px solid ${PALETA.verde}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12,
+                flexShrink: 0,
+              }}
+            >
+              <div style={{ fontSize: 13 }}>
+                <strong>Caso radicado:</strong> {casoRadicado.filingNumber} · estado{' '}
+                <strong>{casoRadicado.currentStateCode}</strong>
+              </div>
+              {casoRadicado.readyForFallo && (
+                <Button
+                  type="primary"
+                  size="small"
+                  onClick={() => navigate(`/panel/analisis?caso=${casoRadicado.id}`)}
+                >
+                  Ir a Fallo
+                </Button>
+              )}
+            </div>
+          )}
 
           {/* Lista de mensajes */}
           <div

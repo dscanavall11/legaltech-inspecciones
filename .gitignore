@@ -39,3 +39,6 @@ vite.config.d.ts
 # Configuración local de herramientas
 .claude/
 .superpowers/
+.omo/
+docs
+graphify-out

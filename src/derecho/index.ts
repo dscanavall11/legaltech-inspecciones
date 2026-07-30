@@ -8,6 +8,7 @@
 export * from './normativa';
 export * from './flujoQuerella';
 export * from './flujoQueja';
+export * from './flujoComparendo';
 export * from './etapas';
 export * from './letras';
 export * from './multas';

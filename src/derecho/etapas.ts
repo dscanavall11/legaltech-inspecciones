@@ -1,5 +1,6 @@
 import type { EstadoQuerella } from '@/features/querellas/types';
 import type { EstadoQueja } from '@/features/quejas/types';
+import type { EstadoComparendo } from './flujoComparendo';
 
 /**
  * Etapas de cada trámite, en el orden en que ocurren. Alimentan el riel de
@@ -9,6 +10,8 @@ import type { EstadoQueja } from '@/features/quejas/types';
  *   Radicación → Audiencia pública → Decisión → Firmeza → Archivo
  * - Queja (mediación / conciliación, arts. 231 a 233):
  *   Radicación → Conciliación → Resultado → Archivo
+ * - Comparendo (arts. 180, 222, 223 y 223A):
+ *   Recepción → Objeción → Audiencia → Decisión → Firmeza → Archivo
  */
 export const ETAPAS_QUERELLA = [
   'Radicación',
@@ -44,4 +47,33 @@ export const ETAPA_QUEJA_ACTIVA: Record<EstadoQueja, number> = {
   conciliada: 2,
   sin_acuerdo: 2,
   archivada: 3,
+};
+
+export const ETAPAS_COMPARENDO = [
+  'Recepción',
+  'Objeción',
+  'Audiencia',
+  'Decisión',
+  'Firmeza',
+  'Archivo',
+] as const;
+
+export const ETAPA_COMPARENDO_ACTIVA: Record<EstadoComparendo, number> = {
+  recibido: 0,
+  verificado: 0,
+  en_espera_objecion: 1,
+  objetado: 1,
+  pronto_pago_acordado: 1,
+  conmutacion_acordada: 1,
+  sin_objecion: 1,
+  audiencia_programada: 2,
+  en_audiencia: 2,
+  suspendida_pruebas: 2,
+  suspendida_inasistencia: 2,
+  fallo_emitido: 3,
+  en_recurso: 3,
+  en_firmeza: 4,
+  incumplimiento_constatado: 4,
+  terminado_inactividad: 5,
+  archivado: 5,
 };

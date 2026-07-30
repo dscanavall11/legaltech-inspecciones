@@ -2,6 +2,7 @@ import { type ReactNode } from 'react';
 import {
   FileText,
   MessageSquare,
+  Siren,
   Calendar,
   FilePlus2,
   FileCheck2,
@@ -26,6 +27,7 @@ const ICONOS_DOCK: Record<DockIconKey, ReactNode> = {
   inicio: LOGO_LEGALTECH,
   querellas: <FileText size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
   quejas: <MessageSquare size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
+  comparendos: <Siren size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
   audiencias: <Calendar size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
   radicar: <FilePlus2 size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
   'actas-firmeza': <FileCheck2 size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,

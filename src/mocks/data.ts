@@ -9,6 +9,9 @@ import type {
   Queja,
   QuejaDetalle,
 } from '@/features/quejas/types';
+import type { LegalCase } from '@/shared/legalCases/types';
+import { buildCaseMetadata } from '@/shared/legalCases/types';
+import type { ComparendoMetadata } from '@/features/comparendos/types';
 
 // Fechas relativas a hoy para que los términos se vean realistas en la demo.
 const hoy = dayjs();
@@ -393,6 +396,230 @@ export const quejasDetalleMock: Record<string, QuejaDetalle> =
       },
     ]),
   );
+
+// ────────────────────────────────────────────────
+// Comparendos — usa el recurso genérico /legal-cases (caseType="comparendo"),
+// a diferencia de querellas/quejas arriba (que mockean el endpoint legacy
+// /querellas y /quejas). Ver src/mocks/handlers.ts para los handlers
+// genéricos de /legal-cases/find-by-criteria, /legal-cases/:id, etc.
+// ────────────────────────────────────────────────
+
+interface SemillaComparendo {
+  id: string;
+  filingNumber: string;
+  estados: Array<{ estado: string; dias: number; motivo: string }>;
+  meta: ComparendoMetadata;
+}
+
+const SEMILLAS_COMPARENDO: SemillaComparendo[] = [
+  {
+    id: 'cp-001',
+    filingNumber: '2026-CP-0001',
+    estados: [{ estado: 'recibido', dias: 1, motivo: 'Recepción de la orden de comparendo' }],
+    meta: {
+      numeroComparendo: '17-001-085044',
+      articuloNumeral: 'Artículo 92 Numeral 16',
+      lugar: 'CALLE 17 CARRERA 17 41',
+      fechaComparendo: hoy.subtract(3, 'day').format('YYYY-MM-DD'),
+      tipoMulta: 4,
+      causal: 'ninguna',
+      cedula: '1002500001',
+      telefono: '3170000001',
+      direccion: 'CARRERA 17 CALLE 19 28',
+      solicitante: 'CAI CHIPRE',
+      hechos: 'Verificación de establecimiento de comercio sin Cámara de Comercio vigente.',
+    },
+  },
+  {
+    id: 'cp-002',
+    filingNumber: '2026-CP-0002',
+    estados: [
+      { estado: 'recibido', dias: 10, motivo: 'Recepción de la orden de comparendo' },
+      { estado: 'verificado', dias: 9, motivo: 'Checklist de verificación humana superado' },
+      { estado: 'en_espera_objecion', dias: 8, motivo: 'Término de objeción abierto' },
+    ],
+    meta: {
+      numeroComparendo: '17-001-6-2026-1398',
+      articuloNumeral: 'Artículo 140 Numeral 14',
+      lugar: 'CALLE 49 CRA 6',
+      fechaComparendo: hoy.subtract(10, 'day').format('YYYY-MM-DD'),
+      tipoMulta: 4,
+      causal: 'reiteracion_dentro_del_anio',
+      cedula: '1060600002',
+      telefono: '',
+      direccion: 'CRA 4B No. 48-04',
+      solicitante: 'CAI SAN SEBASTIAN',
+      hechos: 'Consumo de sustancias psicoactivas en perímetro de templo religioso.',
+    },
+  },
+  {
+    id: 'cp-003',
+    filingNumber: '2026-CP-0003',
+    estados: [
+      { estado: 'recibido', dias: 18, motivo: 'Recepción de la orden de comparendo' },
+      { estado: 'verificado', dias: 17, motivo: 'Checklist de verificación humana superado' },
+      { estado: 'en_espera_objecion', dias: 16, motivo: 'Término de objeción abierto' },
+      { estado: 'objetado', dias: 13, motivo: 'Impugnación registrada dentro del término' },
+      {
+        estado: 'audiencia_programada',
+        dias: 11,
+        motivo: 'Auto avoca conocimiento y fija audiencia pública',
+      },
+    ],
+    meta: {
+      numeroComparendo: '17-001-6-2026-63',
+      articuloNumeral: 'Artículo 27 Numeral 6',
+      lugar: 'CRA 32 CALLE 27',
+      fechaComparendo: hoy.subtract(18, 'day').format('YYYY-MM-DD'),
+      tipoMulta: 2,
+      causal: 'ninguna',
+      cedula: '1053800003',
+      telefono: '3180000003',
+      direccion: 'CRA 32 CALLE 27',
+      solicitante: 'CAI EL NEVADO',
+      hechos: 'Porte de arma cortopunzante sin justificación.',
+      fechaAudiencia: hoy.add(2, 'day').format('YYYY-MM-DD'),
+      horaAudiencia: '09:00',
+      lugarAudiencia: 'Despacho de la Inspección',
+    },
+  },
+  {
+    id: 'cp-004',
+    filingNumber: '2026-CP-0004',
+    estados: [
+      { estado: 'recibido', dias: 25, motivo: 'Recepción de la orden de comparendo' },
+      { estado: 'verificado', dias: 24, motivo: 'Checklist de verificación humana superado' },
+      { estado: 'en_espera_objecion', dias: 23, motivo: 'Término de objeción abierto' },
+      { estado: 'objetado', dias: 20, motivo: 'Impugnación registrada dentro del término' },
+      { estado: 'audiencia_programada', dias: 18, motivo: 'Auto avoca conocimiento y fija audiencia pública' },
+      { estado: 'en_audiencia', dias: 5, motivo: 'Audiencia pública instalada' },
+    ],
+    meta: {
+      numeroComparendo: '17-001-6-2026-287',
+      articuloNumeral: 'Artículo 140 Numeral 13',
+      lugar: 'CRA 24 CALLE 38',
+      fechaComparendo: hoy.subtract(25, 'day').format('YYYY-MM-DD'),
+      tipoMulta: 4,
+      causal: 'ninguna',
+      cedula: '1053700004',
+      telefono: '3150000004',
+      direccion: 'CRA 24 CALLE 38',
+      solicitante: 'CAI CENTRO',
+      hechos: 'Consumo de sustancias psicoactivas en espacio público.',
+      fechaAudiencia: hoy.subtract(5, 'day').format('YYYY-MM-DD'),
+      horaAudiencia: '10:30',
+      lugarAudiencia: 'Despacho de la Inspección',
+    },
+  },
+  {
+    id: 'cp-005',
+    filingNumber: '2026-CP-0005',
+    estados: [
+      { estado: 'recibido', dias: 40, motivo: 'Recepción de la orden de comparendo' },
+      { estado: 'verificado', dias: 39, motivo: 'Checklist de verificación humana superado' },
+      { estado: 'en_espera_objecion', dias: 38, motivo: 'Término de objeción abierto' },
+      { estado: 'objetado', dias: 35, motivo: 'Impugnación registrada dentro del término' },
+      { estado: 'audiencia_programada', dias: 33, motivo: 'Auto avoca conocimiento y fija audiencia pública' },
+      { estado: 'en_audiencia', dias: 20, motivo: 'Audiencia pública instalada' },
+      { estado: 'fallo_emitido', dias: 20, motivo: 'Fallo proferido en audiencia — sanciona' },
+      { estado: 'en_firmeza', dias: 5, motivo: 'Constancia de firmeza — no se interpusieron recursos' },
+    ],
+    meta: {
+      numeroComparendo: '17-001-6-2026-410',
+      articuloNumeral: 'Artículo 33 Numeral 1',
+      lugar: 'CALLE 65 CRA 23',
+      fechaComparendo: hoy.subtract(40, 'day').format('YYYY-MM-DD'),
+      tipoMulta: 3,
+      causal: 'ninguna',
+      cedula: '1053900005',
+      telefono: '3160000005',
+      direccion: 'CALLE 65 CRA 23 11',
+      solicitante: 'CAI PALOGRANDE',
+      hechos: 'Ruido excesivo en vivienda pese a requerimiento previo.',
+      sentido: 'sanciona',
+      variante: 'Multa general tipo 3.',
+    },
+  },
+  {
+    id: 'cp-006',
+    filingNumber: '2026-CP-0006',
+    estados: [
+      { estado: 'recibido', dias: 55, motivo: 'Recepción de la orden de comparendo' },
+      { estado: 'verificado', dias: 54, motivo: 'Checklist de verificación humana superado' },
+      { estado: 'en_espera_objecion', dias: 53, motivo: 'Término de objeción abierto' },
+      { estado: 'sin_objecion', dias: 46, motivo: 'Constancia de no objeción — vencidos los términos' },
+      { estado: 'en_firmeza', dias: 46, motivo: 'Acta de firmeza generada (lit. e, art. 223A)' },
+      { estado: 'archivado', dias: 45, motivo: 'Expediente archivado' },
+    ],
+    meta: {
+      numeroComparendo: '17-001-6-2026-455',
+      articuloNumeral: 'Artículo 35 Numeral 1',
+      lugar: 'PARQUE PRINCIPAL LA ENEA',
+      fechaComparendo: hoy.subtract(55, 'day').format('YYYY-MM-DD'),
+      tipoMulta: 2,
+      causal: 'ninguna',
+      cedula: '1054000006',
+      telefono: '',
+      direccion: 'BARRIO LA ENEA MZ 4 CASA 7',
+      solicitante: 'CAI LA ENEA',
+      hechos: 'Irrespeto verbal reiterado a la autoridad de policía.',
+    },
+  },
+];
+
+const NOMBRE_INFRACTOR: Record<string, string> = {
+  'cp-001': 'PEDRO ANTONIO SALAZAR RÍOS',
+  'cp-002': 'CAMILO ANDRÉS OSORIO DUQUE',
+  'cp-003': 'LAURA MARCELA HENAO PATIÑO',
+  'cp-004': 'JOSÉ MIGUEL GALLEGO TORO',
+  'cp-005': 'DIANA CAROLINA MEJÍA LÓPEZ',
+  'cp-006': 'ANDRÉS FELIPE QUINTERO MARÍN',
+};
+
+function construirComparendoLegalCase(s: SemillaComparendo): LegalCase {
+  const ultimo = s.estados[s.estados.length - 1];
+  return {
+    id: s.id,
+    createdAt: hoy.subtract(s.estados[0].dias, 'day').toISOString(),
+    filingNumber: s.filingNumber,
+    judicialOfficeId: '',
+    caseType: 'comparendo',
+    rulingDate: null,
+    venueCity: 'Manizales',
+    evidenceAssessment: null,
+    legalReasoning: null,
+    currentStateCode: ultimo.estado,
+    caseMetadata: buildCaseMetadata(s.meta as unknown as Record<string, unknown>),
+    background: {
+      allegedFacts: s.meta.hechos ?? null,
+      reliefSought: null,
+      defensesAndObjections: null,
+    },
+    ruling: null,
+    parties: [
+      {
+        partyRole: 'infractor',
+        identificationType: 'CC',
+        identificationNumber: s.meta.cedula ?? '',
+        fullName: NOMBRE_INFRACTOR[s.id] ?? 'Sin identificar',
+      },
+      {
+        partyRole: 'autoridad',
+        identificationType: 'N/A',
+        identificationNumber: '',
+        fullName: s.meta.solicitante ?? '',
+      },
+    ],
+    stateHistory: s.estados.map((e) => ({
+      stateCode: e.estado,
+      stateName: null,
+      changedAt: hoy.subtract(e.dias, 'day').toISOString(),
+      reason: e.motivo,
+    })),
+  };
+}
+
+export const comparendosLegalCaseMock: LegalCase[] = SEMILLAS_COMPARENDO.map(construirComparendoLegalCase);
 
 // Respuesta simulada del asistente para la demo sin backend.
 export const RESPUESTA_IA_DEMO =

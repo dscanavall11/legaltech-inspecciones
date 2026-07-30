@@ -6,6 +6,7 @@ export type DockIconKey =
   | 'inicio'
   | 'querellas'
   | 'quejas'
+  | 'comparendos'
   | 'audiencias'
   | 'radicar'
   | 'actas-firmeza'
@@ -47,6 +48,7 @@ export const DOCK_SECTIONS: DockSection[] = [
       { key: 'inicio', label: 'Inicio', iconKey: 'inicio', ruta: '/panel', color: AZUL },
       { key: 'querellas', label: 'Querellas', iconKey: 'querellas', ruta: '/panel/querellas', color: AZUL },
       { key: 'quejas', label: 'Quejas', iconKey: 'quejas', ruta: '/panel/quejas', color: AZUL },
+      { key: 'comparendos', label: 'Comparendos', iconKey: 'comparendos', ruta: '/panel/comparendos', color: AZUL },
       { key: 'audiencias', label: 'Audiencias', iconKey: 'audiencias', ruta: '/panel/audiencias', color: AZUL },
     ],
   },

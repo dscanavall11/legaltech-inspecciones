@@ -29,6 +29,12 @@ const QuejasListPage = lazy(() =>
 const QuejaDetailPage = lazy(() =>
   import('@/features/quejas/QuejaDetailPage').then((m) => ({ default: m.QuejaDetailPage })),
 );
+const ComparendosPage = lazy(() =>
+  import('@/features/comparendos/ComparendosPage').then((m) => ({ default: m.ComparendosPage })),
+);
+const ComparendoDetailPage = lazy(() =>
+  import('@/features/comparendos/ComparendoDetailPage').then((m) => ({ default: m.ComparendoDetailPage })),
+);
 const LoginPage = lazy(() =>
   import('@/features/auth/LoginPage').then((m) => ({ default: m.LoginPage })),
 );
@@ -110,6 +116,8 @@ export const router = createBrowserRouter([
       },
       { path: 'quejas', element: <Cargando><QuejasListPage /></Cargando> },
       { path: 'quejas/:id', element: <Cargando><QuejaDetailPage /></Cargando> },
+      { path: 'comparendos', element: <Cargando><ComparendosPage /></Cargando> },
+      { path: 'comparendos/:id', element: <Cargando><ComparendoDetailPage /></Cargando> },
       { path: 'audiencias', element: <Cargando><AudienciasPage /></Cargando> },
       { path: 'nuevo-caso', element: <Cargando><IntakePage /></Cargando> },
       { path: 'fallos', element: <Cargando><FallosPage /></Cargando> },

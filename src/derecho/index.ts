@@ -13,3 +13,8 @@ export * from './etapas';
 export * from './letras';
 export * from './multas';
 export * from './plantillas/actaFirmeza';
+export * from './plantillas/documentoLegal';
+export * from './plantillas/autoAvocaCitaAudiencia';
+export * from './plantillas/autoDecretaPruebasSuspende';
+export * from './plantillas/autoInasistencia';
+export * from './plantillas/constanciasIncumplimiento';

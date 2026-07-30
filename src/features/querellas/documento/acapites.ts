@@ -12,7 +12,7 @@ import { MULTA_LABEL, valorMulta, formatearPesos } from '@/shared/multas/multas'
  *
  * ⚠️ Contenido jurídico de muestra — pendiente de validación legal.
  */
-export type TipoDocumento = 'fallo' | 'acta' | 'citacion';
+export type TipoDocumento = 'fallo' | 'acta' | 'citacion' | 'constancia';
 
 export interface Acapite {
   id: string;
@@ -253,16 +253,28 @@ function documentoCitacion(q: QuerellaDetalle): DocumentoGenerado {
   };
 }
 
+// La constancia de ejecutoria es el mismo acto procesal que el acta de firmeza
+// (declara ejecutoriada la decisión); solo cambia el título del documento.
+function documentoConstancia(q: QuerellaDetalle): DocumentoGenerado {
+  return { ...documentoActa(q), titulo: 'Constancia de ejecutoria' };
+}
+
 export function construirDocumento(
   tipo: TipoDocumento,
   q: QuerellaDetalle,
 ): DocumentoGenerado {
   switch (tipo) {
+    case 'fallo':
+      return documentoFallo(q);
     case 'acta':
       return documentoActa(q);
     case 'citacion':
       return documentoCitacion(q);
+    case 'constancia':
+      return documentoConstancia(q);
+    // Esta pantalla es para piezas procesales determinísticas; ante un tipo
+    // desconocido se asume constancia, nunca un fallo (que va por /analisis con IA).
     default:
-      return documentoFallo(q);
+      return documentoConstancia(q);
   }
 }

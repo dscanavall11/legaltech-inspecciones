@@ -23,6 +23,9 @@ export const ETAPA_QUERELLA_ACTIVA: Record<EstadoQuerella, number> = {
   en_tramite: 0,
   audiencia_programada: 1,
   fallo_emitido: 2,
+  apelado: 2,
+  confirmado: 3,
+  revocado: 3,
   en_firmeza: 3,
   archivada: 4,
 };

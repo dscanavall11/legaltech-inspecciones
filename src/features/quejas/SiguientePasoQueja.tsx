@@ -10,6 +10,7 @@ import {
   Radio,
   Alert,
   App,
+  Input,
 } from 'antd';
 import {
   CalendarOutlined,
@@ -18,11 +19,23 @@ import {
   FileTextOutlined,
   InboxOutlined,
 } from '@ant-design/icons';
+import type { Dayjs } from 'dayjs';
 import type { ReactNode } from 'react';
-import { siguientePasoQueja, TERMINOS, type AccionQuejaTipo } from '@/derecho';
-import { useCrearQuerella } from '@/features/querellas/api';
+import { siguientePasoQueja, type AccionQuejaTipo } from '@/derecho';
+import { useChangeCaseState, useUpdateCaseFields } from '@/shared/legalCases/api';
+import { useUploadCaseDocument } from '@/shared/documentos/api';
+import { parseCaseMetadata, buildCaseMetadata } from '@/shared/legalCases/types';
+import type { DocumentoGenerado } from '../querellas/documento/acapites';
+import { documentoPdfBlob, nombreArchivoDocumento } from '../querellas/documento/documentoPdf';
+import {
+  construirCitacionConciliacion,
+  construirActaConciliacion,
+  construirConstanciaNoAcuerdo,
+} from './documentosQueja';
 import type { Queja } from './types';
 import { PALETA } from '@/theme/theme';
+
+const { TextArea } = Input;
 
 const { Text } = Typography;
 
@@ -33,47 +46,86 @@ const ICONO: Record<AccionQuejaTipo, ReactNode> = {
   archivar: <InboxOutlined />,
 };
 
-export function SiguientePasoQueja({ queja }: { queja: Queja }) {
+export function SiguientePasoQueja({ queja }: { queja: Queja & { caseMetadataRaw?: string | null } }) {
   const { id, estado } = queja;
   const navigate = useNavigate();
   const { message } = App.useApp();
   const paso = siguientePasoQueja(estado);
-  const crearQuerella = useCrearQuerella();
+  const cambiarEstado = useChangeCaseState();
+  const actualizarCampos = useUpdateCaseFields();
+  const subir = useUploadCaseDocument(id);
 
   const [modalCitar, setModalCitar] = useState(false);
+  const [fechaConciliacion, setFechaConciliacion] = useState<Dayjs | null>(null);
   const [modalResultado, setModalResultado] = useState(false);
   const [modalConvertir, setModalConvertir] = useState(false);
   const [resultado, setResultado] = useState<'acuerdo' | 'sin_acuerdo' | null>(null);
+  const [acuerdo, setAcuerdo] = useState('');
+
+  // Genera el documento de la etapa y lo archiva en el expediente S3. Advisory:
+  // un fallo al archivar nunca bloquea la actuación ya registrada.
+  const archivarDocumentoQueja = (doc: DocumentoGenerado) => {
+    documentoPdfBlob(doc, queja.radicado)
+      .then((blob) =>
+        subir.mutate(new File([blob], nombreArchivoDocumento(doc, queja.radicado), { type: 'application/pdf' })),
+      )
+      .catch(() => undefined);
+  };
+
+  function transicionar(nuevoEstado: typeof estado, metaExtra?: Record<string, unknown>, exito?: string) {
+    cambiarEstado.mutate(
+      { id, state: nuevoEstado },
+      {
+        onSuccess: () => {
+          if (metaExtra) {
+            const metaActual = parseCaseMetadata<Record<string, unknown>>(queja.caseMetadataRaw ?? null);
+            actualizarCampos.mutate({ id, fields: { caseMetadata: buildCaseMetadata({ ...metaActual, ...metaExtra }) } });
+          }
+          if (exito) message.success(exito);
+        },
+        onError: () => message.error('No se pudo actualizar el estado del expediente.'),
+      },
+    );
+  }
 
   const ejecutar = (tipo: AccionQuejaTipo) => {
     switch (tipo) {
       case 'citar_conciliacion':
+        setFechaConciliacion(null);
         return setModalCitar(true);
       case 'registrar_conciliacion':
         setResultado(null);
+        setAcuerdo('');
         return setModalResultado(true);
       case 'convertir_querella':
         return setModalConvertir(true);
       case 'archivar':
-        message.success('Archivo del expediente ordenado.');
-        return;
+        return transicionar('archivada', undefined, 'Expediente archivado.');
     }
   };
 
-  async function darTramiteQuerella() {
-    try {
-      const creada = await crearQuerella.mutateAsync({
-        querellante: queja.quejoso,
-        querellado: queja.acusado,
-        asunto: queja.asunto,
-        diasTermino: TERMINOS.querellaDias,
-      });
-      setModalConvertir(false);
-      message.success(`Querella radicada bajo el número ${creada.radicado}.`);
-      navigate(`/panel/querellas/${creada.id}`);
-    } catch {
-      message.error('No se pudo radicar la querella. Intente de nuevo.');
-    }
+  function darTramiteQuerella() {
+    // Fracasada la conciliación: el MISMO expediente cambia de caseType (queja
+    // -> querella) en vez de crear un caso nuevo - es la misma actuación
+    // procesal continuando por otra vía, no un nuevo radicado.
+    actualizarCampos.mutate(
+      { id, fields: { caseType: 'querella' } },
+      {
+        onSuccess: () => {
+          cambiarEstado.mutate(
+            { id, state: 'en_tramite' },
+            {
+              onSuccess: () => {
+                setModalConvertir(false);
+                message.success('La queja continúa como querella por proceso verbal abreviado.');
+                navigate(`/panel/querellas/${id}`);
+              },
+            },
+          );
+        },
+        onError: () => message.error('No se pudo dar trámite de querella. Intente de nuevo.'),
+      },
+    );
   }
 
   if (paso.terminal) {
@@ -112,6 +164,7 @@ export function SiguientePasoQueja({ queja }: { queja: Queja }) {
               key={a.tipo}
               type={a.primaria ? 'primary' : 'default'}
               icon={ICONO[a.tipo]}
+              loading={cambiarEstado.isPending || actualizarCampos.isPending}
               onClick={() => ejecutar(a.tipo)}
             >
               {a.label}
@@ -126,11 +179,16 @@ export function SiguientePasoQueja({ queja }: { queja: Queja }) {
         title="Citar a audiencia de conciliación"
         okText="Librar citación"
         cancelText="Cancelar"
+        okButtonProps={{ disabled: !fechaConciliacion, loading: cambiarEstado.isPending }}
         onCancel={() => setModalCitar(false)}
         onOk={() => {
           setModalCitar(false);
-          message.success('Audiencia de conciliación señalada. Se citará a las partes.');
-          navigate(`/panel/quejas/${id}`);
+          transicionar(
+            'conciliacion_programada',
+            { fechaConciliacion: fechaConciliacion?.toISOString() },
+            'Audiencia de conciliación señalada. Citación archivada en el expediente.',
+          );
+          archivarDocumentoQueja(construirCitacionConciliacion(queja, fechaConciliacion?.toISOString()));
         }}
       >
         <Space direction="vertical" size="middle" style={{ width: '100%', marginTop: 8 }}>
@@ -143,6 +201,8 @@ export function SiguientePasoQueja({ queja }: { queja: Queja }) {
             style={{ width: '100%' }}
             format="DD/MM/YYYY HH:mm"
             placeholder="Fecha y hora de la conciliación"
+            value={fechaConciliacion}
+            onChange={setFechaConciliacion}
           />
         </Space>
       </Modal>
@@ -153,15 +213,17 @@ export function SiguientePasoQueja({ queja }: { queja: Queja }) {
         title="Acta de audiencia de conciliación"
         okText={resultado === 'sin_acuerdo' ? 'Dejar constancia de no acuerdo' : 'Suscribir acta'}
         cancelText="Cancelar"
-        okButtonProps={{ disabled: !resultado }}
+        okButtonProps={{ disabled: !resultado, loading: cambiarEstado.isPending }}
         onCancel={() => setModalResultado(false)}
         onOk={() => {
           setModalResultado(false);
-          message.success(
-            resultado === 'acuerdo'
-              ? 'Acta de conciliación suscrita por las partes.'
-              : 'Constancia de no acuerdo dejada en el expediente.',
-          );
+          if (resultado === 'acuerdo') {
+            transicionar('conciliada', undefined, 'Acta de conciliación suscrita y archivada en el expediente.');
+            archivarDocumentoQueja(construirActaConciliacion(queja, acuerdo));
+          } else {
+            transicionar('sin_acuerdo', undefined, 'Constancia de no acuerdo archivada en el expediente.');
+            archivarDocumentoQueja(construirConstanciaNoAcuerdo(queja));
+          }
         }}
       >
         <Space direction="vertical" size="middle" style={{ width: '100%', marginTop: 8 }}>
@@ -183,12 +245,25 @@ export function SiguientePasoQueja({ queja }: { queja: Queja }) {
           </Radio.Group>
 
           {resultado === 'acuerdo' && (
-            <Alert
-              type="success"
-              showIcon
-              message="Conciliación lograda"
-              description="El acta suscrita por las partes y el inspector presta mérito ejecutivo y hace tránsito a cosa juzgada. Verificado el cumplimiento, se ordenará el archivo."
-            />
+            <>
+              <div>
+                <Text style={{ display: 'block', marginBottom: 6 }}>
+                  Transcriba el acuerdo conciliatorio (compromisos de las partes):
+                </Text>
+                <TextArea
+                  rows={4}
+                  value={acuerdo}
+                  onChange={(e) => setAcuerdo(e.target.value)}
+                  placeholder="Ej.: El acusado se compromete a cesar el ruido después de las 10:00 p.m.; el quejoso retira la queja…"
+                />
+              </div>
+              <Alert
+                type="success"
+                showIcon
+                message="Conciliación lograda"
+                description="El acta suscrita por las partes y el inspector presta mérito ejecutivo y hace tránsito a cosa juzgada. Verificado el cumplimiento, se ordenará el archivo."
+              />
+            </>
           )}
           {resultado === 'sin_acuerdo' && (
             <Alert
@@ -207,15 +282,15 @@ export function SiguientePasoQueja({ queja }: { queja: Queja }) {
         title="Dar trámite de querella"
         okText="Radicar querella"
         cancelText="Cancelar"
-        confirmLoading={crearQuerella.isPending}
+        confirmLoading={actualizarCampos.isPending || cambiarEstado.isPending}
         onCancel={() => setModalConvertir(false)}
-        onOk={() => void darTramiteQuerella()}
+        onOk={darTramiteQuerella}
       >
         <Space direction="vertical" size="middle" style={{ width: '100%', marginTop: 8 }}>
           <Text type="secondary">
             Fracasada la conciliación, el asunto continúa por proceso verbal
-            abreviado (art. 223, Ley 1801 de 2016). Se radicará una querella con
-            las partes y los hechos de esta queja.
+            abreviado (art. 223, Ley 1801 de 2016). El mismo expediente pasa a
+            tramitarse como querella.
           </Text>
           <Alert
             type="info"

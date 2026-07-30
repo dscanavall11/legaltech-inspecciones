@@ -1,5 +1,6 @@
 import type { Content, TDocumentDefinitions } from 'pdfmake/interfaces';
 import type { ActaFirmeza } from '@/derecho';
+import { cargarPdfMake } from '@/shared/documentos/pdfMake';
 
 /**
  * Genera y descarga el acta de firmeza como PDF (texto real, no imagen),
@@ -9,18 +10,7 @@ import type { ActaFirmeza } from '@/derecho';
  * inflar el bundle de entrada de la aplicación.
  */
 export async function descargarActaPdf(acta: ActaFirmeza, membreteDataUrl?: string | null) {
-  const [{ default: pdfMake }, { default: pdfFonts }] = await Promise.all([
-    import('pdfmake/build/pdfmake'),
-    import('pdfmake/build/vfs_fonts'),
-  ]);
-
-  // vfs_fonts cambió de forma entre versiones de pdfmake; se toleran ambas.
-  const fuentes = pdfFonts as unknown as {
-    pdfMake?: { vfs: Record<string, string> };
-    vfs?: Record<string, string>;
-  };
-  (pdfMake as unknown as { vfs: Record<string, string> }).vfs =
-    fuentes.pdfMake?.vfs ?? fuentes.vfs ?? {};
+  const pdfMake = await cargarPdfMake();
   const contenido: Content[] = [];
 
   if (membreteDataUrl) {

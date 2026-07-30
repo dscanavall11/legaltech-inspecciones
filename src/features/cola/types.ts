@@ -1,42 +1,11 @@
-import type { CausalIncremento } from '@/derecho';
-
-export type EstadoActa = 'pendiente' | 'generada' | 'revisada' | 'expedida';
-
-export const ESTADO_ACTA_LABEL: Record<EstadoActa, string> = {
-  pendiente: 'Pendiente',
-  generada: 'Generada',
-  revisada: 'Revisada',
-  expedida: 'Expedida',
-};
-
-export const ESTADO_ACTA_COLOR: Record<EstadoActa, 'blue' | 'green' | 'orange' | 'purple'> = {
-  pendiente: 'blue',
-  generada: 'green',
-  revisada: 'orange',
-  expedida: 'purple',
-};
-
 export interface ItemCola {
   id: string;
   tipo: 'querella' | 'queja' | 'acta_firmeza' | 'apelacion' | 'fallo';
   radicado: string;
   titulo: string;
+  /** currentStateCode real del caso - cada tipo define sus propios valores en el bundle OKF. */
   estado: string;
-  estadoActa?: EstadoActa;
   fecha: string;
-  responsable?: string;
-  datosActa?: {
-    comparendo: string;
-    solicitado: string;
-    cedula: string;
-    liquidacion: {
-      valorTotal: number;
-      smdlvLetras: string;
-      tipo: number;
-      porcentajeIncremento: number;
-    };
-    causal?: CausalIncremento;
-  };
 }
 
 export const TIPOS_COLA_LABEL: Record<ItemCola['tipo'], string> = {
@@ -51,8 +20,13 @@ export const ESTADO_GENERAL_LABEL: Record<string, string> = {
   radicada: 'Radicada',
   en_tramite: 'En trámite',
   audiencia_programada: 'Audiencia programada',
+  conciliacion_programada: 'Conciliación programada',
+  conciliada: 'Conciliada',
+  sin_acuerdo: 'Sin acuerdo',
+  fallo_emitido: 'Fallo emitido',
   en_firmeza: 'En firmeza',
   fallada: 'Fallada',
+  apelado: 'Apelado',
   apelada: 'Apelada',
   archivada: 'Archivada',
   pendiente: 'Pendiente',
@@ -65,8 +39,13 @@ export const ESTADO_GENERAL_COLOR: Record<string, 'blue' | 'green' | 'orange' | 
   radicada: 'blue',
   en_tramite: 'green',
   audiencia_programada: 'orange',
+  conciliacion_programada: 'orange',
+  conciliada: 'green',
+  sin_acuerdo: 'red',
+  fallo_emitido: 'purple',
   en_firmeza: 'purple',
   fallada: 'red',
+  apelado: 'orange',
   apelada: 'orange',
   archivada: 'default',
   pendiente: 'blue',

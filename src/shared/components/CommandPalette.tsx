@@ -150,7 +150,7 @@ export function CommandPalette() {
                     margin: '0 6px',
                     transition: 'background 120ms ease',
                   }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = '#f1f3f4'; }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = '#efede7'; }}
                   onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
                 >
                   <span style={{ color: PALETA.textoSuave, fontSize: 14, width: 18, textAlign: 'center' }}>{c.icon}</span>

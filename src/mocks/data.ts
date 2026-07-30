@@ -9,7 +9,6 @@ import type {
   Queja,
   QuejaDetalle,
 } from '@/features/quejas/types';
-import type { DocumentoCaso } from '@/shared/documentos/types';
 
 // Fechas relativas a hoy para que los términos se vean realistas en la demo.
 const hoy = dayjs();
@@ -180,83 +179,6 @@ function actuacionesPara(q: Querella): Actuacion[] {
     .reverse(); // más reciente primero
 }
 
-// Piezas procesales típicas del expediente, según la etapa del caso.
-function documentosParaQuerella(q: Querella): DocumentoCaso[] {
-  const docs: DocumentoCaso[] = [
-    {
-      id: `${q.id}-d1`,
-      nombre: 'Escrito de querella y anexos.pdf',
-      tipo: 'pdf',
-      origen: 'radicacion',
-      fecha: q.fechaRadicacion,
-      tamano: '842 KB',
-    },
-    {
-      id: `${q.id}-d2`,
-      nombre: 'Registro fotográfico de los hechos.jpg',
-      tipo: 'imagen',
-      origen: 'radicacion',
-      fecha: q.fechaRadicacion,
-      tamano: '2.1 MB',
-    },
-  ];
-  if (q.estado !== 'radicada') {
-    docs.push({
-      id: `${q.id}-d3`,
-      nombre: 'Auto que avoca conocimiento.pdf',
-      tipo: 'pdf',
-      origen: 'actuacion',
-      fecha: q.fechaRadicacion,
-      tamano: '96 KB',
-    });
-  }
-  if (q.estado === 'fallo_emitido' || q.estado === 'en_firmeza' || q.estado === 'archivada') {
-    docs.push({
-      id: `${q.id}-d4`,
-      nombre: 'Acta de audiencia pública y decisión.pdf',
-      tipo: 'pdf',
-      origen: 'actuacion',
-      fecha: q.fechaRadicacion,
-      tamano: '310 KB',
-    });
-  }
-  return docs;
-}
-
-function documentosParaQueja(q: Queja): DocumentoCaso[] {
-  const docs: DocumentoCaso[] = [
-    {
-      id: `${q.id}-d1`,
-      nombre: 'Queja presentada.pdf',
-      tipo: 'pdf',
-      origen: 'radicacion',
-      fecha: q.fechaRadicacion,
-      tamano: '415 KB',
-    },
-  ];
-  if (q.estado !== 'radicada' && q.estado !== 'en_tramite') {
-    docs.push({
-      id: `${q.id}-d2`,
-      nombre: 'Citación a audiencia de conciliación.pdf',
-      tipo: 'pdf',
-      origen: 'actuacion',
-      fecha: q.fechaRadicacion,
-      tamano: '88 KB',
-    });
-  }
-  if (q.estado === 'conciliada') {
-    docs.push({
-      id: `${q.id}-d3`,
-      nombre: 'Acta de conciliación suscrita.pdf',
-      tipo: 'pdf',
-      origen: 'actuacion',
-      fecha: q.fechaRadicacion,
-      tamano: '150 KB',
-    });
-  }
-  return docs;
-}
-
 export const querellasDetalleMock: Record<string, QuerellaDetalle> =
   Object.fromEntries(
     querellasMock.map((q) => [
@@ -265,7 +187,6 @@ export const querellasDetalleMock: Record<string, QuerellaDetalle> =
         ...q,
         direccionInmueble: 'Calle 45 # 12-30, Barrio Centro',
         actuaciones: actuacionesPara(q),
-        documentos: documentosParaQuerella(q),
       },
     ]),
   );
@@ -469,7 +390,6 @@ export const quejasDetalleMock: Record<string, QuejaDetalle> =
         descripcionHechos:
           `${q.quejoso} manifiesta que el señor(a) ${q.acusado} incurre reiteradamente en el comportamiento descrito, afectando la convivencia pacífica del sector. Los hechos se vienen presentando desde hace aproximadamente dos semanas.`,
         actuaciones: actuacionesParaQueja(q),
-        documentos: documentosParaQueja(q),
       },
     ]),
   );

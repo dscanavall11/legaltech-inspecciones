@@ -1,45 +1,47 @@
-import { useQuery } from '@tanstack/react-query';
-import { apiFetch } from '@/shared/api/client';
-import type { Fallo } from './types';
+import { useLegalCases } from '@/shared/legalCases/api';
+import type { LegalCase } from '@/shared/legalCases/types';
+import type { EstadoFallo, Fallo } from './types';
 
-export interface FallosPage {
-  content: Fallo[];
-  totalElements: number;
-  totalPages: number;
-  page: number;
-  size: number;
+const ESTADOS_FALLO: EstadoFallo[] = ['fallo_emitido', 'en_firmeza', 'apelado', 'archivada'];
+
+function nombrePorRol(caso: LegalCase, rol: string): string {
+  return caso.parties?.find((p) => p.partyRole?.toLowerCase() === rol)?.fullName ?? 'No identificado';
 }
 
-export function getFallos(opts: {
-  search?: string;
-  page?: number;
-  size?: number;
-  decision?: string;
-} = {}) {
-  const params = new URLSearchParams({
-    page: String(opts.page ?? 0),
-    size: String(opts.size ?? 20),
-  });
-  if (opts.search) params.set('search', opts.search);
-  if (opts.decision) params.set('decision', opts.decision);
-  return apiFetch<FallosPage>(`/fallos?${params}`);
+function legalCaseToFallo(caso: LegalCase): Fallo {
+  return {
+    id: caso.id,
+    radicado: caso.filingNumber,
+    tipo: caso.caseType,
+    fechaFallo: caso.stateHistory?.find((h) => h.reason?.includes('fallo_emitido'))?.changedAt ?? caso.createdAt ?? '',
+    querellante: nombrePorRol(caso, 'querellante') !== 'No identificado' ? nombrePorRol(caso, 'querellante') : nombrePorRol(caso, 'quejoso'),
+    querellado: nombrePorRol(caso, 'querellado') !== 'No identificado' ? nombrePorRol(caso, 'querellado') : nombrePorRol(caso, 'acusado'),
+    comportamiento: caso.background?.allegedFacts ?? caso.background?.reliefSought ?? '',
+    fundamentacion: caso.legalReasoning ?? '',
+    pruebas: caso.evidenceAssessment ?? '',
+    estado: (ESTADOS_FALLO.includes(caso.currentStateCode as EstadoFallo)
+      ? caso.currentStateCode
+      : 'fallo_emitido') as EstadoFallo,
+  };
 }
 
-export function getFalloPorId(id: string) {
-  return apiFetch<Fallo>(`/fallos/${id}`);
-}
+/**
+ * Casos con fallo real: caseType querella/queja en un estado post-decisión,
+ * y con legalReasoning efectivamente guardado (ver AnalisisPage "Guardar y
+ * proferir fallo"). Sin eso, el caso está en fallo_emitido pero sin
+ * contenido - no se muestra como si tuviera un fallo redactado.
+ */
+export function useFallos() {
+  const querellas = useLegalCases({ caseType: 'querella', size: 200 });
+  const quejas = useLegalCases({ caseType: 'queja', size: 200 });
 
-export function useFallos(opts: { search?: string; decision?: string } = {}) {
-  return useQuery({
-    queryKey: ['fallos', opts],
-    queryFn: () => getFallos(opts),
-  });
-}
+  const todos = [...(querellas.data?.content ?? []), ...(quejas.data?.content ?? [])]
+    .filter((c) => ESTADOS_FALLO.includes(c.currentStateCode as EstadoFallo) && c.legalReasoning)
+    .map(legalCaseToFallo);
 
-export function useFallo(id: string) {
-  return useQuery({
-    queryKey: ['fallos', id],
-    queryFn: () => getFalloPorId(id),
-    enabled: !!id,
-  });
+  return {
+    isLoading: querellas.isLoading || quejas.isLoading,
+    isError: querellas.isError || quejas.isError,
+    data: todos,
+  };
 }

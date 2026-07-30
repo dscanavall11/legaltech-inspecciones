@@ -247,7 +247,7 @@ export function AudienciasPage() {
                     transition: 'background 150ms ease',
                   }}
                   onMouseEnter={(e) => {
-                    if (enMes) e.currentTarget.style.background = esHoy ? PALETA.azulSuave : '#f1f3f4';
+                    if (enMes) e.currentTarget.style.background = esHoy ? PALETA.azulSuave : '#efede7';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background = esHoy ? PALETA.azulSuave : 'transparent';

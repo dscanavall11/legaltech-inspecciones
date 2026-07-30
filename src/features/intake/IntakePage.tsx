@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Button, Input, Select, Tooltip, message as antMessage } from 'antd';
+import { uid } from '@/shared/util/uid';
+import { Button, Input, Tooltip } from 'antd';
 import {
   SendOutlined,
   PaperClipOutlined,
@@ -11,13 +12,13 @@ import {
 } from '@ant-design/icons';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { apiFetch } from '@/shared/api/client';
-import type { Querella } from '@/features/querellas/types';
-import type { Queja } from '@/features/quejas/types';
-import { tipoDesdeNombre, type TipoDocumento } from '@/shared/documentos/types';
-import { DESPACHO, TIPO_SOLICITUD_LABEL, VIA_PROCESAL_LABEL, TERMINOS, CNSCC } from '@/derecho';
-import type { CasoDraft, ChatMessage } from './useIntakeChat';
+import { documentTypeFromFileName, type CaseDocumentType } from '@/shared/documentos/types';
+import { DESPACHO, TIPO_SOLICITUD_LABEL, CNSCC, type TipoSolicitud } from '@/derecho';
+import type { ChatMessage } from './useIntakeChat';
 import { useIntakeChat } from './useIntakeChat';
+import dayjs from 'dayjs';
+import { fechaLarga } from '@/shared/util/fechas';
+import { NormaMark } from '@/shared/ai/NormaMark';
 import { ELEVACION, PALETA } from '@/theme/theme';
 
 // Anexo aportado en el chat antes de radicar (prueba documental del caso).
@@ -25,16 +26,17 @@ import { ELEVACION, PALETA } from '@/theme/theme';
 interface Anexo {
   id: string;
   nombre: string;
-  tipo: TipoDocumento;
+  tipo: CaseDocumentType;
   tamano: string;
   archivo: File;
 }
 
-const ICONO_ANEXO: Record<TipoDocumento, ReactNode> = {
-  pdf: <FilePdfOutlined style={{ color: PALETA.rojo }} />,
-  imagen: <FileImageOutlined style={{ color: PALETA.verde }} />,
-  texto: <FileTextOutlined style={{ color: PALETA.azul }} />,
-  otro: <FileOutlined style={{ color: PALETA.textoSuave }} />,
+const ICONO_ANEXO: Record<CaseDocumentType, ReactNode> = {
+  PDF: <FilePdfOutlined style={{ color: PALETA.rojo }} />,
+  IMAGEN: <FileImageOutlined style={{ color: PALETA.verde }} />,
+  WORD: <FileTextOutlined style={{ color: PALETA.azul }} />,
+  AUDIO: <FileTextOutlined style={{ color: PALETA.morado }} />,
+  OTRO: <FileOutlined style={{ color: PALETA.textoSuave }} />,
 };
 
 // ── Renderizado mínimo de markdown (negrita + saltos de línea) ──────────────
@@ -49,6 +51,18 @@ function renderMd(texto: string) {
   ));
 }
 
+function etiquetaTipo(tipo: string | null): string | null {
+  if (!tipo) return null;
+  return TIPO_SOLICITUD_LABEL[tipo as TipoSolicitud] ?? tipo;
+}
+
+const ROL_LABEL: Record<string, string> = {
+  querellante: 'Querellante',
+  querellado: 'Querellado',
+  quejoso: 'Quejoso',
+  acusado: 'Acusado',
+};
+
 // ── Burbuja de mensaje ────────────────────────────────────────────────────
 function Burbuja({ m }: { m: ChatMessage }) {
   const esAgente = m.rol === 'agente';
@@ -62,23 +76,8 @@ function Burbuja({ m }: { m: ChatMessage }) {
       }}
     >
       {esAgente && (
-        <div
-          style={{
-            width: 30,
-            height: 30,
-            borderRadius: '50%',
-            background: PALETA.azulSuave,
-            color: PALETA.azulOscuro,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 11,
-            fontWeight: 700,
-            flexShrink: 0,
-            marginTop: 2,
-          }}
-        >
-          IA
+        <div style={{ flexShrink: 0, marginTop: 2 }}>
+          <NormaMark size={30} />
         </div>
       )}
       <div
@@ -103,18 +102,19 @@ function Burbuja({ m }: { m: ChatMessage }) {
   );
 }
 
-// ── Campo de la ficha ─────────────────────────────────────────────────────
-interface CampoProps {
+// ── Campo de la ficha (solo lectura: lo llena la IA, no el inspector) ──────
+function CampoLectura({
+  label,
+  valor,
+  destacado,
+  vacio = 'Aún no informado',
+}: {
   label: string;
-  valor: string;
-  onChange: (v: string) => void;
+  valor: ReactNode;
   destacado: boolean;
-  multiline?: boolean;
-  opciones?: { value: string; label: string }[];
-  placeholder?: string;
-}
-
-function Campo({ label, valor, onChange, destacado, multiline, opciones, placeholder = '' }: CampoProps) {
+  vacio?: string;
+}) {
+  const esVacio = valor === null || valor === undefined || valor === '';
   return (
     <div style={{ marginBottom: 14 }}>
       <div
@@ -136,63 +136,23 @@ function Campo({ label, valor, onChange, destacado, multiline, opciones, placeho
           borderRadius: 14,
           backgroundColor: destacado ? PALETA.azulSuave : '#f6f7f9',
           transition: 'background-color 1.6s ease',
-          padding: opciones ? '3px 4px' : '7px 14px 8px',
+          padding: '7px 14px 8px',
+          fontSize: 14,
+          lineHeight: 1.5,
+          color: esVacio ? PALETA.textoTenue : PALETA.texto,
         }}
       >
-        {opciones ? (
-          <Select
-            variant="borderless"
-            style={{ width: '100%' }}
-            value={valor || undefined}
-            onChange={onChange}
-            placeholder={<span style={{ color: '#a9adb3' }}>{placeholder}</span>}
-            options={opciones}
-            size="small"
-          />
-        ) : multiline ? (
-          <Input.TextArea
-            variant="borderless"
-            autoSize={{ minRows: 2, maxRows: 5 }}
-            value={valor}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder={placeholder}
-            style={{ padding: 0, resize: 'none', fontSize: 14 }}
-          />
-        ) : (
-          <Input
-            variant="borderless"
-            value={valor}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder={placeholder}
-            style={{ padding: 0, fontSize: 14 }}
-          />
-        )}
+        {esVacio ? vacio : valor}
       </div>
     </div>
   );
 }
 
-const TIPO_OPCIONES = Object.entries(TIPO_SOLICITUD_LABEL).map(([value, label]) => ({
-  value,
-  label,
-}));
-
-const VIA_OPCIONES = Object.entries(VIA_PROCESAL_LABEL).map(([value, label]) => ({
-  value,
-  label,
-}));
-
-// Campos mínimos para poder radicar — alimentan la barra de progreso.
-const CAMPOS_MINIMOS: (keyof CasoDraft)[] = ['tipo', 'querellante', 'querellado', 'comportamiento'];
-
 // ── Página principal ─────────────────────────────────────────────────────
-export function IntakePage() {
+export function IntakePage({ selector }: { selector?: ReactNode } = {}) {
   const navigate = useNavigate();
-  const [messageApi, contextHolder] = antMessage.useMessage();
-  const { mensajes, draft, setDraft, cargando, recentFields, enviar, completoMinimo, casoRadicado } =
-    useIntakeChat();
+  const { mensajes, draft, cargando, recentFields, enviar, casoRadicado } = useIntakeChat();
   const [inputText, setInputText] = useState('');
-  const [radicando, setRadicando] = useState(false);
   const [anexos, setAnexos] = useState<Anexo[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -200,9 +160,9 @@ export function IntakePage() {
   function agregarAnexos(files: FileList | null) {
     if (!files || files.length === 0) return;
     const nuevos: Anexo[] = Array.from(files).map((f) => ({
-      id: `anexo-${crypto.randomUUID().slice(0, 8)}`,
+      id: `anexo-${uid().slice(0, 8)}`,
       nombre: f.name,
-      tipo: tipoDesdeNombre(f.name),
+      tipo: documentTypeFromFileName(f.name),
       tamano: `${Math.max(1, Math.round(f.size / 1024))} KB`,
       archivo: f,
     }));
@@ -221,70 +181,25 @@ export function IntakePage() {
     const texto = inputText.trim();
     if (!texto) return;
     setInputText('');
-    // anexos stays populated (not cleared here): radicar() below still needs
-    // the full list to build documentos, and the agent benefits from seeing
-    // every attached document again each turn, not just what's new.
+    // anexos stays populated (not cleared here): el agente vuelve a ver todos
+    // los adjuntos en cada turno, no solo los nuevos, hasta que radique.
     void enviar(
       texto,
       anexos.map((a) => a.archivo),
     );
   }
 
-  async function radicar() {
-    if (!completoMinimo) return;
-    setRadicando(true);
-    const documentos = anexos.map((a) => ({ nombre: a.nombre, tipo: a.tipo }));
-    try {
-      if (draft.tipo === 'queja') {
-        const created = await apiFetch<Queja>('/quejas', {
-          method: 'POST',
-          body: JSON.stringify({
-            quejoso: draft.querellante,
-            acusado: draft.querellado,
-            asunto: draft.comportamiento,
-            categoria: 'otro',
-            diasTermino: TERMINOS.quejaDias,
-            documentos,
-          }),
-        });
-        navigate(`/panel/quejas/${created.id}`);
-      } else {
-        const created = await apiFetch<Querella>('/querellas', {
-          method: 'POST',
-          body: JSON.stringify({
-            querellante: draft.querellante,
-            querellado: draft.querellado,
-            asunto: draft.comportamiento,
-            diasTermino: TERMINOS.querellaDias,
-            direccionInmueble: draft.direccion,
-            documentos,
-          }),
-        });
-        navigate(`/panel/querellas/${created.id}`);
-      }
-    } catch {
-      void messageApi.error('No se pudo radicar el caso. Intente de nuevo.');
-      setRadicando(false);
-    }
-  }
+  const fechaHoy = fechaLarga(dayjs(), 'dddd, D [de] MMMM [de] YYYY');
 
-  function setField<K extends keyof CasoDraft>(k: K, v: CasoDraft[K]) {
-    setDraft((prev) => ({ ...prev, [k]: v }));
-  }
-
-  const fechaHoy = new Date().toLocaleDateString('es-CO', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-
-  const camposListos = CAMPOS_MINIMOS.filter((k) => (draft[k] ?? '').trim() !== '').length;
-  const progreso = camposListos / CAMPOS_MINIMOS.length;
+  // El caso se radica solo, en el backend, cuando la IA marca
+  // listoParaRadicar=true (ver IntakeCaseCreationGate + recepcionRules.st) -
+  // este progreso es solo informativo, no gatea ninguna acción del inspector.
+  const camposClave = [Boolean(draft.tipoSolicitud), draft.partes.length > 0, Boolean(draft.hechos)];
+  const camposListos = camposClave.filter(Boolean).length;
+  const progreso = draft.listoParaRadicar ? 1 : camposListos / camposClave.length;
 
   return (
     <>
-      {contextHolder}
       <div
         style={{
           height: 'calc(100vh - 64px)',
@@ -489,8 +404,12 @@ export function IntakePage() {
               overflow: 'hidden',
             }}
           >
+            {selector && (
+              <div style={{ padding: '18px 20px 4px', flexShrink: 0 }}>{selector}</div>
+            )}
+
             {/* Encabezado suave */}
-            <div style={{ padding: '22px 24px 14px', flexShrink: 0 }}>
+            <div style={{ padding: '18px 24px 14px', flexShrink: 0 }}>
               <div
                 style={{
                   fontSize: 10,
@@ -506,7 +425,7 @@ export function IntakePage() {
                 <span style={{ fontSize: 17, fontWeight: 600, color: PALETA.texto }}>
                   Ficha de radicación
                 </span>
-                {draft.viaProcesal && (
+                {draft.radicado && (
                   <span
                     style={{
                       fontSize: 11,
@@ -518,7 +437,7 @@ export function IntakePage() {
                       whiteSpace: 'nowrap' as const,
                     }}
                   >
-                    {VIA_PROCESAL_LABEL[draft.viaProcesal]}
+                    {draft.radicado}
                   </span>
                 )}
               </div>
@@ -527,7 +446,6 @@ export function IntakePage() {
                   fontSize: 12,
                   color: PALETA.textoTenue,
                   marginTop: 4,
-                  textTransform: 'capitalize' as const,
                 }}
               >
                 {fechaHoy}
@@ -555,75 +473,76 @@ export function IntakePage() {
               </div>
             </div>
 
-            {/* Campos de la ficha */}
+            {/* Campos de la ficha — reflejan lo que la IA ya extrajo */}
             <div style={{ flex: 1, overflow: 'auto', padding: '4px 20px 8px' }}>
-              <Campo
+              <CampoLectura
                 label="Tipo de solicitud"
-                valor={draft.tipo}
-                onChange={(v) => setField('tipo', v as CasoDraft['tipo'])}
-                destacado={recentFields.has('tipo')}
-                opciones={TIPO_OPCIONES}
-                placeholder="Querella o Queja"
+                valor={etiquetaTipo(draft.tipoSolicitud)}
+                destacado={recentFields.has('tipoSolicitud')}
               />
-              <Campo
-                label="Querellante / Quejoso"
-                valor={draft.querellante}
-                onChange={(v) => setField('querellante', v)}
-                destacado={recentFields.has('querellante')}
-                placeholder="Nombre completo"
+              <CampoLectura
+                label="Partes"
+                destacado={recentFields.has('partes')}
+                valor={
+                  draft.partes.length > 0
+                    ? draft.partes.map((p, i) => (
+                        <div key={i} style={{ marginBottom: i < draft.partes.length - 1 ? 4 : 0 }}>
+                          <strong>{ROL_LABEL[p.rol] ?? p.rol}:</strong> {p.nombre}
+                          {p.numeroId ? ` (${p.tipoId ?? 'ID'} ${p.numeroId})` : ''}
+                        </div>
+                      ))
+                    : null
+                }
               />
-              <Campo
-                label="Querellado / Acusado"
-                valor={draft.querellado}
-                onChange={(v) => setField('querellado', v)}
-                destacado={recentFields.has('querellado')}
-                placeholder="Nombre completo"
+              <CampoLectura
+                label="Hechos"
+                valor={draft.hechos}
+                destacado={recentFields.has('hechos')}
               />
-              <Campo
-                label="Comportamiento"
-                valor={draft.comportamiento}
-                onChange={(v) => setField('comportamiento', v)}
-                destacado={recentFields.has('comportamiento')}
-                multiline
-                placeholder="Descripción del comportamiento reportado"
+              <CampoLectura
+                label="Pretensión"
+                valor={draft.pretension}
+                destacado={recentFields.has('pretension')}
               />
-              <Campo
-                label="Artículo infringido"
-                valor={draft.articuloInfringido}
-                onChange={(v) => setField('articuloInfringido', v)}
-                destacado={recentFields.has('articuloInfringido')}
-                placeholder="Norma aplicable"
+              <CampoLectura
+                label="Juzgado / Inspección"
+                valor={draft.juzgado}
+                destacado={recentFields.has('juzgado')}
               />
-              <Campo
-                label="Dirección / Lugar de los hechos"
-                valor={draft.direccion}
-                onChange={(v) => setField('direccion', v)}
-                destacado={recentFields.has('direccion')}
-                placeholder="Ej: Calle 45 # 12-30"
+              <CampoLectura
+                label="Ciudad"
+                valor={draft.ciudad}
+                destacado={recentFields.has('ciudad')}
               />
-              <Campo
-                label="Vía procesal"
-                valor={draft.viaProcesal}
-                onChange={(v) => setField('viaProcesal', v as CasoDraft['viaProcesal'])}
-                destacado={recentFields.has('viaProcesal')}
-                opciones={VIA_OPCIONES}
-                placeholder="Tipo de proceso"
+              <CampoLectura
+                label="Categorías"
+                destacado={recentFields.has('categorias')}
+                valor={
+                  draft.categorias.length > 0
+                    ? draft.categorias.map((c) => (
+                        <span
+                          key={c}
+                          style={{
+                            display: 'inline-block',
+                            background: PALETA.azulSuave,
+                            color: PALETA.azulOscuro,
+                            borderRadius: 999,
+                            padding: '2px 10px',
+                            fontSize: 12,
+                            marginRight: 6,
+                            marginBottom: 4,
+                          }}
+                        >
+                          {c}
+                        </span>
+                      ))
+                    : null
+                }
               />
-              <Campo
-                label="Próximo paso"
-                valor={draft.proximoPaso}
-                onChange={(v) => setField('proximoPaso', v)}
-                destacado={recentFields.has('proximoPaso')}
-                multiline
-                placeholder="Acción procesal siguiente"
-              />
-              <Campo
-                label="Anotaciones"
-                valor={draft.anotaciones}
-                onChange={(v) => setField('anotaciones', v)}
-                destacado={recentFields.has('anotaciones')}
-                multiline
-                placeholder="Observaciones adicionales del inspector"
+              <CampoLectura
+                label="Observaciones"
+                valor={draft.observaciones}
+                destacado={recentFields.has('observaciones')}
               />
 
               {anexos.length > 0 && (
@@ -677,19 +596,24 @@ export function IntakePage() {
               )}
             </div>
 
-            {/* Acción */}
+            {/* Estado — la radicación es automática en el backend una vez
+                completa la información obligatoria, no hay acción manual. */}
             <div style={{ padding: '10px 20px 20px', flexShrink: 0 }}>
-              <Button
-                type="primary"
-                block
-                size="large"
-                disabled={!completoMinimo}
-                loading={radicando}
-                onClick={radicar}
-                style={{ fontWeight: 600 }}
+              <div
+                style={{
+                  textAlign: 'center' as const,
+                  fontSize: 12.5,
+                  color: casoRadicado ? PALETA.verde : PALETA.textoTenue,
+                  fontWeight: 500,
+                  padding: '8px 0',
+                }}
               >
-                Radicar caso
-              </Button>
+                {casoRadicado
+                  ? 'Caso radicado automáticamente.'
+                  : draft.listoParaRadicar
+                    ? 'Información completa — radicando…'
+                    : 'El caso se radica solo al completar la información obligatoria.'}
+              </div>
             </div>
           </div>
         </div>

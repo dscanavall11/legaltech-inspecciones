@@ -97,7 +97,7 @@ export function QuerellasListPage() {
   ];
 
   return (
-    <Space direction="vertical" size="large" style={{ width: '100%' }}>
+    <Space direction="vertical" size="middle" style={{ width: '100%' }}>
       <div
         style={{
           display: 'flex',
@@ -114,21 +114,11 @@ export function QuerellasListPage() {
           type="primary"
           size="large"
           icon={<PlusOutlined />}
-          onClick={() => navigate('/panel/querellas/nueva')}
+          onClick={() => navigate('/panel/nuevo-caso')}
         >
-          Nueva querella
+          Radicar querella
         </Button>
       </div>
-
-      <Input
-        size="large"
-        allowClear
-        placeholder="Buscar por radicado, querellante, querellado o asunto"
-        prefix={<SearchOutlined />}
-        value={busqueda}
-        onChange={(e) => setBusqueda(e.target.value)}
-        style={{ maxWidth: 520 }}
-      />
 
       {isError ? (
         <Alert
@@ -143,6 +133,16 @@ export function QuerellasListPage() {
           style={{ boxShadow: ELEVACION.base }}
           styles={{ body: { padding: 8 } }}
         >
+          <div style={{ padding: '6px 6px 10px' }}>
+            <Input
+              allowClear
+              placeholder="Buscar por radicado, querellante, querellado o asunto"
+              prefix={<SearchOutlined />}
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              style={{ maxWidth: 480 }}
+            />
+          </div>
           <Table<Querella>
             rowKey="id"
             loading={isLoading}

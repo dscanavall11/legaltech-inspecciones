@@ -1,37 +1,39 @@
 // palette.ts - Core design tokens, no dependencies
-// Fuente única de verdad para colores y elevación. Paleta plana estilo
-// Google (azul institucional), alineada con resguardo-saas.
+// Identidad "tinta y expediente", segunda pasada: los mismos roles (azul tinta
+// primario, violeta de sello para Legal, papel cálido) pero con acentos más
+// vivos — la página es glassmorphism y el vidrio necesita color detrás.
 
 export const PALETA = {
-  azul: '#1a73e8',
-  azulOscuro: '#1557b0',
-  azulSuave: '#e8f0fe', // fondo de estado activo
-  rojo: '#c5221f',
-  amarillo: '#b06000',
-  verde: '#137333',
-  texto: '#202124',
-  textoSuave: '#5f6368',
-  textoTenue: '#9aa0a6',
+  azul: '#2f5fb3', // azul tinta vivo — primario institucional
+  azulOscuro: '#1f4183',
+  azulSuave: '#e7eefb', // fondo de estado activo
+  rojo: '#d93025',
+  amarillo: '#c77800',
+  verde: '#188038',
+  texto: '#20232a',
+  textoSuave: '#5d6066',
+  textoTenue: '#95948d',
   superficie: '#ffffff',
-  fondo: '#f8f9fa',
-  borde: '#dadce0',
-  // Acentos semánticos google para la navegación y los tiles.
-  naranja: '#fa7b17',
-  morado: '#a142f4',
-  teal: '#0891b2',
-  azul2: '#1967d2',
-  // Tintes de fondo suaves (bg tints) google.
-  verdeBg: '#e6f4ea',
-  amarilloBg: '#fef9e0',
-  rojoBg: '#fce8e6',
-  azulBg: '#e8f0fe',
-  naranjaBg: '#fef0e0',
-  moradoBg: '#f3e8fd',
-  tealBg: '#e0f4f8',
+  fondo: '#f6f5f1', // papel cálido
+  borde: '#e3e0d8',
+  // Acentos semánticos para la navegación y los tiles.
+  naranja: '#e8710a',
+  morado: '#7a56c9', // violeta de sello — identidad del asistente Legal
+  moradoOscuro: '#5b3fa3',
+  teal: '#0d9bb8',
+  azul2: '#4a7bd0',
+  // Tintes de fondo suaves (bg tints).
+  verdeBg: '#e4f4e8',
+  amarilloBg: '#fdf3dc',
+  rojoBg: '#fce9e7',
+  azulBg: '#e7eefb',
+  naranjaBg: '#fdeee0',
+  moradoBg: '#f0eafb',
+  tealBg: '#e0f5f9',
 } as const;
 
-// Sombras Google — un solo nivel discreto, sin capas metálicas.
+// Sombras cálidas — un solo nivel discreto, sin capas metálicas.
 export const ELEVACION = {
-  base: '0 1px 2px rgba(60,64,67,.15), 0 1px 3px rgba(60,64,67,.1)',
-  media: '0 1px 3px rgba(60,64,67,.3), 0 4px 8px 3px rgba(60,64,67,.12)',
+  base: '0 1px 2px rgba(50, 47, 40, 0.14), 0 1px 3px rgba(50, 47, 40, 0.10)',
+  media: '0 1px 3px rgba(50, 47, 40, 0.24), 0 4px 8px 3px rgba(50, 47, 40, 0.10)',
 } as const;

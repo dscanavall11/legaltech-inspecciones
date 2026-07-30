@@ -6,6 +6,7 @@ import {
   EditOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import { fechaLarga } from '@/shared/util/fechas';
 import { PALETA } from '@/theme/theme';
 
 const { Text, Title } = Typography;
@@ -76,7 +77,7 @@ export function DailyBriefCard() {
         )}
       </div>
       <Text type="secondary" style={{ fontSize: 12.5, display: 'block', marginBottom: 10 }}>
-        {dayjs().format('dddd, D [de] MMMM')} · recordatorio local, se borra al cambiar el día.
+        {fechaLarga()} · recordatorio local, se borra al cambiar el día.
       </Text>
       <Input.TextArea
         value={nota}

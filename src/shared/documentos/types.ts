@@ -1,32 +1,35 @@
 /**
- * Documentos del expediente digital. Cada caso (querella o queja) acumula
- * las piezas procesales: las aportadas en la radicación, las generadas en
- * cada actuación y las incorporadas después por el despacho.
+ * Documentos del expediente digital. Cada caso acumula piezas procesales:
+ * las aportadas al radicar y las incorporadas después por el despacho.
+ * legalcase solo guarda esta ficha (correlación); los bytes viven en S3
+ * (legaltech-tools) - ver shared/documentos/api.ts.
  */
-export type TipoDocumento = 'pdf' | 'imagen' | 'texto' | 'otro';
+export type CaseDocumentType = 'PDF' | 'WORD' | 'IMAGEN' | 'AUDIO' | 'OTRO';
 
-export type OrigenDocumento = 'radicacion' | 'actuacion' | 'incorporado';
+export type CaseDocumentOrigin = 'RADICACION' | 'RECEPCION' | 'MANUAL';
 
-export interface DocumentoCaso {
+export interface CaseDocument {
   id: string;
-  nombre: string;
-  tipo: TipoDocumento;
-  origen: OrigenDocumento;
-  fecha: string; // ISO date
-  tamano?: string;
+  fileName: string;
+  fileType: CaseDocumentType;
+  origin: CaseDocumentOrigin;
+  date: string; // ISO date
+  fileSize?: string | null;
+  storageKey: string;
 }
 
-export const ORIGEN_DOCUMENTO_LABEL: Record<OrigenDocumento, string> = {
-  radicacion: 'Aportado en la radicación',
-  actuacion: 'Generado en actuación',
-  incorporado: 'Incorporado al expediente',
+export const CASE_DOCUMENT_ORIGIN_LABEL: Record<CaseDocumentOrigin, string> = {
+  RADICACION: 'Aportado al radicar',
+  RECEPCION: 'Aportado al radicar',
+  MANUAL: 'Incorporado al expediente',
 };
 
-/** Deduce el tipo de documento a partir de la extensión del archivo. */
-export function tipoDesdeNombre(nombre: string): TipoDocumento {
-  const ext = nombre.split('.').pop()?.toLowerCase() ?? '';
-  if (ext === 'pdf') return 'pdf';
-  if (['png', 'jpg', 'jpeg', 'webp', 'gif', 'heic'].includes(ext)) return 'imagen';
-  if (['txt', 'doc', 'docx', 'rtf', 'md'].includes(ext)) return 'texto';
-  return 'otro';
+/** Deduce el tipo de documento a partir de la extensión del archivo (antes de subir). */
+export function documentTypeFromFileName(fileName: string): CaseDocumentType {
+  const ext = fileName.split('.').pop()?.toLowerCase() ?? '';
+  if (ext === 'pdf') return 'PDF';
+  if (['doc', 'docx', 'rtf'].includes(ext)) return 'WORD';
+  if (['png', 'jpg', 'jpeg', 'webp', 'gif', 'heic'].includes(ext)) return 'IMAGEN';
+  if (['mp3', 'wav', 'ogg', 'm4a'].includes(ext)) return 'AUDIO';
+  return 'OTRO';
 }

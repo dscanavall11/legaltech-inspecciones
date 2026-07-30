@@ -4,7 +4,6 @@ import {
   Card,
   Tag,
   Typography,
-  Timeline,
   Tabs,
   Progress,
   Button,
@@ -15,32 +14,20 @@ import {
   Space,
 } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
+import { NormaMark } from '@/shared/ai/NormaMark';
+import { NORMA } from '@/shared/ai/identity';
 import dayjs from 'dayjs';
 import { useQuerella } from './api';
-import {
-  ESTADO_COLOR,
-  ESTADO_LABEL,
-  type Actuacion,
-  type TipoActuacion,
-} from './types';
+import { ESTADO_COLOR, ESTADO_LABEL } from './types';
 import { calcularTermino } from '@/shared/terminos/diasHabiles';
-import { CaseAssistant } from '@/shared/ai/CaseAssistant';
 import { SiguientePaso } from './SiguientePaso';
+import { LineaTiempoEstados } from './LineaTiempoEstados';
 import { DocumentosExpediente } from '@/shared/documentos/DocumentosExpediente';
 import { EtapaProcesal } from '@/shared/components/EtapaProcesal';
 import { ETAPAS_QUERELLA, ETAPA_QUERELLA_ACTIVA } from '@/derecho';
 import { ELEVACION, PALETA } from '@/theme/theme';
 
 const { Title, Text } = Typography;
-
-const COLOR_ACTUACION: Record<TipoActuacion, string> = {
-  radicacion: PALETA.azul,
-  auto: '#9aa0a6',
-  notificacion: PALETA.amarillo,
-  audiencia: '#9334e6',
-  fallo: PALETA.azulOscuro,
-  firmeza: PALETA.verde,
-};
 
 function Campo({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -172,44 +159,34 @@ export function QuerellaDetailPage() {
       key: 'actuaciones',
       label: `Actuaciones (${data.actuaciones.length})`,
       children: (
-        <Timeline
-          style={{ marginTop: 12 }}
-          items={data.actuaciones.map((a: Actuacion) => ({
-            color: COLOR_ACTUACION[a.tipo],
-            children: (
-              <div>
-                <Text strong>{a.titulo}</Text>
-                <div style={{ fontSize: 12, color: PALETA.textoTenue }}>
-                  {dayjs(a.fecha).format('D [de] MMMM, YYYY')}
-                </div>
-                {a.descripcion && (
-                  <div style={{ marginTop: 2 }}>
-                    <Text type="secondary">{a.descripcion}</Text>
-                  </div>
-                )}
-              </div>
-            ),
-          }))}
-        />
+        <LineaTiempoEstados caseId={data.id} actuaciones={data.actuaciones} estadoActual={data.estado} />
       ),
     },
     {
       key: 'documentos',
-      label: `Documentos (${data.documentos?.length ?? 0})`,
-      children: <DocumentosExpediente iniciales={data.documentos ?? []} />,
+      label: 'Documentos',
+      children: <DocumentosExpediente caseId={data.id} />,
     },
   ];
 
   return (
     <div>
-      <Button
-        type="text"
-        icon={<ArrowLeftOutlined />}
-        onClick={() => navigate('/panel/querellas')}
-        style={{ marginBottom: 10, paddingLeft: 0 }}
-      >
-        Volver a querellas
-      </Button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+        <Button
+          type="text"
+          icon={<ArrowLeftOutlined />}
+          onClick={() => navigate('/panel/querellas')}
+          style={{ marginBottom: 10, paddingLeft: 0 }}
+        >
+          Volver a querellas
+        </Button>
+        <Button
+          icon={<NormaMark size={17} />}
+          onClick={() => navigate('/panel/chat', { state: { radicado: data.radicado } })}
+        >
+          Preguntarle a {NORMA.nombre}
+        </Button>
+      </div>
 
       <Space align="center" size={10} wrap style={{ marginBottom: 2 }}>
         <Title level={2} style={{ margin: 0 }}>
@@ -228,7 +205,7 @@ export function QuerellaDetailPage() {
       </div>
 
       <div style={{ marginBottom: 24 }}>
-        <SiguientePaso id={data.id} estado={data.estado} />
+        <SiguientePaso id={data.id} estado={data.estado} caseMetadata={data.caseMetadataRaw} caso={data} />
       </div>
 
       <Row gutter={[24, 24]}>
@@ -238,16 +215,10 @@ export function QuerellaDetailPage() {
           </Card>
         </Col>
         <Col xs={24} lg={9}>
-          <Space direction="vertical" size={20} style={{ width: '100%' }}>
-            <TerminoCard
-              fechaRadicacion={data.fechaRadicacion}
-              diasTermino={data.diasTermino}
-            />
-            <CaseAssistant
-              contexto={{ tipo: 'querella', id: data.id }}
-              radicado={data.radicado}
-            />
-          </Space>
+          <TerminoCard
+            fechaRadicacion={data.fechaRadicacion}
+            diasTermino={data.diasTermino}
+          />
         </Col>
       </Row>
     </div>

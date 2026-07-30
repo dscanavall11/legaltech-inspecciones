@@ -19,9 +19,9 @@ import {
   UploadOutlined,
   SearchOutlined,
   SafetyCertificateOutlined,
-  RobotOutlined,
   UnorderedListOutlined,
 } from '@ant-design/icons';
+import { Sparkles } from 'lucide-react';
 import dayjs from 'dayjs';
 import { Link } from 'react-router-dom';
 import {
@@ -93,15 +93,15 @@ const ETIQUETA_CAMPO: Partial<Record<keyof Comparendo, string>> = {
 
 function CampoActa({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div style={{ marginBottom: 12 }}>
+    <div style={{ marginBottom: 16 }}>
       <div
         style={{
-          fontSize: 10.5,
+          fontSize: 12,
           fontWeight: 600,
-          letterSpacing: '0.08em',
+          letterSpacing: '0.05em',
           textTransform: 'uppercase',
-          color: PALETA.textoTenue,
-          marginBottom: 4,
+          color: PALETA.textoSuave,
+          marginBottom: 6,
           paddingLeft: 2,
         }}
       >
@@ -117,10 +117,11 @@ function Tarjeta({ children, style }: { children: ReactNode; style?: React.CSSPr
     <div
       style={{
         background: PALETA.superficie,
-        borderRadius: 20,
-        boxShadow: ELEVACION.base,
-        padding: '18px 20px',
-        marginBottom: 18,
+        borderRadius: 16,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06)',
+        padding: '24px 28px',
+        marginBottom: 24,
+        border: `1px solid ${PALETA.borde}`,
         ...style,
       }}
     >
@@ -303,11 +304,11 @@ export function ActasFirmezaPage() {
 
   return (
     <div>
-      <Title level={2} style={{ marginBottom: 4 }}>
+      <Title level={2} style={{ marginBottom: 8, fontWeight: 700, color: PALETA.texto }}>
         Actas de firmeza
       </Title>
-      <div style={{ marginBottom: 22 }}>
-        <Text type="secondary" style={{ fontSize: 15 }}>
+      <div style={{ marginBottom: 32 }}>
+        <Text type="secondary" style={{ fontSize: 16, lineHeight: 1.6 }}>
           Constancia de firmeza de la multa general señalada en una orden de comparendo
           (art. 223A, literal e, Ley 1801 de 2016, adicionado por la Ley 2197 de 2022).
         </Text>
@@ -686,7 +687,7 @@ export function ActasFirmezaPage() {
             <CampoActa label="Hechos (descripción del comportamiento)">
               <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                 <Button
-                  icon={<RobotOutlined />}
+                  icon={<Sparkles size={15} strokeWidth={1.75} />}
                   onClick={() => void asistirConIA()}
                   loading={enviandoIA}
                   disabled={enviandoIA}

@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
+import { uid } from '@/shared/util/uid';
 import {
   Button,
   Typography,
@@ -14,8 +15,8 @@ import {
   CloseOutlined,
   SendOutlined,
   CheckCircleOutlined,
-  RobotOutlined,
 } from '@ant-design/icons';
+import { NormaMark } from '@/shared/ai/NormaMark';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { apiFetch } from '@/shared/api/client';
 import { PALETA, ELEVACION } from '@/theme/theme';
@@ -117,11 +118,14 @@ function Campo({
  * ficha a la derecha que se completa en tiempo real. El humano aporta los
  * datos fácticos; la IA solo redacta la fundamentación (campo sustento).
  */
-export function RadicarDocumentoPage() {
+export function RadicarDocumentoPage({
+  tipo: tipoProp,
+  selector,
+}: { tipo?: TipoRadicar; selector?: ReactNode } = {}) {
   const { message: msg } = App.useApp();
   const navigate = useNavigate();
   const location = useLocation();
-  const tipo = (location.pathname.split('/').pop() ?? 'apelacion') as TipoRadicar;
+  const tipo = tipoProp ?? ((location.pathname.split('/').pop() ?? 'apelacion') as TipoRadicar);
 
   const { mensajes, draft, setDraft, cargando, recentFields, enviar, completoMinimo } =
     useRadicacionIA(tipo);
@@ -148,7 +152,7 @@ export function RadicarDocumentoPage() {
   function agregarAnexos(files: FileList | null) {
     if (!files || files.length === 0) return;
     const nuevos: Anexo[] = Array.from(files).map((f) => ({
-      id: `anexo-${crypto.randomUUID().slice(0, 8)}`,
+      id: `anexo-${uid().slice(0, 8)}`,
       nombre: f.name,
       tipo: tipoDesdeNombre(f.name),
       tamano: `${Math.max(1, Math.round(f.size / 1024))} KB`,
@@ -290,7 +294,8 @@ export function RadicarDocumentoPage() {
       {/* Panel derecho: ficha */}
       <div style={{ flex: '0 0 38%', maxWidth: 480, display: 'flex', flexDirection: 'column', padding: '20px 24px 20px 4px', overflow: 'hidden' }}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: PALETA.superficie, borderRadius: 24, boxShadow: ELEVACION.media, overflow: 'hidden' }}>
-          <div style={{ padding: '22px 24px 14px', flexShrink: 0 }}>
+          {selector && <div style={{ padding: '18px 20px 4px', flexShrink: 0 }}>{selector}</div>}
+          <div style={{ padding: '18px 24px 14px', flexShrink: 0 }}>
             <div style={{ fontSize: 17, fontWeight: 600, color: PALETA.texto }}>Ficha de radicación</div>
             <div style={{ fontSize: 12, color: PALETA.textoTenue, marginTop: 4, textTransform: 'capitalize' }}>
               {titulo} · término {terminoTexto}
@@ -307,7 +312,7 @@ export function RadicarDocumentoPage() {
               placeholder="DD/MM/AAAA"
             />
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-              <Button size="small" icon={<RobotOutlined />} onClick={() => void asistirFundamentacion()} loading={cargando}>
+              <Button size="small" icon={<NormaMark size={14} />} onClick={() => void asistirFundamentacion()} loading={cargando}>
                 IA: redactar fundamentación
               </Button>
             </div>

@@ -1,3 +1,5 @@
+import { NORMA } from '@/shared/ai/identity';
+
 // ─── Tipos ──────────────────────────────────────────────────────────────────
 
 export type DockIconKey =
@@ -5,11 +7,8 @@ export type DockIconKey =
   | 'querellas'
   | 'quejas'
   | 'audiencias'
-  | 'consulta-norma'
   | 'radicar'
-  | 'cola'
   | 'actas-firmeza'
-  | 'calendario'
   | 'chat-ia';
 
 export interface DockItem {
@@ -36,9 +35,9 @@ export interface DockSection {
 // destacado (ver DockIcon.tsx), algo que resguardo-saas no tiene pero que
 // aca se justifica por ser la accion mas usada del despacho.
 
-const AZUL = '#1a73e8'; // Casos — nav primaria, como "Principal" en resguardo-saas
-const VERDE = '#137333'; // Gestión — acciones operativas, como "Operación" en resguardo-saas
-const MORADO = '#a142f4'; // Herramientas — consulta/referencia legal, como "Territorio" en resguardo-saas
+const AZUL = '#2b4c7e'; // Casos — azul tinta, nav primaria
+const VERDE = '#137333'; // Gestión — acciones operativas
+const MORADO = '#5f4b8b'; // Asistente — violeta de sello, identidad de Legal
 
 export const DOCK_SECTIONS: DockSection[] = [
   {
@@ -63,17 +62,14 @@ export const DOCK_SECTIONS: DockSection[] = [
         color: VERDE,
         destacado: true,
       },
-      { key: 'cola', label: 'Cola', iconKey: 'cola', ruta: '/panel/cola', color: VERDE },
       { key: 'actas-firmeza', label: 'Actas de firmeza', iconKey: 'actas-firmeza', ruta: '/panel/actas-firmeza', color: VERDE },
-      { key: 'calendario', label: 'Calendario', iconKey: 'calendario', ruta: '/panel/calendario', color: VERDE },
     ],
   },
   {
-    titulo: 'Herramientas',
+    titulo: 'Asistente',
     color: MORADO,
     items: [
-      { key: 'chat-ia', label: 'Chat IA LegalTech', iconKey: 'chat-ia', ruta: '#', color: MORADO, enConstruccion: true },
-      { key: 'consulta-norma', label: 'Consulta Norma', iconKey: 'consulta-norma', ruta: '/panel/normas', color: MORADO },
+      { key: 'chat-ia', label: NORMA.nombre, iconKey: 'chat-ia', ruta: '/panel/chat', color: MORADO },
     ],
   },
 ];

@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Button, Upload, Typography, App, Drawer, Tooltip } from 'antd';
+import { Button, Upload, Typography, App, Drawer, Tooltip, Skeleton, Alert } from 'antd';
 import {
   FilePdfOutlined,
+  FileWordOutlined,
   FileImageOutlined,
-  FileTextOutlined,
+  AudioOutlined,
   FileOutlined,
   DownloadOutlined,
   PlusOutlined,
@@ -11,41 +12,38 @@ import {
 } from '@ant-design/icons';
 import type { ReactNode } from 'react';
 import dayjs from 'dayjs';
-import {
-  ORIGEN_DOCUMENTO_LABEL,
-  tipoDesdeNombre,
-  type DocumentoCaso,
-  type TipoDocumento,
-} from './types';
+import { CASE_DOCUMENT_ORIGIN_LABEL, type CaseDocument, type CaseDocumentType } from './types';
+import { useCaseDocuments, useUploadCaseDocument, getCaseDocumentDownloadUrl } from './api';
 import { PdfViewer } from './PdfViewer';
 import { PALETA } from '@/theme/theme';
 
 const { Text } = Typography;
 
-const ESTILO_TIPO: Record<TipoDocumento, { icono: ReactNode; color: string; fondo: string }> = {
-  pdf: { icono: <FilePdfOutlined />, color: PALETA.rojo, fondo: '#fdecea' },
-  imagen: { icono: <FileImageOutlined />, color: PALETA.verde, fondo: '#e6f4ea' },
-  texto: { icono: <FileTextOutlined />, color: PALETA.azul, fondo: PALETA.azulSuave },
-  otro: { icono: <FileOutlined />, color: PALETA.textoSuave, fondo: '#f1f3f4' },
+const TYPE_STYLE: Record<CaseDocumentType, { icono: ReactNode; color: string; fondo: string }> = {
+  PDF: { icono: <FilePdfOutlined />, color: PALETA.rojo, fondo: PALETA.rojoBg },
+  WORD: { icono: <FileWordOutlined />, color: PALETA.azul, fondo: PALETA.azulBg },
+  IMAGEN: { icono: <FileImageOutlined />, color: PALETA.verde, fondo: PALETA.verdeBg },
+  AUDIO: { icono: <AudioOutlined />, color: PALETA.morado, fondo: PALETA.moradoBg },
+  OTRO: { icono: <FileOutlined />, color: PALETA.textoSuave, fondo: '#efede7' },
 };
 
 function FilaDocumento({
   doc,
-  tieneVisorDisponible,
   onVer,
+  onDescargar,
 }: {
-  doc: DocumentoCaso;
-  tieneVisorDisponible: boolean;
+  doc: CaseDocument;
   onVer: () => void;
+  onDescargar: () => void;
 }) {
-  const estilo = ESTILO_TIPO[doc.tipo];
+  const estilo = TYPE_STYLE[doc.fileType];
   return (
     <div
       style={{
         display: 'flex',
         alignItems: 'center',
         gap: 14,
-        padding: '10px 14px',
+        padding: '12px 14px',
         borderRadius: 16,
         transition: 'background 0.2s ease',
       }}
@@ -54,15 +52,15 @@ function FilaDocumento({
     >
       <div
         style={{
-          width: 40,
-          height: 40,
+          width: 42,
+          height: 42,
           borderRadius: 13,
           background: estilo.fondo,
           color: estilo.color,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: 18,
+          fontSize: 19,
           flexShrink: 0,
         }}
       >
@@ -78,48 +76,81 @@ function FilaDocumento({
             textOverflow: 'ellipsis',
           }}
         >
-          {doc.nombre}
+          {doc.fileName}
         </div>
         <div style={{ fontSize: 12, color: PALETA.textoTenue }}>
-          {ORIGEN_DOCUMENTO_LABEL[doc.origen]} · {dayjs(doc.fecha).format('D [de] MMMM, YYYY')}
-          {doc.tamano ? ` · ${doc.tamano}` : ''}
+          {CASE_DOCUMENT_ORIGIN_LABEL[doc.origin]} · {dayjs(doc.date).format('D [de] MMMM, YYYY')}
+          {doc.fileSize ? ` · ${doc.fileSize}` : ''}
         </div>
       </div>
-      {doc.tipo === 'pdf' && (
-        <Tooltip title={tieneVisorDisponible ? 'Ver' : 'Vista previa no disponible en modo demo'}>
-          <Button
-            type="text"
-            shape="circle"
-            icon={<EyeOutlined />}
-            disabled={!tieneVisorDisponible}
-            onClick={onVer}
-            aria-label={`Ver ${doc.nombre}`}
-          />
+      {doc.fileType === 'PDF' && (
+        <Tooltip title="Ver">
+          <Button type="text" shape="circle" icon={<EyeOutlined />} onClick={onVer} aria-label={`Ver ${doc.fileName}`} />
         </Tooltip>
       )}
-      <Button type="text" shape="circle" icon={<DownloadOutlined />} aria-label={`Descargar ${doc.nombre}`} />
+      <Tooltip title="Descargar">
+        <Button
+          type="text"
+          shape="circle"
+          icon={<DownloadOutlined />}
+          onClick={onDescargar}
+          aria-label={`Descargar ${doc.fileName}`}
+        />
+      </Tooltip>
     </div>
   );
 }
 
 /**
- * Pestaña de documentos del expediente: lista las piezas procesales y permite
- * incorporar nuevas (PDF, imágenes o texto). En modo demo las incorporaciones
- * viven en memoria; el backend definitivo las persiste en el archivo digital.
+ * Explorador de documentos del expediente: lista lo archivado en S3 (via
+ * legaltech-tools, correlacionado en legalcase) y permite incorporar nuevas
+ * piezas. Sin estado local que finja ser el expediente - todo viene del
+ * backend real.
  */
-export function DocumentosExpediente({ iniciales }: { iniciales: DocumentoCaso[] }) {
+export function DocumentosExpediente({ caseId }: { caseId: string }) {
   const { message } = App.useApp();
-  const [incorporados, setIncorporados] = useState<DocumentoCaso[]>([]);
-  // Sólo los documentos incorporados en esta sesión tienen un File real
-  // disponible para previsualizar — los `iniciales` vienen del mock, sin
-  // archivo real detrás.
-  const [archivos, setArchivos] = useState<Map<string, File>>(new Map());
-  const [docEnVista, setDocEnVista] = useState<DocumentoCaso | null>(null);
-  const documentos = [...iniciales, ...incorporados];
+  const { data: documentos, isLoading, isError } = useCaseDocuments(caseId);
+  const subir = useUploadCaseDocument(caseId);
+  const [docEnVista, setDocEnVista] = useState<CaseDocument | null>(null);
+  const [urlVista, setUrlVista] = useState<string | null>(null);
+
+  async function verDocumento(doc: CaseDocument) {
+    setDocEnVista(doc);
+    try {
+      setUrlVista(await getCaseDocumentDownloadUrl(caseId, doc.storageKey));
+    } catch {
+      message.error('No se pudo abrir el documento.');
+      setDocEnVista(null);
+    }
+  }
+
+  async function descargarDocumento(doc: CaseDocument) {
+    try {
+      const url = await getCaseDocumentDownloadUrl(caseId, doc.storageKey);
+      window.open(url, '_blank', 'noopener');
+    } catch {
+      message.error('No se pudo descargar el documento.');
+    }
+  }
+
+  if (isLoading) {
+    return <Skeleton active paragraph={{ rows: 4 }} style={{ marginTop: 4 }} />;
+  }
+
+  if (isError) {
+    return (
+      <Alert
+        type="error"
+        showIcon
+        message="No se pudo cargar el expediente digital."
+        style={{ marginTop: 4 }}
+      />
+    );
+  }
 
   return (
     <div style={{ marginTop: 4 }}>
-      {documentos.length === 0 ? (
+      {!documentos || documentos.length === 0 ? (
         <div style={{ padding: '28px 0 20px', textAlign: 'center' }}>
           <Text type="secondary">
             El expediente aún no tiene documentos. Incorpora la primera pieza procesal.
@@ -131,8 +162,8 @@ export function DocumentosExpediente({ iniciales }: { iniciales: DocumentoCaso[]
             <FilaDocumento
               key={d.id}
               doc={d}
-              tieneVisorDisponible={archivos.has(d.id)}
-              onVer={() => setDocEnVista(d)}
+              onVer={() => verDocumento(d)}
+              onDescargar={() => descargarDocumento(d)}
             />
           ))}
         </div>
@@ -141,39 +172,32 @@ export function DocumentosExpediente({ iniciales }: { iniciales: DocumentoCaso[]
       <div style={{ marginTop: 14 }}>
         <Upload
           multiple
-          accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.doc,.docx"
+          accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.doc,.docx,.mp3,.wav"
           showUploadList={false}
           beforeUpload={(file) => {
-            const id = `doc-${crypto.randomUUID().slice(0, 8)}`;
-            const doc: DocumentoCaso = {
-              id,
-              nombre: file.name,
-              tipo: tipoDesdeNombre(file.name),
-              origen: 'incorporado',
-              fecha: new Date().toISOString().slice(0, 10),
-              tamano: `${Math.max(1, Math.round(file.size / 1024))} KB`,
-            };
-            setIncorporados((prev) => [...prev, doc]);
-            if (doc.tipo === 'pdf') {
-              setArchivos((prev) => new Map(prev).set(id, file));
-            }
-            message.success(`«${file.name}» incorporado al expediente.`);
-            return false; // modo demo: sin subida real al servidor
+            subir.mutate(file, {
+              onSuccess: () => message.success(`«${file.name}» incorporado al expediente.`),
+              onError: () => message.error(`No se pudo subir «${file.name}».`),
+            });
+            return false; // subimos nosotros mismos via useUploadCaseDocument
           }}
         >
-          <Button icon={<PlusOutlined />}>Incorporar documento</Button>
+          <Button icon={<PlusOutlined />} loading={subir.isPending}>
+            Incorporar documento
+          </Button>
         </Upload>
       </div>
 
       <Drawer
-        title={docEnVista?.nombre}
+        title={docEnVista?.fileName}
         open={docEnVista !== null}
-        onClose={() => setDocEnVista(null)}
+        onClose={() => {
+          setDocEnVista(null);
+          setUrlVista(null);
+        }}
         width={720}
       >
-        {docEnVista && archivos.has(docEnVista.id) && (
-          <PdfViewer archivo={archivos.get(docEnVista.id)!} />
-        )}
+        {urlVista && <PdfViewer archivo={urlVista} />}
       </Drawer>
     </div>
   );

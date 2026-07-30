@@ -16,6 +16,8 @@ export type AccionTipo =
   | 'reagendar_audiencia'
   | 'generar_fallo'
   | 'constancia_ejecutoria'
+  | 'conceder_apelacion'
+  | 'resolver_alzada'
   | 'archivar';
 
 export interface Accion {
@@ -61,6 +63,31 @@ export function siguientePaso(estado: EstadoQuerella): PasoFlujo {
           'Decisión proferida y notificada en estrados. Proceden reposición y apelación; ejecutoriada la decisión, expida la constancia de ejecutoria.',
         acciones: [
           { tipo: 'constancia_ejecutoria', label: 'Expedir constancia de ejecutoria', primaria: true },
+          { tipo: 'generar_fallo', label: 'Ver / editar fallo', primaria: false },
+          { tipo: 'conceder_apelacion', label: 'Conceder recurso de apelación', primaria: false },
+        ],
+        terminal: false,
+      };
+
+    case 'apelado':
+      return {
+        mensaje:
+          'Recurso de apelación concedido y remitido a segunda instancia. Al resolverse la alzada, registre si la decisión fue confirmada o revocada por el superior.',
+        acciones: [
+          { tipo: 'resolver_alzada', label: 'Registrar decisión de segunda instancia', primaria: true },
+        ],
+        terminal: false,
+      };
+
+    case 'confirmado':
+    case 'revocado':
+      return {
+        mensaje:
+          estado === 'revocado'
+            ? 'Decisión revocada en segunda instancia. Dé cumplimiento a lo resuelto por el superior y ordene el archivo del expediente.'
+            : 'Decisión confirmada en segunda instancia y en firme. Verifique el cumplimiento de la medida y ordene el archivo del expediente.',
+        acciones: [
+          { tipo: 'archivar', label: 'Ordenar archivo', primaria: true },
         ],
         terminal: false,
       };

@@ -15,6 +15,8 @@ import {
   Space,
 } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
+import { NormaMark } from '@/shared/ai/NormaMark';
+import { NORMA } from '@/shared/ai/identity';
 import dayjs from 'dayjs';
 import { useQueja } from './api';
 import {
@@ -25,7 +27,6 @@ import {
   type ActuacionQueja,
 } from './types';
 import { calcularTermino } from '@/shared/terminos/diasHabiles';
-import { CaseAssistant } from '@/shared/ai/CaseAssistant';
 import { SiguientePasoQueja } from './SiguientePasoQueja';
 import { DocumentosExpediente } from '@/shared/documentos/DocumentosExpediente';
 import { EtapaProcesal } from '@/shared/components/EtapaProcesal';
@@ -208,21 +209,29 @@ export function QuejaDetailPage() {
     },
     {
       key: 'documentos',
-      label: `Documentos (${data.documentos?.length ?? 0})`,
-      children: <DocumentosExpediente iniciales={data.documentos ?? []} />,
+      label: 'Documentos',
+      children: <DocumentosExpediente caseId={data.id} />,
     },
   ];
 
   return (
     <div>
-      <Button
-        type="text"
-        icon={<ArrowLeftOutlined />}
-        onClick={() => navigate('/panel/quejas')}
-        style={{ marginBottom: 10, paddingLeft: 0 }}
-      >
-        Volver a quejas
-      </Button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+        <Button
+          type="text"
+          icon={<ArrowLeftOutlined />}
+          onClick={() => navigate('/panel/quejas')}
+          style={{ marginBottom: 10, paddingLeft: 0 }}
+        >
+          Volver a quejas
+        </Button>
+        <Button
+          icon={<NormaMark size={17} />}
+          onClick={() => navigate('/panel/chat', { state: { radicado: data.radicado } })}
+        >
+          Preguntarle a {NORMA.nombre}
+        </Button>
+      </div>
 
       <Space align="center" size={10} wrap style={{ marginBottom: 2 }}>
         <Title level={2} style={{ margin: 0 }}>
@@ -253,17 +262,11 @@ export function QuejaDetailPage() {
           </Card>
         </Col>
         <Col xs={24} lg={9}>
-          <Space direction="vertical" size={20} style={{ width: '100%' }}>
-            <TerminoCard
-              fechaRadicacion={data.fechaRadicacion}
-              diasTermino={data.diasTermino}
-              cerrado={cerrado}
-            />
-            <CaseAssistant
-              contexto={{ tipo: 'queja', id: data.id }}
-              radicado={data.radicado}
-            />
-          </Space>
+          <TerminoCard
+            fechaRadicacion={data.fechaRadicacion}
+            diasTermino={data.diasTermino}
+            cerrado={cerrado}
+          />
         </Col>
       </Row>
     </div>

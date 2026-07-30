@@ -16,7 +16,7 @@ const ANCHO_OBJETIVO = 640;
  * siguiente). No reemplaza la extracción de texto de extraerComparendoPdf.ts
  * — es sólo lectura visual del documento fuente.
  */
-export function PdfViewer({ archivo }: { archivo: File | Blob }) {
+export function PdfViewer({ archivo }: { archivo: File | Blob | string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const docRef = useRef<pdfjs.PDFDocumentProxy | null>(null);
   const taskRef = useRef<pdfjs.PDFDocumentLoadingTask | null>(null);
@@ -32,10 +32,12 @@ export function PdfViewer({ archivo }: { archivo: File | Blob }) {
     setPagina(1);
     docRef.current = null;
 
-    archivo
-      .arrayBuffer()
-      .then((buffer) => {
-        const task = pdfjs.getDocument({ data: buffer });
+    // archivo puede ser un File/Blob local (anexo recién adjuntado, aún sin
+    // subir) o la URL presignada de S3 de un documento ya archivado.
+    (typeof archivo === 'string' ? Promise.resolve(archivo) : archivo.arrayBuffer())
+      .then((dataOUrl) => {
+        const task =
+          typeof dataOUrl === 'string' ? pdfjs.getDocument({ url: dataOUrl }) : pdfjs.getDocument({ data: dataOUrl });
         taskRef.current = task;
         return task.promise;
       })

@@ -1,14 +1,15 @@
 import { useState } from 'react';
-import { Alert, Button, Card, Tag, Typography } from 'antd';
-import { ThunderboltOutlined } from '@ant-design/icons';
-import { resumirDocumento, type ResumenDocumento } from '@/features/analisis/api';
+import { Alert, Button, Card, Typography } from 'antd';
+import { Sparkles } from 'lucide-react';
+import { resumirDocumento } from '@/features/analisis/api';
 import { PALETA } from '@/theme/theme';
 
 const { Text, Paragraph } = Typography;
 
 /**
- * Panel lateral de resumen con IA (tier suave). Genera bajo demanda:
- * resumen corto, razones de peso del fallo y normas citadas.
+ * Panel lateral de resumen con IA (tier suave, Gemini). Genera bajo demanda
+ * un resumen en texto plano del documento - el backend real no produce
+ * acápites/razones-de-peso/normas-citadas estructurados, solo texto.
  */
 export function ResumenLateral({
   tipoDocumento,
@@ -17,7 +18,7 @@ export function ResumenLateral({
   tipoDocumento: string;
   texto: string;
 }) {
-  const [resumen, setResumen] = useState<ResumenDocumento | null>(null);
+  const [resumen, setResumen] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,11 +36,11 @@ export function ResumenLateral({
 
   return (
     <Card
-      size="small"
       style={{ marginBottom: 12 }}
+      styles={{ body: { padding: 16 } }}
       title={
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <ThunderboltOutlined style={{ color: PALETA.azul }} />
+          <Sparkles size={15} strokeWidth={1.75} style={{ color: PALETA.azul }} />
           Resumen IA
         </span>
       }
@@ -54,7 +55,7 @@ export function ResumenLateral({
       {!resumen && !cargando && !error && (
         <>
           <Text type="secondary" style={{ fontSize: 13 }}>
-            Resumen rápido del documento con las razones de peso de la decisión.
+            Resumen rápido del documento, generado con IA.
           </Text>
           <Button block style={{ marginTop: 10 }} onClick={generar}>
             Generar resumen
@@ -83,38 +84,9 @@ export function ResumenLateral({
 
       {resumen && !cargando && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <Paragraph style={{ fontSize: 13, marginBottom: 0 }}>{resumen.resumen}</Paragraph>
-
-          {resumen.razonesDePeso.length > 0 && (
-            <div>
-              <Text strong style={{ fontSize: 12, color: PALETA.textoSuave }}>
-                RAZONES DE PESO
-              </Text>
-              <ol style={{ margin: '4px 0 0', paddingLeft: 18, fontSize: 13 }}>
-                {resumen.razonesDePeso.map((r, i) => (
-                  <li key={i} style={{ marginBottom: 2 }}>
-                    {r}
-                  </li>
-                ))}
-              </ol>
-            </div>
-          )}
-
-          {resumen.normasCitadas.length > 0 && (
-            <div>
-              <Text strong style={{ fontSize: 12, color: PALETA.textoSuave }}>
-                NORMAS CITADAS
-              </Text>
-              <div style={{ marginTop: 4, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                {resumen.normasCitadas.map((n) => (
-                  <Tag key={n} style={{ marginInlineEnd: 0 }}>
-                    {n}
-                  </Tag>
-                ))}
-              </div>
-            </div>
-          )}
-
+          <Paragraph style={{ fontSize: 13.5, marginBottom: 0, whiteSpace: 'pre-wrap' }}>
+            {resumen}
+          </Paragraph>
           <Text type="secondary" style={{ fontSize: 11 }}>
             Generado con IA. Verifica siempre contra el documento.
           </Text>

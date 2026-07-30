@@ -117,7 +117,7 @@ export function QuejasListPage() {
   ];
 
   return (
-    <Space direction="vertical" size="large" style={{ width: '100%' }}>
+    <Space direction="vertical" size="middle" style={{ width: '100%' }}>
       <div
         style={{
           display: 'flex',
@@ -134,21 +134,11 @@ export function QuejasListPage() {
           type="primary"
           size="large"
           icon={<PlusOutlined />}
-          onClick={() => navigate('/panel/quejas/nueva')}
+          onClick={() => navigate('/panel/nuevo-caso')}
         >
-          Nueva queja
+          Radicar queja
         </Button>
       </div>
-
-      <Input
-        size="large"
-        allowClear
-        placeholder="Buscar por radicado, quejoso, acusado o asunto"
-        prefix={<SearchOutlined />}
-        value={busqueda}
-        onChange={(e) => setBusqueda(e.target.value)}
-        style={{ maxWidth: 520 }}
-      />
 
       {isError ? (
         <Alert
@@ -163,6 +153,16 @@ export function QuejasListPage() {
           style={{ boxShadow: ELEVACION.base }}
           styles={{ body: { padding: 8 } }}
         >
+          <div style={{ padding: '6px 6px 10px' }}>
+            <Input
+              allowClear
+              placeholder="Buscar por radicado, quejoso, acusado o asunto"
+              prefix={<SearchOutlined />}
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              style={{ maxWidth: 480 }}
+            />
+          </div>
           <Table<Queja>
             rowKey="id"
             loading={isLoading}

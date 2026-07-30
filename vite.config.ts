@@ -26,14 +26,14 @@ export default defineConfig(() => {
     },
     server: {
       port: Number(process.env.PORT ?? 5173),
-      // Sin proxy de dev: `VITE_API_BASE_URL` apunta DIRECTO a `orchestrator`
-      // (unico BFF del stack, ver .env.example). CORS y el bypass de
-      // Cognito para este origen ya estan resueltos en orchestrator bajo
-      // SPRING_PROFILES_ACTIVE=local (LocalSecurityConfig).
-      // allowedHosts: microsite demo por subdominio (inspeccionConvivenciaYPaz.
-      // Legaltech.com.co) — sin esto Vite rechaza el Host header de un
-      // dominio que no sea localhost/127.0.0.1.
-      allowedHosts: ['inspeccionconvivenciaypaz.legaltech.com.co', '.legaltech.com.co'],
+      host: true,
+      allowedHosts: ['inspeccionconvivenciaypaz.legaltech.com.co', '.legaltech.com.co', '.trycloudflare.com'],
+      proxy: {
+        '/api': {
+          target: 'http://localhost:8090',
+          changeOrigin: true,
+        },
+      },
     },
   };
 });

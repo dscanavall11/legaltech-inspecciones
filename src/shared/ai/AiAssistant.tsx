@@ -1,11 +1,9 @@
 import { useState } from 'react';
 import { Drawer, Input, Button, Typography, Empty } from 'antd';
-import {
-  RobotOutlined,
-  SendOutlined,
-  StopOutlined,
-} from '@ant-design/icons';
+import { ArrowUp, Square } from 'lucide-react';
 import { useAiChat } from './useAiChat';
+import { NormaMark } from './NormaMark';
+import { NORMA } from './identity';
 import { useOverlayStore } from '@/store/overlayStore';
 import { PALETA } from '@/theme/theme';
 
@@ -24,20 +22,31 @@ const SUGERENCIAS = [
 export function AiAssistant() {
   const abierto = useOverlayStore((s) => s.aiAssistantAbierto);
   const cerrar = useOverlayStore((s) => s.cerrarAiAssistant);
+  const contexto = useOverlayStore((s) => s.aiAssistantContexto);
   const [texto, setTexto] = useState('');
-  const { mensajes, enviar, detener, enviando } = useAiChat();
+  const { mensajes, enviar, detener, enviando } = useAiChat(
+    contexto ? { tipo: contexto.tipo, id: contexto.id } : undefined,
+  );
 
   const handleEnviar = () => {
     enviar(texto);
     setTexto('');
   };
 
+  const sugerencias = contexto
+    ? [
+        `¿Cuántos días hábiles le quedan al radicado ${contexto.radicado}?`,
+        'Resume este expediente',
+        '¿Qué debería hacer en el próximo paso?',
+      ]
+    : SUGERENCIAS;
+
   return (
     <Drawer
       title={
-        <span>
-          <RobotOutlined style={{ marginRight: 8 }} />
-          Asistente inteligente
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+          <NormaMark size={26} />
+          {NORMA.nombre}
         </span>
       }
       open={abierto}
@@ -45,14 +54,19 @@ export function AiAssistant() {
       width={420}
       styles={{ body: { display: 'flex', flexDirection: 'column', padding: 16 } }}
     >
+      {contexto && (
+        <Text type="secondary" style={{ fontSize: 13, marginBottom: 10, display: 'block' }}>
+          Sobre el radicado {contexto.radicado}
+        </Text>
+      )}
       <div style={{ flex: 1, overflowY: 'auto', marginBottom: 12 }}>
         {mensajes.length === 0 ? (
           <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description="Pregúntame lo que necesites sobre tus casos"
+            image={<NormaMark size={44} />}
+            description={`Pregúntale a ${NORMA.nombre} lo que necesites sobre tus casos`}
           >
             <div style={{ textAlign: 'left', marginTop: 8 }}>
-              {SUGERENCIAS.map((s) => (
+              {sugerencias.map((s) => (
                 <Button
                   key={s}
                   type="dashed"
@@ -73,16 +87,19 @@ export function AiAssistant() {
                 display: 'flex',
                 justifyContent:
                   m.rol === 'usuario' ? 'flex-end' : 'flex-start',
+                alignItems: 'flex-start',
+                gap: 8,
                 marginBottom: 10,
               }}
             >
+              {m.rol === 'asistente' && <NormaMark size={26} />}
               <div
                 style={{
                   maxWidth: '80%',
                   padding: '10px 14px',
                   borderRadius: 12,
                   background:
-                    m.rol === 'usuario' ? PALETA.azul : '#f1f3f4',
+                    m.rol === 'usuario' ? PALETA.azul : '#efede7',
                   color: m.rol === 'usuario' ? '#fff' : PALETA.texto,
                   whiteSpace: 'pre-wrap',
                 }}
@@ -112,11 +129,11 @@ export function AiAssistant() {
           }}
         />
         {enviando ? (
-          <Button danger icon={<StopOutlined />} onClick={detener} />
+          <Button danger icon={<Square size={15} strokeWidth={2} />} onClick={detener} />
         ) : (
           <Button
             type="primary"
-            icon={<SendOutlined />}
+            icon={<ArrowUp size={16} strokeWidth={2.25} />}
             onClick={handleEnviar}
             disabled={!texto.trim()}
           />

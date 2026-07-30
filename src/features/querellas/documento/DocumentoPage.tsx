@@ -14,12 +14,20 @@ import {
   PrinterOutlined,
   DownloadOutlined,
   CheckOutlined,
-  RobotOutlined,
+  SaveOutlined,
 } from '@ant-design/icons';
+import { Sparkles } from 'lucide-react';
 import { useQuerella } from '../api';
 import { construirDocumento, type Acapite, type TipoDocumento } from './acapites';
+import { descargarDocumentoPdf, documentoPdfBlob, nombreArchivoDocumento } from './documentoPdf';
 import { ResumenLateral } from './ResumenLateral';
+import { useUploadCaseDocument } from '@/shared/documentos/api';
+import { useChangeCaseState } from '@/shared/legalCases/api';
 import { ELEVACION, PALETA } from '@/theme/theme';
+
+// Estado al que avanza el caso cuando se expide la constancia de ejecutoria
+// (ver flujoQuerella: fallo_emitido --constancia_ejecutoria--> en_firmeza).
+const ESTADO_TRAS_FIRMA: Partial<Record<TipoDocumento, string>> = { constancia: 'en_firmeza' };
 
 const { Title, Text } = Typography;
 
@@ -29,6 +37,10 @@ export function DocumentoPage() {
   const { message } = App.useApp();
   const { data, isLoading, isError } = useQuerella(id);
   const [activo, setActivo] = useState<string | null>(null);
+  const [exportando, setExportando] = useState(false);
+  const [firmando, setFirmando] = useState(false);
+  const subir = useUploadCaseDocument(id);
+  const cambiarEstado = useChangeCaseState();
 
   if (isLoading) {
     return <Skeleton active paragraph={{ rows: 10 }} />;
@@ -54,6 +66,49 @@ export function DocumentoPage() {
     document
       .getElementById(`acap-${acapiteId}`)
       ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const descargarPdf = async () => {
+    setExportando(true);
+    try {
+      await descargarDocumentoPdf(doc, data.radicado);
+    } catch {
+      message.error('No se pudo generar el PDF.');
+    } finally {
+      setExportando(false);
+    }
+  };
+
+  // Sube el PDF al expediente S3: cada llamada crea una nueva versión (el
+  // ledger ordena por fecha), permitiendo re-redactar y versionar la pieza.
+  const guardarVersion = async () => {
+    const blob = await documentoPdfBlob(doc, data.radicado);
+    const archivo = new File([blob], nombreArchivoDocumento(doc, data.radicado), { type: 'application/pdf' });
+    await subir.mutateAsync(archivo);
+  };
+
+  const guardarEnExpediente = async () => {
+    try {
+      await guardarVersion();
+      message.success('Nueva versión archivada en el expediente.');
+    } catch {
+      message.error('No se pudo archivar la versión en el expediente.');
+    }
+  };
+
+  const aprobarYFirmar = async () => {
+    setFirmando(true);
+    try {
+      await guardarVersion();
+      const estadoDestino = ESTADO_TRAS_FIRMA[tipo as TipoDocumento];
+      await Promise.resolve(estadoDestino && cambiarEstado.mutateAsync({ id, state: estadoDestino }));
+      message.success('Documento firmado y archivado como versión en el expediente.');
+      navigate(`/panel/querellas/${id}`);
+    } catch {
+      message.error('No se pudo firmar y archivar el documento.');
+    } finally {
+      setFirmando(false);
+    }
   };
 
   return (
@@ -84,20 +139,16 @@ export function DocumentoPage() {
           <Text type="secondary">Radicado {data.radicado}</Text>
         </div>
         <Space wrap>
-          <Button icon={<DownloadOutlined />} onClick={() => message.info('El PDF se generará desde el backend.')}>
+          <Button icon={<DownloadOutlined />} loading={exportando} onClick={descargarPdf}>
             Descargar PDF
+          </Button>
+          <Button icon={<SaveOutlined />} loading={subir.isPending} onClick={guardarEnExpediente}>
+            Guardar versión
           </Button>
           <Button icon={<PrinterOutlined />} onClick={() => window.print()}>
             Imprimir
           </Button>
-          <Button
-            type="primary"
-            icon={<CheckOutlined />}
-            onClick={() => {
-              message.success('Documento aprobado y firmado.');
-              navigate(`/panel/querellas/${id}`);
-            }}
-          >
+          <Button type="primary" icon={<CheckOutlined />} loading={firmando} onClick={aprobarYFirmar}>
             Aprobar y firmar
           </Button>
         </Space>
@@ -226,7 +277,7 @@ marginBottom: 26,
                 <span style={{ flex: 1 }}>{a.titulo}</span>
                 {a.fuente === 'ia' && (
                   <Tooltip title="Redactado con IA. Requiere revisión">
-                    <RobotOutlined style={{ color: PALETA.azul, fontSize: 13 }} />
+                    <Sparkles size={13} strokeWidth={1.75} style={{ color: PALETA.azul }} />
                   </Tooltip>
                 )}
               </div>

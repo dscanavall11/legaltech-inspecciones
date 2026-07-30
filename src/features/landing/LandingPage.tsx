@@ -10,30 +10,30 @@ import { useAuth } from '@/shared/auth/auth';
  */
 
 const P = {
-  fondo: '#ffffff',
-  fondoSuave: '#f8f9fa',
-  texto: '#202124',
-  textoSuave: '#5f6368',
-  textoTenue: '#80868b',
-  borde: '#e8eaed',
-  azul: '#1a73e8',
-  azulOscuro: '#1967d2',
-  azulPastel: '#e8f0fe',
-  verde: '#1e8e3e',
-  verdePastel: '#e6f4ea',
-  amarillo: '#b06000',
-  amarilloPastel: '#fef7e0',
-  rojo: '#c5221f',
-  rojoPastel: '#fce8e6',
-  morado: '#673ab7',
-  moradoPastel: '#f3e8fd',
-  teal: '#00796b',
-  tealPastel: '#e0f2f1',
-  rosa: '#d81b60',
-  rosaPastel: '#fce4ec',
+  fondo: '#fafbfc',
+  fondoSuave: '#efede7',
+  texto: '#1a1a2e',
+  textoSuave: '#4a5568',
+  textoTenue: '#718096',
+  borde: '#e2e8f0',
+  azul: '#2563eb',
+  azulOscuro: '#1d4ed8',
+  azulPastel: '#eff6ff',
+  verde: '#059669',
+  verdePastel: '#ecfdf5',
+  amarillo: '#d97706',
+  amarilloPastel: '#fffbeb',
+  rojo: '#dc2626',
+  rojoPastel: '#fef2f2',
+  morado: '#7c3aed',
+  moradoPastel: '#f5f3ff',
+  teal: '#0891b2',
+  tealPastel: '#ecfeff',
+  rosa: '#db2777',
+  rosaPastel: '#fdf2f8',
 } as const;
 
-const fuente = "'Outfit', 'Inter', sans-serif";
+const fuente = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
 
 const botonAzul: CSSProperties = {
   display: 'inline-flex',
@@ -391,18 +391,20 @@ function TarjetaCelula({ celula }: { celula: Celula }) {
   return (
     <div
       style={{
-        borderRadius: 20,
+        borderRadius: 16,
         border: `1px solid ${P.borde}`,
         background: '#fff',
-        padding: '20px 22px',
+        padding: '24px 28px',
         display: 'flex',
         flexDirection: 'column',
-        gap: 12,
+        gap: 16,
         height: '100%',
+        transition: 'all 0.2s ease',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-        <p style={{ margin: 0, fontSize: 16, fontWeight: 700, fontFamily: "'Newsreader', serif" }}>{celula.dominio}</p>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <p style={{ margin: 0, fontSize: 18, fontWeight: 700, color: P.texto }}>{celula.dominio}</p>
         <span
           style={{
             display: 'inline-flex',
@@ -422,7 +424,7 @@ function TarjetaCelula({ celula }: { celula: Celula }) {
           {celula.prioridad ? ` · prioridad ${celula.prioridad}` : ''}
         </span>
       </div>
-      <p style={{ margin: 0, fontSize: 14.5, lineHeight: 1.6, color: P.textoSuave }}>{celula.promesa}</p>
+      <p style={{ margin: 0, fontSize: 15, lineHeight: 1.6, color: P.textoSuave }}>{celula.promesa}</p>
     </div>
   );
 }
@@ -555,32 +557,38 @@ export function LandingPage() {
           id="inicio"
           style={{
             display: 'grid',
-            gap: 48,
+            gap: 64,
             gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
             alignItems: 'center',
+            paddingTop: 48,
+            paddingBottom: 48,
           }}
         >
-          <div className="vista-animada" style={{ display: 'flex', flexDirection: 'column', gap: 26 }}>
+          <div className="vista-animada" style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
             <h1
               style={{
                 margin: 0,
-                fontSize: 'clamp(36px, 4.8vw, 58px)',
-                fontWeight: 700,
-                letterSpacing: '-0.02em',
-                lineHeight: 1.08,
+                fontSize: 'clamp(40px, 5.2vw, 64px)',
+                fontWeight: 800,
+                letterSpacing: '-0.03em',
+                lineHeight: 1.05,
+                color: P.texto,
               }}
             >
               Inteligencia jurídica que{' '}
-              <span style={{ color: P.azul }}>cita su fuente</span>.
+              <span style={{ color: P.azul, fontStyle: 'italic' }}>cita su fuente</span>.
             </h1>
-            <p style={{ margin: 0, fontSize: 19, lineHeight: 1.75, color: P.textoSuave, maxWidth: 540 }}>
+            <p style={{ margin: 0, fontSize: 20, lineHeight: 1.7, color: P.textoSuave, maxWidth: 520 }}>
               Un cerebro de conocimiento legal para cada área del derecho: radica, tramita y
               expide actuaciones con respaldo normativo verificable.
             </p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
               <Link to={destinoCta} style={botonAzul}>{textoCta}</Link>
-              <a href="#arquitectura" style={{ fontSize: 15, fontWeight: 600, color: P.azul, textDecoration: 'none' }}>
+              <a href="#arquitectura" style={{ fontSize: 15, fontWeight: 600, color: P.azul, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
                 Ver cómo funciona
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </a>
             </div>
           </div>
@@ -843,41 +851,42 @@ export function LandingPage() {
             </p>
             <div
               style={{
-                marginTop: 28,
+                marginTop: 36,
                 display: 'flex',
                 flexWrap: 'wrap',
-                gap: 20,
+                gap: 24,
               }}
             >
               {PRODUCTOS.map((p) => (
                 <div
                   key={p.nombre}
                   style={{
-                    flex: '1 1 300px',
-                    borderRadius: 24,
+                    flex: '1 1 320px',
+                    borderRadius: 16,
                     background: p.pastel,
-                    padding: '22px 26px',
+                    padding: '28px 32px',
+                    transition: 'all 0.2s ease',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-                    <p style={{ margin: 0, fontSize: 17, fontWeight: 700, color: p.color }}>{p.nombre}</p>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                    <p style={{ margin: 0, fontSize: 20, fontWeight: 700, color: p.color }}>{p.nombre}</p>
                     <span
                       style={{
-                        fontSize: 11.5,
+                        fontSize: 12,
                         fontWeight: 700,
-                        letterSpacing: '0.04em',
+                        letterSpacing: '0.05em',
                         textTransform: 'uppercase',
                         color: p.color,
                         background: '#fff',
                         borderRadius: 999,
-                        padding: '3px 10px',
+                        padding: '4px 12px',
                         whiteSpace: 'nowrap',
                       }}
                     >
                       {p.estado}
                     </span>
                   </div>
-                  <p style={{ margin: '10px 0 0', fontSize: 14.5, lineHeight: 1.65, color: P.textoSuave }}>{p.detalle}</p>
+                  <p style={{ margin: '14px 0 0', fontSize: 15, lineHeight: 1.7, color: P.textoSuave }}>{p.detalle}</p>
                 </div>
               ))}
             </div>
@@ -896,23 +905,25 @@ export function LandingPage() {
             </p>
             <div
               style={{
-                marginTop: 32,
+                marginTop: 40,
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                gap: 20,
+                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                gap: 24,
               }}
             >
               {VENTAJAS.map((v) => (
                 <div
                   key={v.titulo}
                   style={{
-                    borderRadius: 22,
+                    borderRadius: 16,
                     border: `1px solid ${P.borde}`,
                     background: '#fff',
-                    padding: '22px 24px',
+                    padding: '28px 32px',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: 14,
+                    gap: 18,
+                    transition: 'all 0.2s ease',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
                   }}
                 >
                   <span
@@ -920,9 +931,9 @@ export function LandingPage() {
                       display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      width: 44,
-                      height: 44,
-                      borderRadius: 14,
+                      width: 48,
+                      height: 48,
+                      borderRadius: 12,
                       background: v.pastel,
                       color: v.color,
                       flexShrink: 0,
@@ -931,8 +942,8 @@ export function LandingPage() {
                     {v.icono}
                   </span>
                   <div>
-                    <p style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>{v.titulo}</p>
-                    <p style={{ margin: '8px 0 0', fontSize: 14.5, lineHeight: 1.7, color: P.textoSuave }}>{v.detalle}</p>
+                    <p style={{ margin: 0, fontSize: 18, fontWeight: 700, color: P.texto }}>{v.titulo}</p>
+                    <p style={{ margin: '10px 0 0', fontSize: 15, lineHeight: 1.7, color: P.textoSuave }}>{v.detalle}</p>
                   </div>
                 </div>
               ))}
@@ -963,55 +974,57 @@ export function LandingPage() {
         </Revela>
 
         {/* ── Contacto ── */}
-        <Revela style={{ marginTop: 90 }}>
+        <Revela style={{ marginTop: 100 }}>
           <section
             id="contacto"
             style={{
               background: P.fondoSuave,
-              borderRadius: '32px 32px 0 0',
-              padding: 'clamp(28px, 4vw, 48px)',
+              borderRadius: '24px 24px 0 0',
+              padding: 'clamp(32px, 5vw, 56px)',
               display: 'grid',
-              gap: 24,
-              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              gap: 40,
+              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
               alignItems: 'start',
             }}
           >
             <div>
-              <h2 style={{ margin: 0, fontSize: 24, fontWeight: 700, fontFamily: "'Newsreader', serif" }}>Contacto</h2>
-              <p style={{ margin: '14px 0 0', fontSize: 15, lineHeight: 1.7, color: P.textoSuave, maxWidth: 420 }}>
+              <h2 style={{ margin: 0, fontSize: 28, fontWeight: 700, color: P.texto }}>Contacto</h2>
+              <p style={{ margin: '16px 0 0', fontSize: 16, lineHeight: 1.7, color: P.textoSuave, maxWidth: 440 }}>
                 ¿Su despacho quiere probar el Radicador o conocer el plan de las demás células?
                 Escríbanos y coordinamos una demo.
               </p>
               <a
                 href="mailto:contacto@legaltech.com.co?subject=Solicitud%20de%20demo%20LegalTech&body=Nombre%20del%20despacho%3A%0AVertical%20de%20inter%C3%A9s%3A%0AN%C3%BAmero%20de%20contacto%3A%0A"
-                style={{ ...botonAzul, marginTop: 20, padding: '11px 26px', fontSize: 14 }}
+                style={{ ...botonAzul, marginTop: 24, padding: '12px 28px', fontSize: 15 }}
               >
                 Solicitar demo
               </a>
-              <p style={{ margin: '20px 0 0', color: P.textoSuave }}>
-                Email:{' '}
-                <a href="mailto:contacto@legaltech.com.co" style={{ color: P.azul }}>
-                  contacto@legaltech.com.co
-                </a>
-              </p>
-              <p style={{ margin: '8px 0 0', color: P.textoSuave }}>Tel: +57 305 390 7634</p>
-              <p style={{ margin: '4px 0 0', color: P.textoSuave }}>WP: +57 305 390 7534</p>
-              <p style={{ margin: '8px 0 0', color: P.textoSuave }}>
-                Facebook:{' '}
-                <a
-                  href="https://www.facebook.com/legaltTechColombia"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ color: P.azul }}
-                >
-                  legaltTechColombia
-                </a>
-              </p>
+              <div style={{ marginTop: 28, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <p style={{ margin: 0, color: P.textoSuave }}>
+                  Email:{' '}
+                  <a href="mailto:contacto@legaltech.com.co" style={{ color: P.azul, fontWeight: 500 }}>
+                    contacto@legaltech.com.co
+                  </a>
+                </p>
+                <p style={{ margin: 0, color: P.textoSuave }}>Tel: +57 305 390 7634</p>
+                <p style={{ margin: 0, color: P.textoSuave }}>WP: +57 305 390 7534</p>
+                <p style={{ margin: 0, color: P.textoSuave }}>
+                  Facebook:{' '}
+                  <a
+                    href="https://www.facebook.com/legaltTechColombia"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: P.azul, fontWeight: 500 }}
+                  >
+                    legaltTechColombia
+                  </a>
+                </p>
+              </div>
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Horario de atención</h3>
-              <p style={{ margin: '8px 0 0', color: P.textoSuave }}>Lun - Vie: 8:00 - 18:00 (COT)</p>
-              <p style={{ margin: '16px 0 0', color: P.textoSuave, lineHeight: 1.7 }}>
+              <h3 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: P.texto }}>Horario de atención</h3>
+              <p style={{ margin: '12px 0 0', color: P.textoSuave, fontSize: 16 }}>Lun - Vie: 8:00 - 18:00 (COT)</p>
+              <p style={{ margin: '20px 0 0', color: P.textoSuave, lineHeight: 1.7, fontSize: 15 }}>
                 Si nos contactas por WhatsApp, indícanos tu nombre y una breve descripción del
                 asunto para agilizar la respuesta.
               </p>

@@ -1,192 +1,549 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Alert, Button, Descriptions, Input, Skeleton, Spin, Tag, Typography, App } from 'antd';
+import { DownloadOutlined, PrinterOutlined, SafetyCertificateOutlined, WarningOutlined } from '@ant-design/icons';
+import { NormaMark } from '@/shared/ai/NormaMark';
+import { ELEVACION, PALETA } from '@/theme/theme';
+import { useInspeccionStore } from '@/store/inspeccionStore';
+import { useChangeCaseState, useUpdateCaseFields } from '@/shared/legalCases/api';
+import { buildCaseMetadata, parseCaseMetadata } from '@/shared/legalCases/types';
 import {
-  Alert,
-  Button,
-  Card,
-  Form,
-  Input,
-  Modal,
-  Typography,
-  Upload,
-  App,
-} from 'antd';
-import type { UploadFile } from 'antd';
-import { ExperimentOutlined, InboxOutlined } from '@ant-design/icons';
-import dayjs from 'dayjs';
-import { analizarConHistorial, type ProcessResponse } from './api';
+  analizarEstructurado,
+  getLegalCase,
+  type ComplaintResponseFields,
+  type Discrepancy,
+  type LegalCase,
+} from './api';
+import { construirDocumentoFallo, type BorradorFallo } from './falloDocumento';
+import { descargarFalloPdf, falloPdfBlob, nombreArchivoFallo } from './falloPdf';
+import { useUploadCaseDocument } from '@/shared/documentos/api';
 
-const { Title, Paragraph, Text } = Typography;
-const { Dragger } = Upload;
+// legalReasoning/evidenceAssessment ya existen como columnas genéricas en
+// legal-cases - se reutilizan para guardar el fallo en vez de pedir columnas
+// nuevas. antecedents/juridicProblem/juridicFundamentals (más específicos de
+// "fallo") van al caseMetadata opaco.
+function guardarBorradorEnCampos(
+  borrador: BorradorFallo,
+  metaActual: Record<string, unknown>,
+  resolucionInspector?: string,
+) {
+  return {
+    legalReasoning: borrador.juridicResponse,
+    evidenceAssessment: borrador.evidences,
+    caseMetadata: buildCaseMetadata({
+      ...metaActual,
+      antecedents: borrador.antecedents,
+      juridicProblem: borrador.juridicProblem,
+      juridicFundamentals: borrador.juridicFundamentals,
+      parteResolutiva: borrador.parteResolutiva,
+      // Resolución del inspector cuando la IA no alcanzó consenso (queda en el expediente).
+      ...(resolucionInspector?.trim() ? { deliberationResolution: resolucionInspector.trim() } : {}),
+    }),
+  };
+}
+
+const { Title, Text, Paragraph } = Typography;
+const { TextArea } = Input;
+
+const CAMPO_LABEL: Record<keyof BorradorFallo, string> = {
+  antecedents: 'Antecedentes',
+  juridicProblem: 'Problema jurídico',
+  evidences: 'Pruebas valoradas',
+  juridicFundamentals: 'Fundamentos jurídicos',
+  juridicResponse: 'Consideraciones del despacho',
+  parteResolutiva: 'Parte resolutiva (RESUELVE)',
+};
+
+const BORRADOR_VACIO: BorradorFallo = {
+  antecedents: '',
+  juridicProblem: '',
+  juridicFundamentals: '',
+  juridicResponse: '',
+  evidences: '',
+  parteResolutiva: '',
+};
+
+function Tarjeta({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+  return (
+    <div
+      style={{
+        background: PALETA.superficie,
+        borderRadius: 20,
+        boxShadow: ELEVACION.base,
+        padding: '18px 20px',
+        marginBottom: 18,
+        ...style,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
 
 /**
- * Radicación y análisis clínico de procesos con IA.
- * Migrado del componente new-process del frontend Angular: envía la
- * información general + evidencias (multipart 'data' + 'files') al
- * microservicio de análisis y muestra el resultado.
+ * Editor del fallo: trae el caso (?caso=<id>) y su expediente saneado,
+ * pide a la IA un borrador estructurado (campos separados, no texto plano)
+ * y deja que el inspector los edite antes de exportar a PDF. Mismo patrón
+ * de dos columnas (formulario editable + vista previa con membrete) que
+ * ActasFirmezaPage.
  */
 export function AnalisisPage() {
   const { message } = App.useApp();
-  const [form] = Form.useForm();
-  const [archivos, setArchivos] = useState<UploadFile[]>([]);
-  const [cargando, setCargando] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [respuestaCruda, setRespuestaCruda] = useState<string | null>(null);
-  const [resultado, setResultado] = useState<string | null>(null);
-  const [modalAbierto, setModalAbierto] = useState(false);
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const casoId = searchParams.get('caso');
+  const inspeccion = useInspeccionStore((s) => s.config);
+  const cambiarEstado = useChangeCaseState();
+  const actualizarCampos = useUpdateCaseFields();
+  const subir = useUploadCaseDocument(casoId ?? '');
 
-  const onSubmit = async (values: { generalInformation: string }) => {
-    setCargando(true);
-    setError(null);
-    setRespuestaCruda(null);
+  // Archiva el fallo proferido como versión en el expediente S3 (advisory:
+  // un fallo del PDF nunca debe tumbar el guardado del fallo ya proferido).
+  const archivarFalloEnExpediente = () => {
+    if (!documento) return;
+    falloPdfBlob(documento, inspeccion.membreteDataUrl)
+      .then((blob) => subir.mutate(new File([blob], nombreArchivoFallo(documento), { type: 'application/pdf' })))
+      .catch(() => undefined);
+  };
+
+  const [caso, setCaso] = useState<LegalCase | null>(null);
+  const [cargandoCaso, setCargandoCaso] = useState(false);
+  const [errorCaso, setErrorCaso] = useState<string | null>(null);
+
+  const [borrador, setBorrador] = useState<BorradorFallo>(BORRADOR_VACIO);
+  const [generando, setGenerando] = useState(false);
+  const [errorGeneracion, setErrorGeneracion] = useState<string | null>(null);
+
+  // Deliberación sin consenso (HITL): argumentos en conflicto + problema
+  // jurídico debatido + la resolución que dicta el inspector.
+  const [sinConsenso, setSinConsenso] = useState<{ discrepancias: Discrepancy[]; problema: string } | null>(null);
+  const [resolucionInspector, setResolucionInspector] = useState('');
+
+  useEffect(() => {
+    if (!casoId) return;
+    setCargandoCaso(true);
+    setErrorCaso(null);
+    getLegalCase(casoId)
+      .then(setCaso)
+      .catch(() => setErrorCaso('No se pudo cargar el caso. Verifica el radicado o intenta de nuevo.'))
+      .finally(() => setCargandoCaso(false));
+  }, [casoId]);
+
+  function set<K extends keyof BorradorFallo>(k: K, v: string) {
+    setBorrador((prev) => ({ ...prev, [k]: v }));
+  }
+
+  async function generarBorrador() {
+    setGenerando(true);
+    setErrorGeneracion(null);
     try {
-      const data = new FormData();
-      // Mismo contrato del backend: parte 'data' JSON + partes 'files'.
-      data.append(
-        'data',
-        new Blob(
-          [
-            JSON.stringify({
-              generalInformation: values.generalInformation,
-              fecha: dayjs().format('DD-MM-YYYY'),
-            }),
-          ],
-          { type: 'application/json' },
-        ),
+      const campos: ComplaintResponseFields = await analizarEstructurado(casoId ?? '');
+      setBorrador({
+        antecedents: campos.antecedents ?? '',
+        juridicProblem: campos.juridicProblem ?? '',
+        juridicFundamentals: campos.juridicFundamentals ?? '',
+        juridicResponse: campos.juridicResponse ?? '',
+        evidences: campos.evidences ?? '',
+        parteResolutiva: campos.parteResolutiva ?? '',
+      });
+      const huboConsenso = campos.consensusReached !== false;
+      setSinConsenso(
+        huboConsenso
+          ? null
+          : { discrepancias: campos.discrepancies ?? [], problema: campos.juridicProblem ?? '' },
       );
-      for (const f of archivos) {
-        if (f.originFileObj) data.append('files', f.originFileObj);
+      if (huboConsenso) {
+        message.success('Borrador generado. Revise y ajuste cada sección antes de exportar.');
+      } else {
+        message.warning('Los agentes no alcanzaron consenso. Revise los argumentos y resuelva antes de proferir.');
       }
-
-      const res: ProcessResponse = await analizarConHistorial(data);
-      setRespuestaCruda(JSON.stringify(res, null, 2));
-      const valor = (res as { data?: unknown }).data ?? res;
-      setResultado(typeof valor === 'string' ? valor : JSON.stringify(valor, null, 2));
-      setModalAbierto(true);
-      setArchivos([]);
-    } catch {
-      setError('No fue posible conectar con el servicio de análisis. Intenta de nuevo.');
+    } catch (e) {
+      setErrorGeneracion(
+        e instanceof Error
+          ? `No fue posible generar el borrador: ${e.message}`
+          : 'No fue posible generar el borrador con IA.',
+      );
     } finally {
-      setCargando(false);
+      setGenerando(false);
     }
-  };
+  }
 
-  const exportarDoc = () => {
-    if (!resultado) return;
-    const escapado = resultado
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Radicación y Análisis Clínico de Procesos</title></head><body><h2>Radicación y Análisis Clínico de Procesos</h2><pre style="font-family: Consolas, monospace; white-space: pre-wrap;">${escapado}</pre></body></html>`;
-    const blob = new Blob([html], { type: 'application/msword' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `analisis-clinico-${dayjs().format('YYYY-MM-DD')}.doc`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  function guardarYProferir() {
+    if (!casoId) return;
+    const metaActual = parseCaseMetadata<Record<string, unknown>>(caso?.caseMetadata ?? null);
+    actualizarCampos.mutate(
+      { id: casoId, fields: guardarBorradorEnCampos(borrador, metaActual, resolucionInspector) },
+      {
+        onSuccess: () => {
+          cambiarEstado.mutate(
+            { id: casoId, state: 'fallo_emitido' },
+            {
+              onSuccess: () => {
+                archivarFalloEnExpediente();
+                message.success('Fallo guardado y proferido. Archivado en el expediente.');
+                navigate(`/panel/fallos`);
+              },
+              onError: () => message.error('El fallo se guardó, pero no se pudo actualizar el estado del caso.'),
+            },
+          );
+        },
+        onError: () => message.error('No se pudo guardar el fallo. Intente de nuevo.'),
+      },
+    );
+  }
+
+  const hayBorrador = Object.values(borrador).some((v) => v.trim().length > 0);
+
+  const documento = useMemo(() => {
+    if (!caso || !hayBorrador) return null;
+    return construirDocumentoFallo(caso, borrador, {
+      municipio: inspeccion.municipio,
+      inspeccion: inspeccion.inspeccion,
+      inspectorNombre: inspeccion.inspectorNombre,
+      inspectorCargo: inspeccion.inspectorNombre ? 'Inspector de Convivencia y Paz' : '',
+    });
+  }, [caso, borrador, hayBorrador, inspeccion]);
+
+  if (!casoId) {
+    return (
+      <Alert
+        type="info"
+        showIcon
+        message="Ningún caso seleccionado"
+        description="Abra esta pantalla desde un caso radicado (botón «Ir a Fallo») para redactar su fallo."
+      />
+    );
+  }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div>
-        <Title level={2} style={{ marginBottom: 4 }}>
-          Radicación y análisis con IA
-        </Title>
-        <Paragraph type="secondary" style={{ marginBottom: 0 }}>
-          Describe los hechos del proceso y adjunta las evidencias; la IA genera un análisis clínico
-          procesal con base en el historial.
-        </Paragraph>
-      </div>
+    <div>
+      <Title level={2} style={{ marginBottom: 4 }}>
+        Fallo
+      </Title>
+      <Paragraph type="secondary" style={{ marginBottom: 22 }}>
+        Redacción asistida por IA del fallo — la IA propone el borrador, usted lo revisa y ajusta
+        antes de exportarlo.
+      </Paragraph>
 
-      {error && <Alert type="error" message={error} showIcon closable onClose={() => setError(null)} />}
+      {errorCaso && <Alert type="error" showIcon message={errorCaso} style={{ marginBottom: 18 }} />}
 
-      <Card>
-        <Form form={form} layout="vertical" onFinish={onSubmit} requiredMark={false} disabled={cargando}>
-          <Form.Item
-            name="generalInformation"
-            label="Información general del proceso"
-            rules={[
-              { required: true, message: 'Describe el caso a analizar.' },
-              { min: 10, message: 'Se requieren al menos 10 caracteres para procesar la radicación.' },
-            ]}
-          >
-            <Input.TextArea
-              rows={6}
-              placeholder="Ingrese los hechos, pretensiones o resumen del caso para análisis..."
-            />
-          </Form.Item>
-
-          <Form.Item label="Evidencias del proceso (PDF, imágenes, audio)">
-            <Dragger
-              multiple
-              fileList={archivos}
-              accept="application/pdf,image/*,audio/*"
-              beforeUpload={() => false} // no subir automático: se envían con el análisis
-              onChange={({ fileList }) => setArchivos(fileList)}
-            >
-              <p className="ant-upload-drag-icon">
-                <InboxOutlined />
-              </p>
-              <p className="ant-upload-text">Adjuntar documentos, fotos o grabaciones</p>
-              <p className="ant-upload-hint">Formatos soportados: PDF, JPG, PNG, MP3, WAV</p>
-            </Dragger>
-          </Form.Item>
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <Button
-              type="primary"
-              htmlType="submit"
-              size="large"
-              icon={<ExperimentOutlined />}
-              loading={cargando}
-            >
-              {cargando ? 'Procesando...' : 'Iniciar radicación'}
-            </Button>
+      {sinConsenso && (
+        <div
+          style={{
+            background: '#fff8e1',
+            border: '1px solid #f9ab00',
+            borderRadius: 18,
+            padding: '18px 22px',
+            marginBottom: 20,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+            <WarningOutlined style={{ color: '#b06a00', fontSize: 20 }} />
+            <Text strong style={{ fontSize: 15.5, color: '#7a4a00' }}>
+              Los agentes de IA no alcanzaron consenso
+            </Text>
           </div>
-        </Form>
-      </Card>
+          <Text style={{ display: 'block', color: '#6b4a10', fontSize: 13, marginBottom: 14 }}>
+            El análisis quedó como borrador. Revise los argumentos en conflicto, decida el punto de
+            derecho y deje constancia de su resolución antes de proferir el fallo.
+          </Text>
 
-      {respuestaCruda && (
-        <Card title="Traza de respuesta técnica" size="small">
-          <pre
-            style={{
-              margin: 0,
-              maxHeight: 320,
-              overflow: 'auto',
-              fontSize: 12,
-              lineHeight: 1.5,
-            }}
-          >
-            {respuestaCruda}
-          </pre>
-        </Card>
+          {sinConsenso.problema.trim() && (
+            <div style={{ marginBottom: 14 }}>
+              <div
+                style={{
+                  fontSize: 10.5,
+                  fontWeight: 600,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  color: '#8a5a00',
+                  marginBottom: 4,
+                }}
+              >
+                Problema jurídico debatido
+              </div>
+              <Text style={{ color: '#3a2a08', whiteSpace: 'pre-wrap' }}>{sinConsenso.problema}</Text>
+            </div>
+          )}
+
+          {sinConsenso.discrepancias.length > 0 && (
+            <div style={{ marginBottom: 14 }}>
+              <div
+                style={{
+                  fontSize: 10.5,
+                  fontWeight: 600,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  color: '#8a5a00',
+                  marginBottom: 8,
+                }}
+              >
+                Argumentos en conflicto
+              </div>
+              {sinConsenso.discrepancias.map((d, i) => (
+                <div
+                  key={`${d.affectedField}-${i}`}
+                  style={{
+                    background: '#fffdf5',
+                    border: '1px solid #f0dca0',
+                    borderRadius: 12,
+                    padding: '10px 14px',
+                    marginBottom: 8,
+                  }}
+                >
+                  {d.affectedField?.trim() && (
+                    <div style={{ fontWeight: 600, fontSize: 12.5, color: '#5a3d00', marginBottom: 6 }}>
+                      {d.affectedField}
+                    </div>
+                  )}
+                  <div style={{ fontSize: 12.5, color: '#3a2a08', lineHeight: 1.5 }}>
+                    <div>
+                      <Text strong>Analista:</Text> {d.analystValue || '—'}
+                    </div>
+                    <div>
+                      <Text strong>Auditor:</Text> {d.auditorValue || '—'}
+                    </div>
+                    {d.legalJustification?.trim() && (
+                      <div style={{ marginTop: 4, fontStyle: 'italic', color: '#6b4a10' }}>
+                        Fundamento: {d.legalJustification}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div>
+            <div
+              style={{
+                fontSize: 10.5,
+                fontWeight: 600,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                color: '#8a5a00',
+                marginBottom: 4,
+              }}
+            >
+              Resolución del inspector (queda en el expediente)
+            </div>
+            <TextArea
+              autoSize={{ minRows: 2, maxRows: 6 }}
+              value={resolucionInspector}
+              onChange={(e) => setResolucionInspector(e.target.value)}
+              placeholder="Dicte su decisión sobre el punto debatido y su fundamento. Sirve de retroalimentación para afinar el análisis."
+            />
+          </div>
+        </div>
       )}
 
-      <Modal
-        open={modalAbierto}
-        title="Análisis clínico procesal"
-        width={860}
-        onCancel={() => setModalAbierto(false)}
-        footer={[
-          <Button key="doc" onClick={exportarDoc}>
-            Exportar documento .DOC
-          </Button>,
-          <Button
-            key="ok"
-            type="primary"
-            onClick={() => {
-              setModalAbierto(false);
-              message.success('Sentencia aceptada. La respuesta fue confirmada.');
-            }}
-          >
-            Confirmar y guardar
-          </Button>,
-        ]}
-      >
-        <Text style={{ whiteSpace: 'pre-wrap', display: 'block', maxHeight: '55vh', overflow: 'auto' }}>
-          {resultado}
-        </Text>
-      </Modal>
+      <div style={{ display: 'flex', gap: 22, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+        {/* ── Columna izquierda ─────────────────────────────────── */}
+        <div style={{ flex: '1 1 380px', maxWidth: 480, minWidth: 340 }}>
+          <Tarjeta>
+            <Text strong style={{ display: 'block', marginBottom: 12 }}>
+              Caso
+            </Text>
+            {cargandoCaso ? (
+              <Skeleton active paragraph={{ rows: 3 }} />
+            ) : caso ? (
+              <Descriptions size="small" column={1}>
+                <Descriptions.Item label="Radicado">{caso.filingNumber}</Descriptions.Item>
+                <Descriptions.Item label="Tipo">
+                  <Tag>{caso.caseType}</Tag>
+                </Descriptions.Item>
+                <Descriptions.Item label="Municipio">{caso.venueCity}</Descriptions.Item>
+                <Descriptions.Item label="Estado">
+                  <Tag color="blue">{caso.currentStateCode}</Tag>
+                </Descriptions.Item>
+              </Descriptions>
+            ) : (
+              <Text type="secondary">Caso no encontrado.</Text>
+            )}
+          </Tarjeta>
+
+          <Tarjeta>
+            <Text strong style={{ display: 'block', marginBottom: 8 }}>
+              Expediente
+            </Text>
+            <Text type="secondary" style={{ fontSize: 12.5, display: 'block', marginBottom: 12 }}>
+              El análisis usa los datos del caso y su expediente saneado, resueltos por el servidor a
+              partir del radicado.
+            </Text>
+            {errorGeneracion && (
+              <Alert type="error" showIcon message={errorGeneracion} style={{ marginBottom: 12 }} />
+            )}
+            <Button
+              type="primary"
+              icon={generando ? <Spin size="small" /> : <NormaMark size={16} />}
+              block
+              disabled={generando || !caso}
+              onClick={() => void generarBorrador()}
+            >
+              {generando ? 'Generando borrador…' : hayBorrador ? 'Regenerar borrador con IA' : 'Generar borrador con IA'}
+            </Button>
+          </Tarjeta>
+
+          <Tarjeta>
+            <Text strong style={{ display: 'block', marginBottom: 14 }}>
+              Borrador del fallo
+            </Text>
+            {!hayBorrador ? (
+              <Text type="secondary" style={{ fontSize: 13 }}>
+                Genere el borrador con IA o escriba cada sección manualmente.
+              </Text>
+            ) : null}
+            {(Object.keys(CAMPO_LABEL) as (keyof BorradorFallo)[]).map((campo) => (
+              <div key={campo} style={{ marginBottom: 14 }}>
+                <div
+                  style={{
+                    fontSize: 10.5,
+                    fontWeight: 600,
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                    color: PALETA.textoTenue,
+                    marginBottom: 4,
+                  }}
+                >
+                  {CAMPO_LABEL[campo]}
+                </div>
+                <TextArea
+                  autoSize={{ minRows: 3, maxRows: 10 }}
+                  value={borrador[campo]}
+                  onChange={(e) => set(campo, e.target.value)}
+                  placeholder="La IA redacta esta sección; usted la revisa y ajusta."
+                />
+              </div>
+            ))}
+          </Tarjeta>
+
+          <Tarjeta>
+            <Text strong style={{ display: 'block', marginBottom: 10 }}>
+              Despacho
+            </Text>
+            <Text type="secondary" style={{ fontSize: 12.5 }}>
+              {inspeccion.inspectorNombre
+                ? `${inspeccion.inspectorNombre} — ${inspeccion.inspeccion || inspeccion.municipio}`
+                : 'Configure el despacho (botón flotante "Configurar inspección") para que aparezca en la firma.'}
+            </Text>
+            <Button
+              type="primary"
+              size="large"
+              block
+              icon={<SafetyCertificateOutlined />}
+              disabled={!hayBorrador}
+              loading={cambiarEstado.isPending || actualizarCampos.isPending}
+              onClick={guardarYProferir}
+              style={{ fontWeight: 600, marginTop: 14 }}
+            >
+              Guardar y proferir fallo
+            </Button>
+            <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
+              <Button
+                block
+                icon={<DownloadOutlined />}
+                disabled={!documento}
+                onClick={() => documento && descargarFalloPdf(documento, inspeccion.membreteDataUrl)}
+              >
+                Descargar PDF
+              </Button>
+              <Button icon={<PrinterOutlined />} disabled={!documento} onClick={() => window.print()}>
+                Imprimir
+              </Button>
+            </div>
+          </Tarjeta>
+        </div>
+
+        {/* ── Columna derecha: vista previa ──────────────────────── */}
+        <div style={{ flex: '1 1 520px', minWidth: 380 }}>
+          {!documento ? (
+            <div
+              style={{
+                background: PALETA.superficie,
+                borderRadius: 24,
+                boxShadow: ELEVACION.base,
+                padding: '70px 40px',
+                textAlign: 'center',
+                color: PALETA.textoTenue,
+              }}
+            >
+              <div style={{ marginBottom: 14, opacity: 0.5, display: 'flex', justifyContent: 'center' }}>
+                <NormaMark size={40} />
+              </div>
+              <div style={{ fontSize: 15 }}>
+                Genere el borrador con IA o complete las secciones manualmente. El fallo se
+                redacta aquí en tiempo real.
+              </div>
+            </div>
+          ) : (
+            <div
+              id="fallo-imprimible"
+              style={{
+                background: PALETA.superficie,
+                borderRadius: 24,
+                boxShadow: ELEVACION.media,
+                padding: '46px 52px',
+                fontFamily: "'Newsreader', Georgia, serif",
+                fontSize: 13.5,
+                lineHeight: 1.65,
+                color: '#1b1b1f',
+              }}
+            >
+              {inspeccion.membreteDataUrl && (
+                <div style={{ textAlign: 'center', marginBottom: 16 }}>
+                  <img
+                    src={inspeccion.membreteDataUrl}
+                    alt="Membrete de la alcaldía"
+                    style={{ maxWidth: '100%', maxHeight: 96, objectFit: 'contain' }}
+                  />
+                </div>
+              )}
+              <div style={{ textAlign: 'center', marginBottom: 18 }}>
+                <div style={{ fontWeight: 600, letterSpacing: '0.04em' }}>{documento.entidad}</div>
+                <div style={{ fontWeight: 700, fontSize: 17, marginTop: 10 }}>{documento.tituloDocumento}</div>
+                <div style={{ marginTop: 2 }}>RADICADO {documento.radicado}</div>
+                <div style={{ marginTop: 2 }}>{documento.fechaLetras}</div>
+              </div>
+
+              <table style={{ width: '100%', margin: '16px 0', borderCollapse: 'collapse' }}>
+                <tbody>
+                  {documento.tablaDatos.map((f) => (
+                    <tr key={f.etiqueta}>
+                      <td
+                        style={{
+                          padding: '3px 10px 3px 0',
+                          fontWeight: 600,
+                          whiteSpace: 'nowrap',
+                          verticalAlign: 'top',
+                          fontSize: 12,
+                        }}
+                      >
+                        {f.etiqueta}:
+                      </td>
+                      <td style={{ padding: '3px 0', fontSize: 12.5 }}>{f.valor}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {documento.secciones.map((s) => (
+                <div key={s.titulo}>
+                  <p style={{ textAlign: 'center', fontWeight: 700, marginTop: 18 }}>{s.titulo}</p>
+                  <p style={{ textAlign: 'justify', whiteSpace: 'pre-wrap' }}>{s.contenido}</p>
+                </div>
+              ))}
+
+              <p style={{ marginTop: 18 }}>{documento.cierre}</p>
+              <p style={{ fontWeight: 600 }}>CÚMPLASE,</p>
+
+              <div style={{ marginTop: 44 }}>
+                <div style={{ fontWeight: 700 }}>{documento.firma.nombre || '________________________'}</div>
+                <div>{documento.firma.cargo}</div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,19 +1,32 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { tokenActual } from '@/shared/auth/auth';
+import { contextHeaders } from '@/shared/api/client';
 import { DESPACHO } from '@/derecho';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api';
 
+export interface CasoParte {
+  rol: string;
+  tipoId: string | null;
+  numeroId: string | null;
+  nombre: string;
+}
+
+// Espeja el <case_update> que emite legal/recepcionRules.st (ver
+// IntakeCaseCreationGate.IntakeUpdate) campo a campo. Es solo lectura: el
+// inspector ve el progreso que la IA va extrayendo de la conversación, no lo
+// edita a mano - el estado real vive en legalcase una vez radicado.
 export interface CasoDraft {
-  tipo: '' | 'querella' | 'queja';
-  viaProcesal: '' | 'verbal_abreviado' | 'verbal';
-  querellante: string;
-  querellado: string;
-  comportamiento: string;
-  articuloInfringido: string;
-  direccion: string;
-  proximoPaso: string;
-  anotaciones: string;
+  tipoSolicitud: string | null;
+  listoParaRadicar: boolean;
+  radicado: string | null;
+  juzgado: string | null;
+  ciudad: string | null;
+  hechos: string | null;
+  pretension: string | null;
+  partes: CasoParte[];
+  estadoSugerido: string | null;
+  categorias: string[];
+  observaciones: string | null;
 }
 
 export interface ChatMessage {
@@ -30,15 +43,17 @@ export interface CasoRadicado {
 }
 
 const DRAFT_INICIAL: CasoDraft = {
-  tipo: '',
-  viaProcesal: '',
-  querellante: '',
-  querellado: '',
-  comportamiento: '',
-  articuloInfringido: '',
-  direccion: '',
-  proximoPaso: '',
-  anotaciones: '',
+  tipoSolicitud: null,
+  listoParaRadicar: false,
+  radicado: null,
+  juzgado: null,
+  ciudad: null,
+  hechos: null,
+  pretension: null,
+  partes: [],
+  estadoSugerido: null,
+  categorias: [],
+  observaciones: null,
 };
 
 const CASE_UPDATE_RE = /<case_update>([\s\S]*?)<\/case_update>/;
@@ -54,8 +69,8 @@ function parseCaseUpdate(texto: string): Partial<CasoDraft> {
   }
 }
 
-// Only present once IntakeCaseCreationGate (legal) actually filed the case -
-// see recepcionRules.st's listoParaRadicar contract.
+// Solo aparece una vez que IntakeCaseCreationGate (legal) radicó el caso de
+// verdad en legalcase - ver recepcionRules.st y su contrato listoParaRadicar.
 function parseCaseFiled(texto: string): CasoRadicado | null {
   const match = CASE_FILED_RE.exec(texto);
   if (!match) return null;
@@ -115,7 +130,6 @@ export function useIntakeChat() {
       setCargando(true);
 
       try {
-        const token = tokenActual();
         // legal's /api/legal/recepcion (intakeChat) is multipart (data part +
         // optional files) and returns one ApiResponse<String> reply, not a
         // token stream - no streaming endpoint exists in the real backend yet.
@@ -124,7 +138,7 @@ export function useIntakeChat() {
         (archivos ?? []).forEach((archivo) => body.append('files', archivo, archivo.name));
         const res = await fetch(`${API_BASE}/legal/recepcion`, {
           method: 'POST',
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          headers: contextHeaders(),
           body,
         });
 
@@ -162,11 +176,5 @@ export function useIntakeChat() {
     [cargando, flashFields],
   );
 
-  const completoMinimo =
-    draft.tipo !== '' &&
-    draft.querellante.trim() !== '' &&
-    draft.querellado.trim() !== '' &&
-    draft.comportamiento.trim() !== '';
-
-  return { mensajes, draft, setDraft, cargando, recentFields, enviar, completoMinimo, casoRadicado };
+  return { mensajes, draft, cargando, recentFields, enviar, casoRadicado };
 }

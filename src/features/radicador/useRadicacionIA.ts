@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { tokenActual } from '@/shared/auth/auth';
+import { contextHeaders } from '@/shared/api/client';
 import { DESPACHO } from '@/derecho';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api';
@@ -34,7 +34,27 @@ function parseCaseUpdate(texto: string): Partial<RadicacionDraft> {
   const match = CASE_UPDATE_RE.exec(texto);
   if (!match) return {};
   try {
-    return JSON.parse(match[1]) as Partial<RadicacionDraft>;
+    const raw = JSON.parse(match[1]) as Record<string, unknown>;
+    // El agente unificado de recepción emite "partes" como arreglo de objetos;
+    // la ficha de recursos las muestra como una sola línea de texto.
+    const partes = Array.isArray(raw.partes)
+      ? raw.partes
+          .map((p) => {
+            const parte = p as { nombre?: string; rol?: string };
+            return [parte.nombre, parte.rol ? `(${parte.rol})` : ''].filter(Boolean).join(' ');
+          })
+          .join(', ')
+      : (raw.partes as string | undefined);
+    const campos: Partial<RadicacionDraft> = {
+      radicadoOrigen: raw.radicadoOrigen as string | undefined,
+      partes: partes || undefined,
+      fechaDecision: raw.fechaDecision as string | undefined,
+      sustento: raw.sustento as string | undefined,
+      fundamentos: raw.fundamentos as string | undefined,
+    };
+    return Object.fromEntries(
+      Object.entries(campos).filter(([, v]) => v !== undefined && v !== null && v !== ''),
+    ) as Partial<RadicacionDraft>;
   } catch {
     return {};
   }
@@ -91,18 +111,15 @@ export function useRadicacionIA(tipo: TipoRadicacionIA) {
       setCargando(true);
 
       try {
-        const token = tokenActual();
-        // legal's /api/legal/radicador (radicadorChat) takes the raw message
-        // as a plain-text body and returns one ApiResponse<String> JSON
-        // reply, not a token stream - there's no streaming endpoint in the
-        // real backend yet, so the "agente" message is filled in one shot.
-        const res = await fetch(`${API_BASE}/legal/radicador`, {
+        // Chat único de radicación: /legal/recepcion (multipart) atiende
+        // querellas, quejas, actas Y recursos — el <case_update> trae las
+        // claves de recurso (radicadoOrigen, sustento, ...) cuando aplica.
+        const formData = new FormData();
+        formData.append('data', `[Trámite: ${tipo}] ${texto.trim()}`);
+        const res = await fetch(`${API_BASE}/legal/recepcion`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'text/plain',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: texto.trim(),
+          headers: contextHeaders(),
+          body: formData,
         });
 
         if (!res.ok) throw new Error(`HTTP ${res.status}`);

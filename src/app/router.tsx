@@ -14,9 +14,6 @@ const QuerellasListPage = lazy(() =>
 const QuerellaDetailPage = lazy(() =>
   import('@/features/querellas/QuerellaDetailPage').then((m) => ({ default: m.QuerellaDetailPage })),
 );
-const NuevaQuerellaPage = lazy(() =>
-  import('@/features/querellas/NuevaQuerellaPage').then((m) => ({ default: m.NuevaQuerellaPage })),
-);
 const DocumentoPage = lazy(() =>
   import('@/features/querellas/documento/DocumentoPage').then((m) => ({ default: m.DocumentoPage })),
 );
@@ -28,9 +25,6 @@ const MultasPage = lazy(() =>
 );
 const QuejasListPage = lazy(() =>
   import('@/features/quejas/QuejasListPage').then((m) => ({ default: m.QuejasListPage })),
-);
-const NuevaQuejaPage = lazy(() =>
-  import('@/features/quejas/NuevaQuejaPage').then((m) => ({ default: m.NuevaQuejaPage })),
 );
 const QuejaDetailPage = lazy(() =>
   import('@/features/quejas/QuejaDetailPage').then((m) => ({ default: m.QuejaDetailPage })),
@@ -47,6 +41,9 @@ const LandingPage = lazy(() =>
 const AnalisisPage = lazy(() =>
   import('@/features/analisis/AnalisisPage').then((m) => ({ default: m.AnalisisPage })),
 );
+const AjustesPage = lazy(() =>
+  import('@/features/ajustes/AjustesPage').then((m) => ({ default: m.AjustesPage })),
+);
 const FallosPage = lazy(() =>
   import('@/features/fallos/FallosPage').then((m) => ({ default: m.FallosPage })),
 );
@@ -61,6 +58,9 @@ const ActasFirmezaPage = lazy(() =>
 );
 const NormasPage = lazy(() =>
   import('@/features/normas/NormasPage').then((m) => ({ default: m.NormasPage })),
+);
+const ChatGeneralPage = lazy(() =>
+  import('@/features/chat/ChatGeneralPage').then((m) => ({ default: m.ChatGeneralPage })),
 );
 
 // MVP pages (lazy loaded)
@@ -103,19 +103,18 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Cargando><DashboardPage /></Cargando> },
       { path: 'querellas', element: <Cargando><QuerellasListPage /></Cargando> },
-      { path: 'querellas/nueva', element: <Cargando><NuevaQuerellaPage /></Cargando> },
       { path: 'querellas/:id', element: <Cargando><QuerellaDetailPage /></Cargando> },
       {
         path: 'querellas/:id/documento/:tipo',
         element: <Cargando><DocumentoPage /></Cargando>,
       },
       { path: 'quejas', element: <Cargando><QuejasListPage /></Cargando> },
-      { path: 'quejas/nueva', element: <Cargando><NuevaQuejaPage /></Cargando> },
       { path: 'quejas/:id', element: <Cargando><QuejaDetailPage /></Cargando> },
       { path: 'audiencias', element: <Cargando><AudienciasPage /></Cargando> },
       { path: 'nuevo-caso', element: <Cargando><IntakePage /></Cargando> },
       { path: 'fallos', element: <Cargando><FallosPage /></Cargando> },
       { path: 'actas-firmeza', element: <Cargando><ActasFirmezaPage /></Cargando> },
+      { path: 'ajustes', element: <Cargando><AjustesPage /></Cargando> },
       { path: 'medidas-correctivas', element: <Cargando><MultasPage /></Cargando> },
       // Módulos migrados del dashboard Angular (se mantienen montados para deep-links)
       { path: 'analisis', element: <Cargando><AnalisisPage /></Cargando> },
@@ -125,6 +124,7 @@ export const router = createBrowserRouter([
       { path: 'radicador', element: <Cargando><RadicadorPage /></Cargando> },
       { path: 'radicar/:tipo', element: <Cargando><RadicarDocumentoPage /></Cargando> },
       { path: 'cola', element: <Cargando><ColaPage /></Cargando> },
+      { path: 'chat', element: <Cargando><ChatGeneralPage /></Cargando> },
     ],
   },
 ]);

@@ -1,4 +1,5 @@
 import { http, HttpResponse, delay } from 'msw';
+import { uid } from '@/shared/util/uid';
 import {
   querellasMock,
   querellasDetalleMock,
@@ -9,7 +10,6 @@ import {
 } from './data';
 import type { Querella } from '@/features/querellas/types';
 import type { Queja } from '@/features/quejas/types';
-import type { DocumentoCaso } from '@/shared/documentos/types';
 import {
   legalCasesMock,
   legalCaseDetailMock,
@@ -82,7 +82,7 @@ export const handlers = [
     const body = (await request.json()) as Partial<Querella>;
     const consecutivo = 200 + querellasMock.length;
     const nueva: Querella = {
-      id: `q-${crypto.randomUUID().slice(0, 8)}`,
+      id: `q-${uid().slice(0, 8)}`,
       radicado: `2026-${String(consecutivo).padStart(5, '0')}`,
       querellante: body.querellante ?? '',
       querellado: body.querellado ?? '',
@@ -92,7 +92,6 @@ export const handlers = [
       diasTermino: body.diasTermino ?? 15,
     };
     querellasMock.unshift(nueva);
-    const anexosQuerella = (body as { documentos?: { nombre: string; tipo: string }[] }).documentos ?? [];
     querellasDetalleMock[nueva.id] = {
       ...nueva,
       direccionInmueble: (body as { direccionInmueble?: string }).direccionInmueble,
@@ -105,13 +104,6 @@ export const handlers = [
           descripcion: `Se recibe querella de ${nueva.querellante} contra ${nueva.querellado}.`,
         },
       ],
-      documentos: anexosQuerella.map((d, i) => ({
-        id: `${nueva.id}-d${i + 1}`,
-        nombre: d.nombre,
-        tipo: (d.tipo as DocumentoCaso['tipo']) ?? 'otro',
-        origen: 'radicacion',
-        fecha: nueva.fechaRadicacion,
-      })),
     };
     return HttpResponse.json(nueva, { status: 201 });
   }),
@@ -131,7 +123,7 @@ export const handlers = [
       return HttpResponse.json({ message: 'querellaId y fecha son requeridos' }, { status: 400 });
     }
     const nueva = {
-      id: `aud-${crypto.randomUUID().slice(0, 8)}`,
+      id: `aud-${uid().slice(0, 8)}`,
       querellaId: querella.id,
       radicado: querella.radicado,
       fecha: body.fecha,
@@ -169,7 +161,7 @@ export const handlers = [
     const body = (await request.json()) as Partial<Queja>;
     const consecutivo = 60 + quejasMock.length;
     const nueva: Queja = {
-      id: `qj-${crypto.randomUUID().slice(0, 8)}`,
+      id: `qj-${uid().slice(0, 8)}`,
       radicado: `2026-QJ-${String(consecutivo).padStart(3, '0')}`,
       quejoso: body.quejoso ?? '',
       acusado: body.acusado ?? '',
@@ -180,7 +172,6 @@ export const handlers = [
       diasTermino: body.diasTermino ?? 10,
     };
     quejasMock.unshift(nueva);
-    const anexosQueja = (body as { documentos?: { nombre: string; tipo: string }[] }).documentos ?? [];
     quejasDetalleMock[nueva.id] = {
       ...nueva,
       descripcionHechos: (body as { descripcionHechos?: string }).descripcionHechos ?? '',
@@ -193,13 +184,6 @@ export const handlers = [
           descripcion: `Se recibe queja presentada por ${nueva.quejoso} contra ${nueva.acusado}.`,
         },
       ],
-      documentos: anexosQueja.map((d, i) => ({
-        id: `${nueva.id}-d${i + 1}`,
-        nombre: d.nombre,
-        tipo: (d.tipo as DocumentoCaso['tipo']) ?? 'otro',
-        origen: 'radicacion',
-        fecha: nueva.fechaRadicacion,
-      })),
     };
     return HttpResponse.json(nueva, { status: 201 });
   }),
@@ -287,7 +271,7 @@ export const handlers = [
     return HttpResponse.json({
       status: 'SUCCESS',
       message: 'Documento registrado en el archivo digital (mock).',
-      id: `arch-${crypto.randomUUID().slice(0, 8)}`,
+      id: `arch-${uid().slice(0, 8)}`,
     });
   }),
 
@@ -332,7 +316,7 @@ export const handlers = [
     await delay(400);
     const url = new URL(request.url);
     const search = (url.searchParams.get('search') ?? '').toLowerCase();
-    const decision = url.searchParams.get('decision') ?? '';
+    const estado = url.searchParams.get('estado') ?? '';
     const page = Number(url.searchParams.get('page') ?? 0);
     const size = Number(url.searchParams.get('size') ?? 20);
 
@@ -346,8 +330,8 @@ export const handlers = [
           f.comportamiento.toLowerCase().includes(search),
       );
     }
-    if (decision) {
-      lista = lista.filter((f) => f.decision === decision);
+    if (estado) {
+      lista = lista.filter((f) => f.estado === estado);
     }
     const content = lista.slice(page * size, page * size + size);
     return HttpResponse.json({
@@ -400,7 +384,7 @@ export const handlers = [
         radicado = `2026-AP-${String(consecutivo).padStart(4, '0')}`;
         estadoInicial = 'radicada';
         item = {
-          id: `rad-${crypto.randomUUID().slice(0, 8)}`,
+          id: `rad-${uid().slice(0, 8)}`,
           tipo: 'apelacion',
           radicado,
           fechaRadicacion: now,
@@ -416,7 +400,7 @@ export const handlers = [
         radicado = `2026-F2-${String(consecutivo).padStart(4, '0')}`;
         estadoInicial = 'radicada';
         item = {
-          id: `rad-${crypto.randomUUID().slice(0, 8)}`,
+          id: `rad-${uid().slice(0, 8)}`,
           tipo: 'fallo',
           radicado,
           fechaRadicacion: now,
@@ -432,7 +416,7 @@ export const handlers = [
         radicado = `2026-AF-${String(consecutivo).padStart(4, '0')}`;
         estadoInicial = 'pendiente';
         item = {
-          id: `rad-${crypto.randomUUID().slice(0, 8)}`,
+          id: `rad-${uid().slice(0, 8)}`,
           tipo: 'acta_firmeza',
           radicado,
           fechaRadicacion: now,
@@ -444,7 +428,7 @@ export const handlers = [
         radicado = `2026-${String(200 + consecutivo).padStart(5, '0')}`;
         estadoInicial = 'radicada';
         item = {
-          id: `rad-${crypto.randomUUID().slice(0, 8)}`,
+          id: `rad-${uid().slice(0, 8)}`,
           tipo,
           radicado,
           fechaRadicacion: now,
@@ -514,7 +498,7 @@ export const handlers = [
     const body = (await request.json()) as { comparendos: Array<{ comparendo: string; solicitado: string; cedula: string; fechaComparendo: string; tipoMulta: number; causal: string }> };
     const now = new Date().toISOString().slice(0, 10);
     const generadas = body.comparendos.map((c, i) => {
-      const id = `act-lote-${crypto.randomUUID().slice(0, 8)}`;
+      const id = `act-lote-${uid().slice(0, 8)}`;
       const radicado = `2026-AF-L${String(i + 1).padStart(4, '0')}`;
       const item = {
         id,

@@ -1,5 +1,3 @@
-import type { DocumentoCaso } from '@/shared/documentos/types';
-
 export type EstadoQueja =
   | 'radicada'
   | 'en_tramite'
@@ -77,5 +75,13 @@ export interface Queja {
 export interface QuejaDetalle extends Queja {
   descripcionHechos: string;
   actuaciones: ActuacionQueja[];
-  documentos: DocumentoCaso[];
+  /** Blob crudo de metadata (para fusionar antes de escribir cambios). Ausente en datos mock. */
+  caseMetadataRaw?: string | null;
+}
+
+/** Forma de caseMetadata para caseType="queja" - opaco para el backend. */
+export interface QuejaMetadata {
+  asunto: string;
+  categoria: CategoriaQueja;
+  diasTermino: number;
 }

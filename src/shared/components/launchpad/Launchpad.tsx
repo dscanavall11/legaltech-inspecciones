@@ -2,9 +2,12 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import {
-  DollarOutlined,
-  RobotOutlined,
   SettingOutlined,
+  LogoutOutlined,
+  InboxOutlined,
+  BookOutlined,
+  CalculatorOutlined,
+  AuditOutlined,
 } from '@ant-design/icons';
 import {
   LAUNCHPAD_ITEMS,
@@ -13,15 +16,18 @@ import {
   type LaunchpadItem,
 } from './launchpadItems';
 import { LaunchpadTile } from './LaunchpadTile';
-import { useOverlayStore } from '@/store/overlayStore';
+import { limpiarSesion } from '@/shared/auth/auth';
 import { PALETA } from '@/theme/theme';
 import { glassBackdrop } from '@/theme/glass';
 import { usePrefersReducedTransparency } from '@/shared/hooks/usePrefersReducedTransparency';
 
 const ICONOS_LAUNCHPAD: Record<LaunchpadIconKey, ReactNode> = {
-  'medidas-correctivas': <DollarOutlined />,
-  'asistente-ia': <RobotOutlined />,
+  'fallos-proferidos': <AuditOutlined />,
+  'cola-trabajo': <InboxOutlined />,
+  'consulta-normas': <BookOutlined />,
+  'medidas-correctivas': <CalculatorOutlined />,
   'config-inspeccion': <SettingOutlined />,
+  'cerrar-sesion': <LogoutOutlined />,
 };
 
 interface LaunchpadProps {
@@ -33,8 +39,6 @@ export function Launchpad({ abierto, onCerrar }: LaunchpadProps) {
   const reducirMovimiento = useReducedMotion();
   const reducirTransparencia = usePrefersReducedTransparency();
   const navigate = useNavigate();
-  const abrirAiAssistant = useOverlayStore((s) => s.abrirAiAssistant);
-  const abrirConfigAssistant = useOverlayStore((s) => s.abrirConfigAssistant);
   const gridRef = useRef<HTMLDivElement>(null);
   const elementoPrevioRef = useRef<HTMLElement | null>(null);
 
@@ -76,8 +80,10 @@ export function Launchpad({ abierto, onCerrar }: LaunchpadProps) {
 
   function ejecutar(item: LaunchpadItem) {
     if (item.accion.tipo === 'ruta') navigate(item.accion.ruta);
-    if (item.accion.tipo === 'ai-assistant') abrirAiAssistant();
-    if (item.accion.tipo === 'config-assistant') abrirConfigAssistant();
+    if (item.accion.tipo === 'logout') {
+      limpiarSesion();
+      navigate('/login');
+    }
     onCerrar();
   }
 

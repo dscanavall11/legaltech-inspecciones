@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { siguientePasoComparendo } from '@/derecho';
+import { siguientePasoComparendo, ESTADO_DESTINO_RESOLVER_RECURSOS, CONVERSION_ACTA_FIRMEZA } from '@/derecho';
 import type { EstadoComparendo } from '@/derecho';
 
 const TODOS_LOS_ESTADOS: EstadoComparendo[] = [
@@ -60,5 +60,22 @@ describe('siguientePasoComparendo — comparendo (arts. 180, 222, 223, 223A Ley 
         expect(paso.acciones.length).toBeGreaterThan(0);
       }
     }
+  });
+});
+
+// Pin del mapa evento -> estado (comparendo) contra la máquina declarativa en
+// okf-bundles/brains/derecho-policia-convivencia/maquinas-estado.yaml.
+// SiguientePasoComparendo.tsx consume estas mismas constantes — un cambio
+// accidental del destino de una transición rompe este test antes de llegar a
+// producción.
+describe('mapa evento -> estado (comparendo) — espejo de maquinas-estado.yaml', () => {
+  it('resolver_recursos destina siempre a en_firmeza (única transición del YAML para en_recurso)', () => {
+    expect(ESTADO_DESTINO_RESOLVER_RECURSOS).toBe('en_firmeza');
+  });
+
+  it('generar_acta_firmeza es convierte_a (caseType + estado inicial), no una transición in-place', () => {
+    expect(CONVERSION_ACTA_FIRMEZA).toEqual({ caseType: 'acta_firmeza', estadoInicial: 'pendiente' });
+    // El bug corregido: no debe fijar el comparendo en_firmeza directamente.
+    expect(CONVERSION_ACTA_FIRMEZA.estadoInicial).not.toBe('en_firmeza');
   });
 });

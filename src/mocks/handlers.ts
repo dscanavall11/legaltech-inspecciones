@@ -7,6 +7,8 @@ import {
   quejasMock,
   quejasDetalleMock,
   comparendosLegalCaseMock,
+  querellasLegalCaseMock,
+  quejasLegalCaseMock,
   RESPUESTA_IA_DEMO,
 } from './data';
 import type { Querella } from '@/features/querellas/types';
@@ -42,6 +44,17 @@ const actasMock: Array<{
   estado: 'pendiente' | 'generada' | 'revisada' | 'expedida';
   datos: any;
 }> = [];
+
+// querellasLegalCaseMock/quejasLegalCaseMock (ver data.ts) espejan
+// querellasDetalleMock/quejasDetalleMock como LegalCase para que los
+// handlers genéricos de /legal-cases (find-by-criteria, :id, PATCH
+// state/fields) no devuelvan vacío/404 cuando el caseType consultado es
+// "querella" o "queja" en vez de "comparendo".
+const legalCasesStore = (): LegalCase[] => [
+  ...comparendosLegalCaseMock,
+  ...querellasLegalCaseMock,
+  ...quejasLegalCaseMock,
+];
 
 /**
  * Handlers de MSW. Definen el contrato de la API que el backend Spring deberá
@@ -204,7 +217,9 @@ export const handlers = [
   // comparendos consume directamente src/shared/legalCases/api.ts, así que
   // estos handlers mockean el contrato real caseType-agnóstico. Aditivo: no
   // toca los handlers legacy de querellas/quejas ni el /legal-cases plano
-  // (dataLegacy) usado por CasosPage.
+  // (dataLegacy) usado por CasosPage. legalCasesStore() (arriba) combina
+  // comparendo/querella/queja para que este recurso genérico también
+  // resuelva esos caseTypes bajo mocks.
 
   http.get(`${API}/legal-cases/find-by-criteria`, async ({ request }) => {
     await delay(350);
@@ -215,7 +230,7 @@ export const handlers = [
     const page = Number(url.searchParams.get('page') ?? 0);
     const size = Number(url.searchParams.get('size') ?? 50);
 
-    let lista = comparendosLegalCaseMock;
+    let lista = legalCasesStore();
     if (caseType) lista = lista.filter((c) => c.caseType === caseType);
     if (state) lista = lista.filter((c) => c.currentStateCode === state);
     if (search) lista = lista.filter((c) => c.filingNumber.toLowerCase().includes(search));
@@ -233,11 +248,14 @@ export const handlers = [
 
   http.get(`${API}/legal-cases/:id`, async ({ params }) => {
     await delay(300);
-    const caso = comparendosLegalCaseMock.find((c) => c.id === params.id);
+    const caso = legalCasesStore().find((c) => c.id === params.id);
     if (!caso) return HttpResponse.json({ message: 'Expediente no encontrado' }, { status: 404 });
     return HttpResponse.json(caso);
   }),
 
+  // Solo crea expedientes caseType="comparendo" (único flujo de alta vía este
+  // recurso genérico hoy); querella/queja se radican por POST /querellas y
+  // /quejas arriba, cuyos handlers ya mantienen su propio mock legacy.
   http.post(`${API}/legal-cases`, async ({ request }) => {
     await delay(500);
     const body = (await request.json()) as Partial<LegalCase> & { caseType: string };
@@ -268,7 +286,7 @@ export const handlers = [
 
   http.patch(`${API}/legal-cases/:id/state`, async ({ params, request }) => {
     await delay(350);
-    const caso = comparendosLegalCaseMock.find((c) => c.id === params.id);
+    const caso = legalCasesStore().find((c) => c.id === params.id);
     if (!caso) return HttpResponse.json({ message: 'Expediente no encontrado' }, { status: 404 });
     const { state } = (await request.json()) as { state: string };
     caso.currentStateCode = state;
@@ -281,7 +299,7 @@ export const handlers = [
 
   http.patch(`${API}/legal-cases/:id/fields`, async ({ params, request }) => {
     await delay(350);
-    const caso = comparendosLegalCaseMock.find((c) => c.id === params.id);
+    const caso = legalCasesStore().find((c) => c.id === params.id);
     if (!caso) return HttpResponse.json({ message: 'Expediente no encontrado' }, { status: 404 });
     const fields = (await request.json()) as Partial<LegalCase>;
     Object.assign(caso, fields);

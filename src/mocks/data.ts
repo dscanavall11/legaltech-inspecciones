@@ -3,11 +3,13 @@ import type {
   Actuacion,
   Querella,
   QuerellaDetalle,
+  QuerellaMetadata,
 } from '@/features/querellas/types';
 import type {
   ActuacionQueja,
   Queja,
   QuejaDetalle,
+  QuejaMetadata,
 } from '@/features/quejas/types';
 import type { LegalCase } from '@/shared/legalCases/types';
 import { buildCaseMetadata } from '@/shared/legalCases/types';
@@ -396,6 +398,84 @@ export const quejasDetalleMock: Record<string, QuejaDetalle> =
       },
     ]),
   );
+
+// ────────────────────────────────────────────────
+// Querellas y quejas — espejo como recurso genérico /legal-cases
+// (caseType="querella"/"queja"), derivado 1:1 de querellasDetalleMock y
+// quejasDetalleMock de arriba (misma fuente, sin duplicar datos de negocio).
+// Sin esto, los handlers genéricos de /legal-cases (find-by-criteria, :id,
+// PATCH state/fields — ver handlers.ts) devuelven listas vacías o 404 para
+// cualquier caseType distinto de "comparendo", porque solo conocían
+// comparendosLegalCaseMock.
+// ────────────────────────────────────────────────
+
+function construirQuerellaLegalCase(q: QuerellaDetalle): LegalCase {
+  const creado = dayjs(q.fechaRadicacion).toISOString();
+  return {
+    id: q.id,
+    createdAt: creado,
+    filingNumber: q.radicado,
+    judicialOfficeId: '',
+    caseType: 'querella',
+    rulingDate: null,
+    venueCity: 'Manizales',
+    evidenceAssessment: null,
+    legalReasoning: null,
+    currentStateCode: q.estado,
+    caseMetadata: buildCaseMetadata({
+      asunto: q.asunto,
+      direccionInmueble: q.direccionInmueble,
+      diasTermino: q.diasTermino,
+    } satisfies QuerellaMetadata),
+    background: { allegedFacts: q.asunto ?? null, reliefSought: null, defensesAndObjections: null },
+    ruling: null,
+    parties: [
+      { partyRole: 'querellante', identificationType: 'N/A', identificationNumber: '', fullName: q.querellante },
+      { partyRole: 'querellado', identificationType: 'N/A', identificationNumber: '', fullName: q.querellado },
+    ],
+    stateHistory: [
+      { stateCode: q.estado, stateName: null, changedAt: creado, reason: 'Radicación de la querella' },
+    ],
+  };
+}
+
+export const querellasLegalCaseMock: LegalCase[] = querellasMock.map((q) =>
+  construirQuerellaLegalCase(querellasDetalleMock[q.id]),
+);
+
+function construirQuejaLegalCase(q: QuejaDetalle): LegalCase {
+  const creado = dayjs(q.fechaRadicacion).toISOString();
+  return {
+    id: q.id,
+    createdAt: creado,
+    filingNumber: q.radicado,
+    judicialOfficeId: '',
+    caseType: 'queja',
+    rulingDate: null,
+    venueCity: 'Manizales',
+    evidenceAssessment: null,
+    legalReasoning: null,
+    currentStateCode: q.estado,
+    caseMetadata: buildCaseMetadata({
+      asunto: q.asunto,
+      categoria: q.categoria,
+      diasTermino: q.diasTermino,
+    } satisfies QuejaMetadata),
+    background: { allegedFacts: q.descripcionHechos ?? null, reliefSought: null, defensesAndObjections: null },
+    ruling: null,
+    parties: [
+      { partyRole: 'quejoso', identificationType: 'N/A', identificationNumber: '', fullName: q.quejoso },
+      { partyRole: 'acusado', identificationType: 'N/A', identificationNumber: '', fullName: q.acusado },
+    ],
+    stateHistory: [
+      { stateCode: q.estado, stateName: null, changedAt: creado, reason: 'Radicación de la queja' },
+    ],
+  };
+}
+
+export const quejasLegalCaseMock: LegalCase[] = quejasMock.map((q) =>
+  construirQuejaLegalCase(quejasDetalleMock[q.id]),
+);
 
 // ────────────────────────────────────────────────
 // Comparendos — usa el recurso genérico /legal-cases (caseType="comparendo"),

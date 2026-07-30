@@ -65,6 +65,25 @@ export interface AccionComparendo {
   primaria: boolean;
 }
 
+/**
+ * Destino único de `resolver_recursos` en el YAML (comparendo): en_recurso ->
+ * en_firmeza. No existe una rama que archive directo sin pasar por firmeza —
+ * el sentido de la resolución (confirma/modifica/revoca) es metadata de la
+ * actuación, no un estado alterno.
+ */
+export const ESTADO_DESTINO_RESOLVER_RECURSOS: EstadoComparendo = 'en_firmeza';
+
+/**
+ * `generar_acta_firmeza` es `convierte_a` en el YAML, no una transición
+ * in-place: el expediente cambia de caseType a `acta_firmeza` y arranca en el
+ * estado inicial de esa máquina (pendiente -> generada -> revisada ->
+ * expedida, con soberanía de firma humana en `expedir`).
+ */
+export const CONVERSION_ACTA_FIRMEZA = {
+  caseType: 'acta_firmeza',
+  estadoInicial: 'pendiente',
+} as const;
+
 export interface PasoFlujoComparendo {
   /** Mensaje que contextualiza en qué punto del trámite está el caso. */
   mensaje: string;

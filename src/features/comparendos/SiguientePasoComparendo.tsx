@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Card,
   Button,
@@ -39,7 +40,15 @@ import {
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import type { ReactNode } from 'react';
-import { siguientePasoComparendo, generarActaFirmeza, type AccionComparendoTipo, type EstadoComparendo, type DatosActaFirmeza } from '@/derecho';
+import {
+  siguientePasoComparendo,
+  generarActaFirmeza,
+  ESTADO_DESTINO_RESOLVER_RECURSOS,
+  CONVERSION_ACTA_FIRMEZA,
+  type AccionComparendoTipo,
+  type EstadoComparendo,
+  type DatosActaFirmeza,
+} from '@/derecho';
 import { useChangeCaseState, useUpdateCaseFields } from '@/shared/legalCases/api';
 import { parseCaseMetadata, buildCaseMetadata } from '@/shared/legalCases/types';
 import { descargarActaPdf } from '@/features/actas/actaPdf';
@@ -202,6 +211,7 @@ export function SiguientePasoComparendo({
   /** Expediente completo: necesario para generar el acta de firmeza de la etapa. */
   caso?: ComparendoDetalle;
 }) {
+  const navigate = useNavigate();
   const { message } = App.useApp();
   const paso = siguientePasoComparendo(estado);
   const cambiarEstado = useChangeCaseState();
@@ -324,6 +334,33 @@ export function SiguientePasoComparendo({
     const acta = generarActaFirmeza(datos);
     // Advisory: la descarga del PDF nunca bloquea la actuación procesal ya registrada.
     void descargarActaPdf(acta, inspeccion.membreteDataUrl).catch(() => undefined);
+  }
+
+  function darTramiteActaFirmeza() {
+    // `generar_acta_firmeza` es convierte_a en el YAML: el MISMO expediente
+    // cambia de caseType (comparendo -> acta_firmeza) y arranca en el estado
+    // inicial de esa máquina, no en 'en_firmeza' del comparendo — mismo
+    // patrón que darTramiteQuerella en SiguientePasoQueja.
+    generarYDescargarActaFirmeza();
+    actualizarCampos.mutate(
+      { id, fields: { caseType: CONVERSION_ACTA_FIRMEZA.caseType } },
+      {
+        onSuccess: () => {
+          cambiarEstado.mutate(
+            { id, state: CONVERSION_ACTA_FIRMEZA.estadoInicial },
+            {
+              onSuccess: () => {
+                setModalActaFirmeza(false);
+                message.success('Acta de firmeza generada. La multa general queda en firme (lit. e, art. 223A).');
+                navigate('/panel/comparendos');
+              },
+              onError: () => message.error('No se pudo dejar en firme el expediente. Intente de nuevo.'),
+            },
+          );
+        },
+        onError: () => message.error('No se pudo generar el acta de firmeza. Intente de nuevo.'),
+      },
+    );
   }
 
   if (paso.terminal) {
@@ -595,12 +632,18 @@ export function SiguientePasoComparendo({
         onOk={() => {
           if (!resolucionRecurso) return;
           setModalResolucion(false);
-          const archivaDirecto = resolucionRecurso === 'revoca_absuelve';
+          // El YAML solo define en_recurso -> en_firmeza para resolver_recursos:
+          // el sentido de la resolución es metadata de la actuación, nunca un
+          // estado alterno (revocar/absolver tampoco archiva directo).
+          const metaExtra: Record<string, unknown> =
+            resolucionRecurso === 'revoca_absuelve'
+              ? { resolucionRecurso, sentido: 'absuelve' }
+              : { resolucionRecurso };
           transicionar(
-            archivaDirecto ? 'archivado' : 'en_firmeza',
-            { resolucionRecurso, ...(archivaDirecto ? { sentido: 'absuelve' } : {}) },
-            archivaDirecto
-              ? 'Decisión revocada: se absuelve al citado. Expediente archivado.'
+            ESTADO_DESTINO_RESOLVER_RECURSOS,
+            metaExtra,
+            resolucionRecurso === 'revoca_absuelve'
+              ? 'Decisión revocada: se absuelve al citado. Decisión en firme.'
               : 'Resolución de recursos registrada. Decisión en firme.',
           );
         }}
@@ -611,7 +654,7 @@ export function SiguientePasoComparendo({
             <Space direction="vertical">
               <Radio value="confirma">Confirma la decisión — queda en firme</Radio>
               <Radio value="modifica">Modifica la decisión — mantiene la sanción, queda en firme</Radio>
-              <Radio value="revoca_absuelve">Revoca la decisión — se absuelve, se archiva</Radio>
+              <Radio value="revoca_absuelve">Revoca la decisión — se absuelve, queda en firme</Radio>
             </Space>
           </Radio.Group>
         </Space>
@@ -625,15 +668,7 @@ export function SiguientePasoComparendo({
         cancelText="Cancelar"
         okButtonProps={{ loading: pendiente }}
         onCancel={() => setModalActaFirmeza(false)}
-        onOk={() => {
-          setModalActaFirmeza(false);
-          generarYDescargarActaFirmeza();
-          transicionar(
-            'en_firmeza',
-            undefined,
-            'Acta de firmeza generada. La multa general queda en firme (lit. e, art. 223A).',
-          );
-        }}
+        onOk={darTramiteActaFirmeza}
       >
         <Alert
           type="info"

@@ -66,19 +66,19 @@ describe('acapitesModificados', () => {
 describe('acapitesSinGuardar', () => {
   it('no reporta nada cuando la edición en curso coincide con la última guardada', () => {
     const guardadas = { hechos: 'Editado y guardado.' };
-    expect(acapitesSinGuardar(guardadas, guardadas)).toEqual([]);
+    expect(acapitesSinGuardar(ACAPITES, guardadas, guardadas)).toEqual([]);
   });
 
   it('reporta un acápite recién editado que aún no se guardó', () => {
     const guardadas = {};
     const enCurso = { hechos: 'Recién escrito, sin guardar.' };
-    expect(acapitesSinGuardar(enCurso, guardadas)).toEqual(['hechos']);
+    expect(acapitesSinGuardar(ACAPITES, enCurso, guardadas)).toEqual(['hechos']);
   });
 
   it('se vacía justo después de guardar, aunque siga difiriendo del original (no confundir con acapitesModificados)', () => {
     const edicionesGuardadas = { hechos: 'Editado y ya guardado — distinto del original.' };
     // Tras un guardarCambios exitoso, `ediciones` pasa a ser exactamente lo guardado.
-    expect(acapitesSinGuardar(edicionesGuardadas, edicionesGuardadas)).toEqual([]);
+    expect(acapitesSinGuardar(ACAPITES, edicionesGuardadas, edicionesGuardadas)).toEqual([]);
     // Pero acapitesModificados (contra el original) lo sigue marcando "Editado".
     expect(acapitesModificados(ACAPITES, edicionesGuardadas)).toEqual(['hechos']);
   });
@@ -86,6 +86,25 @@ describe('acapitesSinGuardar', () => {
   it('reporta un acápite modificado tras guardarse una vez y volver a editarse', () => {
     const edicionesGuardadas = { hechos: 'Primera versión guardada.' };
     const enCurso = { hechos: 'Segunda edición, todavía sin guardar.' };
-    expect(acapitesSinGuardar(enCurso, edicionesGuardadas)).toEqual(['hechos']);
+    expect(acapitesSinGuardar(ACAPITES, enCurso, edicionesGuardadas)).toEqual(['hechos']);
+  });
+
+  it('no reporta nada al abrir un editor sin escribir (sembrado con el texto original, sin línea base guardada)', () => {
+    // alternarEdicion siembra ediciones[id] = textoAcapite(original) al abrir el editor.
+    const ediciones = { hechos: textoAcapite(ACAPITES[0]) };
+    expect(acapitesSinGuardar(ACAPITES, ediciones, {})).toEqual([]);
+  });
+
+  it('no reporta nada si se edita y se vuelve a dejar el texto original, sin línea base guardada', () => {
+    const ediciones = { hechos: 'Cambio momentáneo.' };
+    expect(acapitesSinGuardar(ACAPITES, ediciones, {})).toEqual(['hechos']);
+    const revertido = { hechos: textoAcapite(ACAPITES[0]) };
+    expect(acapitesSinGuardar(ACAPITES, revertido, {})).toEqual([]);
+  });
+
+  it('sigue marcando dirty si el texto vuelve al original pero difiere de una línea base ya guardada', () => {
+    const edicionesGuardadas = { hechos: 'Editado y guardado — distinto del original.' };
+    const revertidoAlOriginal = { hechos: textoAcapite(ACAPITES[0]) };
+    expect(acapitesSinGuardar(ACAPITES, revertidoAlOriginal, edicionesGuardadas)).toEqual(['hechos']);
   });
 });

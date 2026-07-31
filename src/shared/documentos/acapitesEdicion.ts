@@ -41,12 +41,20 @@ export function acapitesModificados(acapites: Acapite[], ediciones: AcapitesEdit
 
 /**
  * Ids de acápites cuya edición en curso todavía no se persistió: compara
- * contra la última versión guardada en caseMetadata (no contra el original),
- * así que se vacía justo después de un "Guardar cambios" exitoso — a
- * diferencia de `acapitesModificados`, que sigue marcando el acápite como
+ * contra la última versión guardada en caseMetadata (o, si nunca se guardó
+ * ese acápite, contra su texto original) — así abrir un editor sin escribir
+ * nada no cuenta como "sin guardar" (el valor sembrado al abrir coincide con
+ * el original), y se vacía justo después de un "Guardar cambios" exitoso —
+ * a diferencia de `acapitesModificados`, que sigue marcando el acápite como
  * "Editado" indefinidamente porque difiere del texto generado.
  */
-export function acapitesSinGuardar(ediciones: AcapitesEditados, edicionesGuardadas: AcapitesEditados): string[] {
-  const ids = new Set([...Object.keys(ediciones), ...Object.keys(edicionesGuardadas)]);
-  return [...ids].filter((id) => ediciones[id] !== edicionesGuardadas[id]);
+export function acapitesSinGuardar(acapites: Acapite[], ediciones: AcapitesEditados, edicionesGuardadas: AcapitesEditados): string[] {
+  return acapites
+    .filter((a) => {
+      const actual = ediciones[a.id];
+      if (actual === undefined) return false;
+      const base = edicionesGuardadas[a.id] ?? textoAcapite(a);
+      return actual !== base;
+    })
+    .map((a) => a.id);
 }

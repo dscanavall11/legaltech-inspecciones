@@ -110,7 +110,10 @@ export function DocumentoEditorPage({
   // "Editado": difiere del texto original generado (marca permanente, sobrevive al guardado).
   const modificados = useMemo(() => acapitesModificados(acapites, ediciones), [acapites, ediciones]);
   // "Sin guardar": difiere de la última versión persistida (se vacía justo al guardar).
-  const sinGuardar = useMemo(() => acapitesSinGuardar(ediciones, edicionesGuardadas), [ediciones, edicionesGuardadas]);
+  const sinGuardar = useMemo(
+    () => acapitesSinGuardar(acapites, ediciones, edicionesGuardadas),
+    [acapites, ediciones, edicionesGuardadas],
+  );
 
   const irAAcapite = (acapiteId: string) => {
     setActivo(acapiteId);

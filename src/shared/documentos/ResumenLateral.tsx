@@ -9,7 +9,9 @@ const { Text, Paragraph } = Typography;
 /**
  * Panel lateral de resumen con IA (tier suave, Gemini). Genera bajo demanda
  * un resumen en texto plano del documento - el backend real no produce
- * acápites/razones-de-peso/normas-citadas estructurados, solo texto.
+ * acápites/razones-de-peso/normas-citadas estructurados, solo texto. Sin
+ * acoplamiento a ningún dominio (querella/comparendo/...) — Task 18 lo
+ * promueve a compartido junto con el resto del visor de documento.
  */
 export function ResumenLateral({
   tipoDocumento,

@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Card, Switch, Popover, Popconfirm, Button, Drawer, Typography, Space, Tag, App } from 'antd';
+import { Card, Switch, Popover, Popconfirm, Button, Typography, Space, Tag, App } from 'antd';
 import { EyeOutlined, SendOutlined } from '@ant-design/icons';
 import { agruparEstadosPorEtapa, derivarEstadosFlujo, type EstadoNodoFlujo, type TransicionFlujo } from '@/derecho';
 import { useChangeCaseState } from '@/shared/legalCases/api';
 import { useInspeccionStore } from '@/store/inspeccionStore';
-import { generarBlobEjemploPlantilla, NOMBRE_PLANTILLA } from '@/features/ajustes/ejemploPlantillas';
-import { PdfViewer } from '@/shared/documentos/PdfViewer';
+import { generarBlobEjemploPlantilla, NOMBRE_PLANTILLA } from '@/shared/documentos/ejemploPlantillas';
+import { VisorLateral } from '@/shared/documentos/VisorLateral';
 import { PALETA, ELEVACION } from '@/theme/theme';
 
 const { Text } = Typography;
@@ -299,9 +299,7 @@ export function FlujoNavegable<TEstado extends string>({
         ))}
       </div>
 
-      <Drawer title={previa?.nombre} open={previa !== null} onClose={() => setPrevia(null)} width={720}>
-        {previa && <PdfViewer archivo={previa.blob} />}
-      </Drawer>
+      <VisorLateral titulo={previa?.nombre} abierto={previa !== null} archivo={previa?.blob ?? null} onCerrar={() => setPrevia(null)} />
     </Card>
   );
 }

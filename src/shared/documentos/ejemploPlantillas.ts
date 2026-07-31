@@ -21,6 +21,10 @@ import { generarActaFirmezaBlob } from '@/features/actas/actaPdf';
  * real del despacho cuando existen, porque son precisamente lo que la
  * previsualización debe mostrar; ciudadano/comparendo/testigo son siempre
  * inventados.
+ *
+ * Compartido (Task 18): antes vivía en features/ajustes, importado también
+ * desde comparendos vía FlujoNavegable — se movió a shared/documentos para
+ * no acoplar comparendos a ajustes.
  */
 const EJEMPLO_BASE = {
   proceso: '2026-EJ-0001',

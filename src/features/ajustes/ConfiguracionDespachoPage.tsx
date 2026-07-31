@@ -11,7 +11,6 @@ import {
   Table,
   Skeleton,
   Alert,
-  Drawer,
   Space,
   Popconfirm,
 } from 'antd';
@@ -36,8 +35,8 @@ import {
   type NivelResolucionPlantilla,
 } from './useTemplateResolution';
 import { derivarEstadoChecklist, type ChecklistItemEstado, type TipoItemChecklist } from './checklistDespacho';
-import { generarBlobEjemploPlantilla, NOMBRE_PLANTILLA } from './ejemploPlantillas';
-import { PdfViewer } from '@/shared/documentos/PdfViewer';
+import { generarBlobEjemploPlantilla, NOMBRE_PLANTILLA } from '@/shared/documentos/ejemploPlantillas';
+import { VisorLateral } from '@/shared/documentos/VisorLateral';
 import { PALETA, ELEVACION } from '@/theme/theme';
 import { ChecklistVisual } from '@/shared/components/ChecklistVisual';
 
@@ -456,14 +455,7 @@ export function ConfiguracionDespachoPage() {
         </Space>
       )}
 
-      <Drawer
-        title={previa?.nombre}
-        open={previa !== null}
-        onClose={() => setPrevia(null)}
-        width={720}
-      >
-        {previa && <PdfViewer archivo={previa.blob} />}
-      </Drawer>
+      <VisorLateral titulo={previa?.nombre} abierto={previa !== null} archivo={previa?.blob ?? null} onCerrar={() => setPrevia(null)} />
     </div>
   );
 }

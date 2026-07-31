@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Upload, Typography, App, Drawer, Tooltip, Skeleton, Alert } from 'antd';
+import { Button, Upload, Typography, App, Tooltip, Skeleton, Alert } from 'antd';
 import {
   FilePdfOutlined,
   FileWordOutlined,
@@ -14,7 +14,7 @@ import type { ReactNode } from 'react';
 import dayjs from 'dayjs';
 import { CASE_DOCUMENT_ORIGIN_LABEL, type CaseDocument, type CaseDocumentType } from './types';
 import { useCaseDocuments, useUploadCaseDocument, getCaseDocumentDownloadUrl } from './api';
-import { PdfViewer } from './PdfViewer';
+import { VisorLateral } from './VisorLateral';
 import { PALETA } from '@/theme/theme';
 
 const { Text } = Typography;
@@ -188,17 +188,15 @@ export function DocumentosExpediente({ caseId }: { caseId: string }) {
         </Upload>
       </div>
 
-      <Drawer
-        title={docEnVista?.fileName}
-        open={docEnVista !== null}
-        onClose={() => {
+      <VisorLateral
+        titulo={docEnVista?.fileName}
+        abierto={docEnVista !== null}
+        archivo={urlVista}
+        onCerrar={() => {
           setDocEnVista(null);
           setUrlVista(null);
         }}
-        width={720}
-      >
-        {urlVista && <PdfViewer archivo={urlVista} />}
-      </Drawer>
+      />
     </div>
   );
 }

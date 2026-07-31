@@ -125,8 +125,36 @@ export interface ComparendoMetadata {
   /** emitir_fallo / fallo_por_inasistencia */
   sentido?: 'absuelve' | 'sanciona';
   variante?: string;
+  /** Discriminador real de fallo-comparendo.yaml (generador), distinto del rótulo libre `variante` de arriba. */
+  varianteFallo?: string;
   /** suscribir_acta_pronto_pago / suscribir_acta_conmutacion */
   fechaCompromiso?: string; // ISO date
   /** resolver_recursos */
   resolucionRecurso?: 'confirma' | 'revoca_absuelve' | 'modifica';
+
+  // ── Datos jurídicos reutilizados por los generadores de documentos
+  // (decretar_pruebas / constancia_inasistencia / emitir_fallo /
+  // fallo_por_inasistencia / terminar_por_inactividad) — se piden una vez y
+  // se recuerdan entre actuaciones del mismo expediente. ─────────────────────
+  bienJuridico?: string;
+  medidasCorrectivas?: string;
+  apeloSiNo?: 'SI' | 'NO';
+  descargos?: string;
+  pruebasPracticadas?: string[];
+  /** solo variante absuelve_unica */
+  aplicaActividadPedagogica?: boolean;
+  /** solo variantes sanciona_continuacion / inasistencia — dato de oficina, nunca hardcodear */
+  cuentaRecaudo?: string;
+  titularCuenta?: string;
+  nitTitular?: string;
+  /** solo variante terminacion_inactividad */
+  comparecioVoluntariamente?: boolean;
+  terminoActividadPedagogica?: string;
+  /** avocar_y_citar_audiencia */
+  medioNotificacionAutorizado?: string;
+  /** constancia_incumplimiento_pago */
+  documentoCobro?: string;
+  /** constancia_incumplimiento_actividad — auxiliar de oficina, nunca el inspector por defecto */
+  firmanteNombre?: string;
+  firmanteRol?: string;
 }

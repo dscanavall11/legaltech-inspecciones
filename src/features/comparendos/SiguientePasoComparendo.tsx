@@ -11,6 +11,7 @@ import {
   Select,
   Input,
   Radio,
+  Checkbox,
   Alert,
   App,
 } from 'antd';
@@ -43,17 +44,28 @@ import type { ReactNode } from 'react';
 import {
   siguientePasoComparendo,
   generarActaFirmeza,
+  generarAutoAvocaCitaAudiencia,
+  generarAutoDecretaPruebasSuspende,
+  generarAutoInasistencia,
+  generarFalloComparendo,
+  generarConstanciaIncumplimientoProntoPago,
+  generarConstanciaIncumplimientoActividadPedagogica,
   ESTADO_DESTINO_RESOLVER_RECURSOS,
   CONVERSION_ACTA_FIRMEZA,
   type AccionComparendoTipo,
   type EstadoComparendo,
   type DatosActaFirmeza,
+  type DocumentoLegal,
+  type VarianteFallo,
 } from '@/derecho';
 import { useChangeCaseState, useUpdateCaseFields } from '@/shared/legalCases/api';
 import { parseCaseMetadata, buildCaseMetadata } from '@/shared/legalCases/types';
 import { descargarActaPdf } from '@/features/actas/actaPdf';
+import { generarDocumentoLegalBlob } from '@/shared/documentos/documentoLegalPdf';
+import { PdfViewer } from '@/shared/documentos/PdfViewer';
+import { useUploadCaseDocument } from '@/shared/documentos/api';
 import { useInspeccionStore } from '@/store/inspeccionStore';
-import type { ComparendoDetalle } from './types';
+import type { ComparendoDetalle, ComparendoMetadata } from './types';
 import { PALETA } from '@/theme/theme';
 
 const { Text } = Typography;
@@ -119,13 +131,6 @@ const SIMPLE_ACCIONES: Partial<
     descripcion: 'Confirma la instalación de la audiencia pública dentro del proceso verbal abreviado.',
     exito: 'Audiencia instalada.',
   },
-  constancia_inasistencia: {
-    estado: 'suspendida_inasistencia',
-    titulo: 'Dejar constancia de inasistencia',
-    descripcion:
-      'El citado no compareció dentro de los quince (15) minutos de espera. Se suspende la audiencia por tres (3) días para acreditar justa causa.',
-    exito: 'Constancia de inasistencia registrada.',
-  },
   reanudar_audiencia: {
     estado: 'en_audiencia',
     titulo: 'Reanudar audiencia',
@@ -151,25 +156,12 @@ const SIMPLE_ACCIONES: Partial<
     descripcion: 'Confirma el soporte de pago del pronto pago dentro del término. El expediente se archiva.',
     exito: 'Pago confirmado. Expediente archivado.',
   },
-  constancia_incumplimiento_pago: {
-    estado: 'incumplimiento_constatado',
-    titulo: 'Constancia de incumplimiento de pronto pago',
-    descripcion: 'No se allegó soporte de pago dentro del término. Se remitirá a cobro coactivo por el valor total.',
-    exito: 'Incumplimiento de pronto pago constatado.',
-  },
   confirmar_actividad: {
     estado: 'archivado',
     titulo: 'Confirmar actividad pedagógica y archivar',
     descripcion:
       'Confirma la asistencia y cumplimiento de la actividad pedagógica o programa comunitario (Sispaz). El expediente se archiva.',
     exito: 'Actividad pedagógica confirmada. Expediente archivado.',
-  },
-  constancia_incumplimiento_actividad: {
-    estado: 'incumplimiento_constatado',
-    titulo: 'Constancia de inasistencia a actividad pedagógica',
-    descripcion:
-      'No se acreditó la asistencia a la actividad pedagógica o programa comunitario. Se remitirá a cobro coactivo por el valor total.',
-    exito: 'Inasistencia a actividad pedagógica constatada.',
   },
   remitir_cobro_coactivo: {
     estado: 'archivado',
@@ -182,12 +174,6 @@ const SIMPLE_ACCIONES: Partial<
     titulo: 'Ordenar archivo',
     descripcion: 'Ordena el archivo definitivo del expediente.',
     exito: 'Expediente archivado.',
-  },
-  terminar_por_inactividad: {
-    estado: 'terminado_inactividad',
-    titulo: 'Terminar por inactividad',
-    descripcion: 'El trámite termina por inactividad procesal (ausencia de impulso dentro de los términos).',
-    exito: 'Trámite terminado por inactividad procesal.',
   },
 };
 
@@ -216,7 +202,12 @@ export function SiguientePasoComparendo({
   const paso = siguientePasoComparendo(estado);
   const cambiarEstado = useChangeCaseState();
   const actualizarCampos = useUpdateCaseFields();
+  const subirDocumento = useUploadCaseDocument(id);
   const inspeccion = useInspeccionStore((s) => s.config);
+  // Datos jurídicos ya capturados en actuaciones anteriores del mismo
+  // expediente (bienJuridico, medidasCorrectivas, descargos, pruebas…) se
+  // recuerdan aquí para no pedirlos de nuevo en cada modal.
+  const meta = parseCaseMetadata<Partial<ComparendoMetadata>>(caseMetadata ?? null);
 
   function transicionar(nuevoEstado: EstadoComparendo, metaExtra?: Record<string, unknown>, exito?: string) {
     cambiarEstado.mutate(
@@ -244,11 +235,23 @@ export function SiguientePasoComparendo({
   const [fechaAudiencia, setFechaAudiencia] = useState<Dayjs | null>(null);
   const [horaAudiencia, setHoraAudiencia] = useState<Dayjs | null>(null);
   const [lugarAudiencia, setLugarAudiencia] = useState('');
+  const [medioNotificacionAutorizado, setMedioNotificacionAutorizado] = useState('');
+
+  // ── Constancia de inasistencia a audiencia (auto-inasistencia.yaml) ──────
+  const [modalInasistenciaAuto, setModalInasistenciaAuto] = useState(false);
 
   // ── Decretar pruebas y suspender ───────────────────────────────────────────
   const [modalPruebas, setModalPruebas] = useState(false);
   const [pruebasDecretadas, setPruebasDecretadas] = useState<string[]>([]);
   const [fechaReanudacion, setFechaReanudacion] = useState<Dayjs | null>(null);
+
+  // ── Datos jurídicos del comportamiento — compartidos por decretar_pruebas /
+  //    constancia_inasistencia / emitir_fallo / fallo_por_inasistencia /
+  //    terminar_por_inactividad; se piden una vez y se recuerdan. ───────────
+  const [bienJuridico, setBienJuridico] = useState('');
+  const [medidasCorrectivas, setMedidasCorrectivas] = useState('');
+  const [apeloSiNo, setApeloSiNo] = useState<'SI' | 'NO'>('NO');
+  const [descargos, setDescargos] = useState('');
 
   // ── Registrar impugnación ──────────────────────────────────────────────────
   const [modalImpugnacion, setModalImpugnacion] = useState(false);
@@ -264,6 +267,19 @@ export function SiguientePasoComparendo({
   const [modalFallo, setModalFallo] = useState<'emitir_fallo' | 'fallo_por_inasistencia' | null>(null);
   const [sentido, setSentido] = useState<'absuelve' | 'sanciona' | null>(null);
   const [variante, setVariante] = useState('');
+  // Discriminador real de fallo-comparendo.yaml — distinto del rótulo libre `variante` de arriba.
+  const [varianteFallo, setVarianteFallo] = useState<VarianteFallo | ''>('');
+  const [pruebasPracticadas, setPruebasPracticadas] = useState<string[]>([]);
+  const [fechaAudienciaAnterior, setFechaAudienciaAnterior] = useState<Dayjs | null>(null);
+  const [aplicaActividadPedagogica, setAplicaActividadPedagogica] = useState(false);
+  const [cuentaRecaudo, setCuentaRecaudo] = useState('');
+  const [titularCuenta, setTitularCuenta] = useState('');
+  const [nitTitular, setNitTitular] = useState('');
+
+  // ── Terminar por inactividad (fallo-comparendo.yaml, terminacion_inactividad) ──
+  const [modalTerminacionInactividad, setModalTerminacionInactividad] = useState(false);
+  const [comparecioVoluntariamente, setComparecioVoluntariamente] = useState(false);
+  const [terminoActividadPedagogica, setTerminoActividadPedagogica] = useState('dos (2) meses');
 
   // ── Resolver recursos ──────────────────────────────────────────────────────
   const [modalResolucion, setModalResolucion] = useState(false);
@@ -271,6 +287,45 @@ export function SiguientePasoComparendo({
 
   // ── Generar acta de firmeza ────────────────────────────────────────────────
   const [modalActaFirmeza, setModalActaFirmeza] = useState(false);
+
+  // ── Constancias de incumplimiento (pronto pago / actividad pedagógica) ────
+  const [modalIncumplimientoPago, setModalIncumplimientoPago] = useState(false);
+  const [documentoCobro, setDocumentoCobro] = useState('');
+  const [modalIncumplimientoActividad, setModalIncumplimientoActividad] = useState(false);
+  const [firmanteNombre, setFirmanteNombre] = useState('');
+  const [firmanteRol, setFirmanteRol] = useState('Auxiliar Administrativo');
+
+  // ── Previsualización + incorporación al expediente, compartida por todas
+  //    las actuaciones que producen un DocumentoLegal (Task 10 + 11): genera
+  //    el PDF, se previsualiza con PdfViewer y, al confirmar, se sube con
+  //    useUploadCaseDocument ANTES de aplicar la transición de estado. ──────
+  const [previa, setPrevia] = useState<{ blob: Blob; nombreArchivo: string; alConfirmar: () => void } | null>(null);
+  const [generandoPrevia, setGenerandoPrevia] = useState(false);
+
+  async function generarYPrevisualizar(documento: DocumentoLegal, nombreArchivo: string, alConfirmar: () => void) {
+    setGenerandoPrevia(true);
+    try {
+      const blob = await generarDocumentoLegalBlob(documento, inspeccion.membreteDataUrl);
+      setPrevia({ blob, nombreArchivo, alConfirmar });
+    } catch {
+      message.error('No se pudo generar el documento. Intente de nuevo.');
+    } finally {
+      setGenerandoPrevia(false);
+    }
+  }
+
+  function confirmarPrevia() {
+    if (!previa) return;
+    const archivo = new File([previa.blob], previa.nombreArchivo, { type: 'application/pdf' });
+    subirDocumento.mutate(archivo, {
+      onSuccess: () => {
+        message.success('Documento incorporado al expediente.');
+        previa.alConfirmar();
+        setPrevia(null);
+      },
+      onError: () => message.error('No se pudo incorporar el documento al expediente. Intente de nuevo.'),
+    });
+  }
 
   const pendiente = cambiarEstado.isPending || actualizarCampos.isPending;
 
@@ -282,11 +337,20 @@ export function SiguientePasoComparendo({
         setFechaAudiencia(null);
         setHoraAudiencia(null);
         setLugarAudiencia('');
+        setMedioNotificacionAutorizado(meta.medioNotificacionAutorizado || '');
         return setModalAudiencia(tipo);
       case 'decretar_pruebas':
         setPruebasDecretadas([]);
         setFechaReanudacion(null);
+        setBienJuridico(meta.bienJuridico || '');
+        setMedidasCorrectivas(meta.medidasCorrectivas || '');
+        setApeloSiNo(meta.apeloSiNo || 'NO');
+        setDescargos(meta.descargos || '');
         return setModalPruebas(true);
+      case 'constancia_inasistencia':
+        setBienJuridico(meta.bienJuridico || '');
+        setMedidasCorrectivas(meta.medidasCorrectivas || '');
+        return setModalInasistenciaAuto(true);
       case 'registrar_impugnacion':
         setMedioImpugnacion(null);
         return setModalImpugnacion(true);
@@ -298,7 +362,32 @@ export function SiguientePasoComparendo({
       case 'fallo_por_inasistencia':
         setSentido(null);
         setVariante('');
+        setVarianteFallo(tipo === 'fallo_por_inasistencia' ? 'inasistencia' : '');
+        setPruebasPracticadas(meta.pruebasDecretadas || []);
+        setFechaAudienciaAnterior(meta.fechaAudiencia ? dayjs(meta.fechaAudiencia) : null);
+        setBienJuridico(meta.bienJuridico || '');
+        setMedidasCorrectivas(meta.medidasCorrectivas || '');
+        setApeloSiNo(meta.apeloSiNo || 'NO');
+        setDescargos(meta.descargos || '');
+        setAplicaActividadPedagogica(false);
+        setCuentaRecaudo(meta.cuentaRecaudo || '');
+        setTitularCuenta(meta.titularCuenta || '');
+        setNitTitular(meta.nitTitular || '');
         return setModalFallo(tipo);
+      case 'terminar_por_inactividad':
+        setBienJuridico(meta.bienJuridico || '');
+        setMedidasCorrectivas(meta.medidasCorrectivas || '');
+        setApeloSiNo(meta.apeloSiNo || 'NO');
+        setComparecioVoluntariamente(false);
+        setTerminoActividadPedagogica('dos (2) meses');
+        return setModalTerminacionInactividad(true);
+      case 'constancia_incumplimiento_pago':
+        setDocumentoCobro('');
+        return setModalIncumplimientoPago(true);
+      case 'constancia_incumplimiento_actividad':
+        setFirmanteNombre('');
+        setFirmanteRol('Auxiliar Administrativo');
+        return setModalIncumplimientoActividad(true);
       case 'resolver_recursos':
         setResolucionRecurso(null);
         return setModalResolucion(true);
@@ -363,6 +452,154 @@ export function SiguientePasoComparendo({
     );
   }
 
+  // ── Datos comunes del despacho, reutilizados por todos los generadores ────
+  function datosDespacho() {
+    return {
+      municipio: inspeccion.municipio || 'Manizales',
+      inspeccion: inspeccion.inspeccion || 'Inspección Permanente de Convivencia y Paz',
+      inspectorNombre: inspeccion.inspectorNombre || 'Inspector de Convivencia y Paz',
+      inspectorRol: 'Inspector Permanente de Convivencia y Paz',
+    };
+  }
+
+  // El medio de impugnación registrado admite valores libres (registrar_impugnacion);
+  // el generador solo distingue personal vs. correo electrónico — todo lo demás
+  // (escrito, verbal, otro) se trata como comparecencia personal ante el despacho.
+  function datosAutoAvoca(): Parameters<typeof generarAutoAvocaCitaAudiencia>[0] | null {
+    if (!caso || !fechaAudiencia || !horaAudiencia) return null;
+    return {
+      ...datosDespacho(),
+      fechaResolucion: dayjs().format('YYYY-MM-DD'),
+      proceso: caso.radicado,
+      comparendo: caso.numeroComparendo,
+      fechaComparendo: caso.fechaComparendo,
+      articuloNumeral: caso.articuloNumeral,
+      solicitado: caso.infractor,
+      cedulaSolicitado: caso.cedula,
+      medioImpugnacion: meta.medioImpugnacion === 'correo_electronico' ? 'correo_electronico' : 'personal',
+      fechaAudiencia: fechaAudiencia.format('YYYY-MM-DD'),
+      horaAudiencia: horaAudiencia.format('hh:mm a'),
+      lugarAudiencia,
+      medioNotificacionAutorizado: medioNotificacionAutorizado || undefined,
+    };
+  }
+
+  function datosAutoDecretaPruebas(): Parameters<typeof generarAutoDecretaPruebasSuspende>[0] | null {
+    if (!caso || pruebasDecretadas.length === 0 || !fechaReanudacion) return null;
+    return {
+      ...datosDespacho(),
+      fechaResolucion: dayjs().format('YYYY-MM-DD'),
+      proceso: caso.radicado,
+      comparendo: caso.numeroComparendo,
+      articuloNumeral: caso.articuloNumeral,
+      fechaComparendo: caso.fechaComparendo,
+      lugarComportamiento: caso.lugar,
+      solicitado: caso.infractor,
+      cedulaSolicitado: caso.cedula,
+      direccionSolicitado: caso.direccion,
+      telefonoSolicitado: caso.telefono,
+      solicitante: caso.solicitante,
+      tipoMulta: caso.tipoMulta,
+      hechos: caso.hechos,
+      descripcionConducta: caso.descripcionConducta || bienJuridico || '(descripción no registrada)',
+      bienJuridico,
+      medidasCorrectivas,
+      apeloSiNo,
+      descargos,
+      pruebasDecretadas,
+      fechaReanudacion: fechaReanudacion.format('YYYY-MM-DD'),
+    };
+  }
+
+  function datosAutoInasistencia(): Parameters<typeof generarAutoInasistencia>[0] | null {
+    if (!caso) return null;
+    return {
+      ...datosDespacho(),
+      fechaResolucion: dayjs().format('YYYY-MM-DD'),
+      horaAudiencia: meta.horaAudiencia || 'NO REGISTRA',
+      proceso: caso.radicado,
+      comparendo: caso.numeroComparendo,
+      articuloNumeral: caso.articuloNumeral,
+      fechaComparendo: caso.fechaComparendo,
+      lugarComportamiento: caso.lugar,
+      solicitado: caso.infractor,
+      cedulaSolicitado: caso.cedula,
+      direccionSolicitado: caso.direccion,
+      telefonoSolicitado: caso.telefono,
+      solicitante: caso.solicitante,
+      hechos: caso.hechos,
+      descripcionConducta: caso.descripcionConducta || bienJuridico || '(descripción no registrada)',
+      bienJuridico,
+      medidasCorrectivas,
+      medioNotificacionAutorizado: meta.medioNotificacionAutorizado,
+      fechaNotificacionPrevia: meta.fechaAudiencia || dayjs().format('YYYY-MM-DD'),
+    };
+  }
+
+  function datosFallo(v: VarianteFallo): Parameters<typeof generarFalloComparendo>[0] | null {
+    if (!caso) return null;
+    return {
+      ...datosDespacho(),
+      fechaResolucion: dayjs().format('YYYY-MM-DD'),
+      proceso: caso.radicado,
+      comparendo: caso.numeroComparendo,
+      articuloNumeral: caso.articuloNumeral,
+      fechaComparendo: caso.fechaComparendo,
+      lugarComportamiento: caso.lugar,
+      solicitado: caso.infractor,
+      cedulaSolicitado: caso.cedula,
+      direccionSolicitado: caso.direccion,
+      telefonoSolicitado: caso.telefono,
+      solicitante: caso.solicitante,
+      hechos: caso.hechos,
+      descripcionConducta: caso.descripcionConducta || bienJuridico || '(descripción no registrada)',
+      bienJuridico,
+      medidasCorrectivas,
+      apeloSiNo,
+      tipoMulta: caso.tipoMulta,
+      descargos,
+      pruebasPracticadas,
+      variante: v,
+      fechaAudienciaAnterior: fechaAudienciaAnterior ? fechaAudienciaAnterior.format('YYYY-MM-DD') : undefined,
+      aplicaActividadPedagogica,
+      cuentaRecaudo,
+      titularCuenta,
+      nitTitular,
+      comparecioVoluntariamente,
+      terminoActividadPedagogica,
+    };
+  }
+
+  function datosConstanciaPago(): Parameters<typeof generarConstanciaIncumplimientoProntoPago>[0] | null {
+    if (!caso || !documentoCobro) return null;
+    return {
+      ...datosDespacho(),
+      fechaResolucion: dayjs().format('YYYY-MM-DD'),
+      proceso: caso.radicado,
+      comparendo: caso.numeroComparendo,
+      fechaComparendo: caso.fechaComparendo,
+      tipoMulta: caso.tipoMulta,
+      solicitado: caso.infractor,
+      cedulaSolicitado: caso.cedula,
+      documentoCobro,
+    };
+  }
+
+  function datosConstanciaActividad(): Parameters<typeof generarConstanciaIncumplimientoActividadPedagogica>[0] | null {
+    if (!caso || !firmanteNombre || !firmanteRol) return null;
+    return {
+      municipio: inspeccion.municipio || 'Manizales',
+      inspeccion: inspeccion.inspeccion || 'Inspección Permanente de Convivencia y Paz',
+      firmanteNombre,
+      firmanteRol,
+      fechaResolucion: dayjs().format('YYYY-MM-DD'),
+      proceso: caso.radicado,
+      comparendo: caso.numeroComparendo,
+      solicitado: caso.infractor,
+      cedulaSolicitado: caso.cedula,
+    };
+  }
+
   if (paso.terminal) {
     return <Alert type="success" showIcon message="Trámite finalizado" description={paso.mensaje} />;
   }
@@ -424,25 +661,33 @@ export function SiguientePasoComparendo({
               ? 'Admitir justa causa y reprogramar'
               : 'Proferir auto que avoca y fija audiencia'
         }
-        okText="Confirmar citación"
+        okText={modalAudiencia === 'avocar_y_citar_audiencia' ? 'Generar auto y previsualizar' : 'Confirmar citación'}
         cancelText="Cancelar"
-        okButtonProps={{ disabled: !fechaAudiencia || !horaAudiencia || !lugarAudiencia, loading: pendiente }}
+        okButtonProps={{ disabled: !fechaAudiencia || !horaAudiencia || !lugarAudiencia, loading: pendiente || generandoPrevia }}
         onCancel={() => setModalAudiencia(null)}
         onOk={() => {
           const origen = modalAudiencia;
+          const metaExtra = {
+            fechaAudiencia: fechaAudiencia?.format('YYYY-MM-DD'),
+            horaAudiencia: horaAudiencia?.format('HH:mm'),
+            lugarAudiencia,
+            ...(origen === 'avocar_y_citar_audiencia' ? { medioNotificacionAutorizado } : {}),
+          };
+          if (origen === 'avocar_y_citar_audiencia') {
+            const datos = datosAutoAvoca();
+            if (!datos) return;
+            const auto = generarAutoAvocaCitaAudiencia(datos);
+            setModalAudiencia(null);
+            void generarYPrevisualizar(auto, `Auto avoca y cita audiencia ${caso?.radicado}.pdf`, () =>
+              transicionar('audiencia_programada', metaExtra, 'Audiencia señalada.'),
+            );
+            return;
+          }
           setModalAudiencia(null);
           transicionar(
             'audiencia_programada',
-            {
-              fechaAudiencia: fechaAudiencia?.format('YYYY-MM-DD'),
-              horaAudiencia: horaAudiencia?.format('HH:mm'),
-              lugarAudiencia,
-            },
-            origen === 'reagendar_audiencia'
-              ? 'Audiencia reagendada.'
-              : origen === 'admitir_justa_causa'
-                ? 'Justa causa admitida. Audiencia reprogramada.'
-                : 'Audiencia señalada.',
+            metaExtra,
+            origen === 'reagendar_audiencia' ? 'Audiencia reagendada.' : 'Justa causa admitida. Audiencia reprogramada.',
           );
         }}
       >
@@ -467,6 +712,57 @@ export function SiguientePasoComparendo({
             value={lugarAudiencia}
             onChange={(e) => setLugarAudiencia(e.target.value)}
           />
+          {modalAudiencia === 'avocar_y_citar_audiencia' && (
+            <Input
+              placeholder="Medio de notificación autorizado (correo y/o WhatsApp) — opcional"
+              value={medioNotificacionAutorizado}
+              onChange={(e) => setMedioNotificacionAutorizado(e.target.value)}
+            />
+          )}
+        </Space>
+      </Modal>
+
+      {/* Constancia de inasistencia a audiencia */}
+      <Modal
+        open={modalInasistenciaAuto}
+        title="Dejar constancia de inasistencia"
+        okText="Generar auto y previsualizar"
+        cancelText="Cancelar"
+        okButtonProps={{ loading: pendiente || generandoPrevia }}
+        onCancel={() => setModalInasistenciaAuto(false)}
+        onOk={() => {
+          const datos = datosAutoInasistencia();
+          if (!datos) return;
+          const auto = generarAutoInasistencia(datos);
+          setModalInasistenciaAuto(false);
+          void generarYPrevisualizar(auto, `Auto inasistencia ${caso?.radicado}.pdf`, () =>
+            transicionar(
+              'suspendida_inasistencia',
+              // fechaAudiencia se reutiliza como "fecha de la audiencia previa" —
+              // insumo de fallo_por_inasistencia (fechaAudienciaAnterior).
+              { bienJuridico, medidasCorrectivas, fechaAudiencia: dayjs().format('YYYY-MM-DD') },
+              'Constancia de inasistencia registrada.',
+            ),
+          );
+        }}
+      >
+        <Space direction="vertical" size="middle" style={{ width: '100%', marginTop: 8 }}>
+          <Alert
+            type="warning"
+            showIcon
+            message="El citado no compareció dentro de los quince (15) minutos de espera"
+            description="Se suspende la audiencia por tres (3) días hábiles para acreditar justa causa (Sentencia C-349/2017)."
+          />
+          <Input
+            placeholder="Bien jurídico protegido (p. ej. afectan la relación entre personas y autoridades)"
+            value={bienJuridico}
+            onChange={(e) => setBienJuridico(e.target.value)}
+          />
+          <Input
+            placeholder="Medidas correctivas previstas (p. ej. Multa General tipo 4)"
+            value={medidasCorrectivas}
+            onChange={(e) => setMedidasCorrectivas(e.target.value)}
+          />
         </Space>
       </Modal>
 
@@ -474,19 +770,31 @@ export function SiguientePasoComparendo({
       <Modal
         open={modalPruebas}
         title="Decretar pruebas y suspender"
-        okText="Decretar y suspender"
+        okText="Generar auto y previsualizar"
         cancelText="Cancelar"
-        okButtonProps={{ disabled: pruebasDecretadas.length === 0 || !fechaReanudacion, loading: pendiente }}
+        okButtonProps={{ disabled: pruebasDecretadas.length === 0 || !fechaReanudacion, loading: pendiente || generandoPrevia }}
         onCancel={() => setModalPruebas(false)}
         onOk={() => {
+          const datos = datosAutoDecretaPruebas();
+          if (!datos) return;
+          const auto = generarAutoDecretaPruebasSuspende(datos);
           setModalPruebas(false);
-          transicionar(
-            'suspendida_pruebas',
-            {
-              pruebasDecretadas,
-              fechaReanudacion: fechaReanudacion?.format('YYYY-MM-DD'),
-            },
-            'Pruebas decretadas. Audiencia suspendida.',
+          void generarYPrevisualizar(auto, `Auto decreta pruebas ${caso?.radicado}.pdf`, () =>
+            transicionar(
+              'suspendida_pruebas',
+              {
+                pruebasDecretadas,
+                fechaReanudacion: fechaReanudacion?.format('YYYY-MM-DD'),
+                bienJuridico,
+                medidasCorrectivas,
+                apeloSiNo,
+                descargos,
+                // fechaAudiencia se reutiliza como "fecha de la audiencia previa
+                // que decretó pruebas" — insumo de las variantes *_continuacion.
+                fechaAudiencia: dayjs().format('YYYY-MM-DD'),
+              },
+              'Pruebas decretadas. Audiencia suspendida.',
+            ),
           );
         }}
       >
@@ -509,6 +817,26 @@ export function SiguientePasoComparendo({
             placeholder="Fecha de reanudación"
             value={fechaReanudacion}
             onChange={setFechaReanudacion}
+          />
+          <Input
+            placeholder="Bien jurídico protegido (p. ej. afectan la relación entre personas y autoridades)"
+            value={bienJuridico}
+            onChange={(e) => setBienJuridico(e.target.value)}
+          />
+          <Input
+            placeholder="Medidas correctivas previstas (p. ej. Multa General tipo 4)"
+            value={medidasCorrectivas}
+            onChange={(e) => setMedidasCorrectivas(e.target.value)}
+          />
+          <Radio.Group value={apeloSiNo} onChange={(e) => setApeloSiNo(e.target.value)}>
+            <Radio value="NO">No apeló la medida accesoria ante la Policía</Radio>
+            <Radio value="SI">Sí apeló la medida accesoria ante la Policía</Radio>
+          </Radio.Group>
+          <Input.TextArea
+            rows={3}
+            placeholder="Resumen de los argumentos y pruebas anunciadas por el solicitado en la diligencia"
+            value={descargos}
+            onChange={(e) => setDescargos(e.target.value)}
           />
         </Space>
       </Modal>
@@ -585,39 +913,168 @@ export function SiguientePasoComparendo({
       {/* Emitir fallo / fallo por inasistencia */}
       <Modal
         open={modalFallo !== null}
+        width={640}
         title={modalFallo === 'fallo_por_inasistencia' ? 'Resolver de fondo por inasistencia' : 'Emitir fallo en audiencia'}
-        okText="Proferir decisión"
+        okText="Generar fallo y previsualizar"
         cancelText="Cancelar"
-        okButtonProps={{ disabled: !sentido, loading: pendiente }}
+        okButtonProps={{
+          disabled: modalFallo === 'emitir_fallo' ? !sentido || !varianteFallo : false,
+          loading: pendiente || generandoPrevia,
+        }}
         onCancel={() => setModalFallo(null)}
         onOk={() => {
+          const v: VarianteFallo | '' = modalFallo === 'fallo_por_inasistencia' ? 'inasistencia' : varianteFallo;
+          if (!v) return;
+          const datos = datosFallo(v);
+          if (!datos) return;
+          const fallo = generarFalloComparendo(datos);
           setModalFallo(null);
-          transicionar(
-            'fallo_emitido',
-            { sentido, variante },
-            sentido === 'sanciona' ? 'Fallo emitido: se impone medida correctiva.' : 'Fallo emitido: se absuelve al citado.',
+          void generarYPrevisualizar(fallo, `Fallo comparendo ${caso?.radicado}.pdf`, () =>
+            transicionar(
+              'fallo_emitido',
+              {
+                sentido: modalFallo === 'fallo_por_inasistencia' ? 'sanciona' : sentido,
+                variante,
+                varianteFallo: v,
+                bienJuridico,
+                medidasCorrectivas,
+                apeloSiNo,
+                descargos,
+                cuentaRecaudo,
+                titularCuenta,
+                nitTitular,
+              },
+              v === 'sanciona_continuacion' || v === 'inasistencia'
+                ? 'Fallo emitido: se impone medida correctiva.'
+                : 'Fallo emitido: se absuelve al citado.',
+            ),
           );
         }}
       >
         <Space direction="vertical" size="middle" style={{ width: '100%', marginTop: 8 }}>
-          <Text>¿Cuál es el sentido de la decisión?</Text>
-          <Radio.Group value={sentido} onChange={(e) => setSentido(e.target.value)}>
-            <Space direction="vertical">
-              <Radio value="absuelve">Absuelve al citado</Radio>
-              <Radio value="sanciona">Sanciona con medida correctiva</Radio>
-            </Space>
+          {modalFallo === 'emitir_fallo' && (
+            <>
+              <Text>¿Cuál es el sentido de la decisión?</Text>
+              <Radio.Group
+                value={sentido}
+                onChange={(e) => {
+                  const s = e.target.value as 'absuelve' | 'sanciona';
+                  setSentido(s);
+                  // La variante única (sin suspensión previa) solo existe para absolver;
+                  // sancionar directo del primer fallo no está modelado en el OKF — se
+                  // trata como sanciona_continuacion (ver concerns del reporte).
+                  setVarianteFallo(
+                    s === 'sanciona' ? 'sanciona_continuacion' : fechaAudienciaAnterior ? 'absuelve_continuacion' : 'absuelve_unica',
+                  );
+                }}
+              >
+                <Space direction="vertical">
+                  <Radio value="absuelve">Absuelve al citado</Radio>
+                  <Radio value="sanciona">Sanciona con medida correctiva</Radio>
+                </Space>
+              </Radio.Group>
+              {sentido === 'absuelve' && (
+                <Radio.Group value={varianteFallo} onChange={(e) => setVarianteFallo(e.target.value)}>
+                  <Space direction="vertical">
+                    <Radio value="absuelve_unica">Audiencia única, sin suspensión previa</Radio>
+                    <Radio value="absuelve_continuacion">Continuación de audiencia suspendida por pruebas</Radio>
+                  </Space>
+                </Radio.Group>
+              )}
+              <div>
+                <Text style={{ display: 'block', marginBottom: 6 }}>
+                  Nota de la decisión (medida impuesta o motivo de la absolución, para el historial):
+                </Text>
+                <TextArea
+                  rows={2}
+                  value={variante}
+                  onChange={(e) => setVariante(e.target.value)}
+                  placeholder="Ej.: Multa general tipo 2 con incremento del 75% por reiteración…"
+                />
+              </div>
+            </>
+          )}
+
+          <Input
+            placeholder="Bien jurídico protegido"
+            value={bienJuridico}
+            onChange={(e) => setBienJuridico(e.target.value)}
+          />
+          <Input
+            placeholder="Medidas correctivas previstas para el comportamiento"
+            value={medidasCorrectivas}
+            onChange={(e) => setMedidasCorrectivas(e.target.value)}
+          />
+          <Radio.Group value={apeloSiNo} onChange={(e) => setApeloSiNo(e.target.value)}>
+            <Radio value="NO">No apeló la medida accesoria</Radio>
+            <Radio value="SI">Sí apeló la medida accesoria</Radio>
           </Radio.Group>
-          <div>
-            <Text style={{ display: 'block', marginBottom: 6 }}>
-              Variante de la decisión (medida impuesta o motivo de la absolución):
-            </Text>
-            <TextArea
-              rows={3}
-              value={variante}
-              onChange={(e) => setVariante(e.target.value)}
-              placeholder="Ej.: Multa general tipo 2 con incremento del 75% por reiteración…"
+
+          {(varianteFallo === 'absuelve_continuacion' || varianteFallo === 'sanciona_continuacion' || modalFallo === 'fallo_por_inasistencia') && (
+            <DatePicker
+              style={{ width: '100%' }}
+              format="DD/MM/YYYY"
+              placeholder="Fecha de la audiencia previa (decretó pruebas / constató inasistencia)"
+              value={fechaAudienciaAnterior}
+              onChange={setFechaAudienciaAnterior}
             />
-          </div>
+          )}
+
+          {modalFallo === 'emitir_fallo' && sentido === 'absuelve' && varianteFallo === 'absuelve_unica' && (
+            <Checkbox
+              checked={aplicaActividadPedagogica}
+              onChange={(e) => setAplicaActividadPedagogica(e.target.checked)}
+            >
+              Se aplica actividad pedagógica de convivencia en reemplazo de la multa
+            </Checkbox>
+          )}
+
+          {modalFallo === 'emitir_fallo' && (
+            <>
+              <Text type="secondary" style={{ display: 'block' }}>
+                Argumentos y pruebas practicadas por el solicitado en audiencia:
+              </Text>
+              <Input.TextArea
+                rows={2}
+                placeholder="Resumen de los descargos"
+                value={descargos}
+                onChange={(e) => setDescargos(e.target.value)}
+              />
+            </>
+          )}
+
+          {modalFallo === 'emitir_fallo' && (
+            <Select
+              mode="tags"
+              style={{ width: '100%' }}
+              placeholder="Pruebas incorporadas y practicadas…"
+              value={pruebasPracticadas}
+              onChange={setPruebasPracticadas}
+              tokenSeparators={[',']}
+            />
+          )}
+
+          {(varianteFallo === 'sanciona_continuacion' || modalFallo === 'fallo_por_inasistencia') && (
+            <>
+              <Alert
+                type="info"
+                showIcon
+                message="Datos de recaudo de la multa (configuración de la inspección)"
+                description="Cuenta oficial de recaudo del municipio — nunca se hardcodea en el documento."
+              />
+              <Input
+                placeholder="Cuenta de recaudo (banco, tipo y número)"
+                value={cuentaRecaudo}
+                onChange={(e) => setCuentaRecaudo(e.target.value)}
+              />
+              <Input
+                placeholder="Titular de la cuenta (municipio)"
+                value={titularCuenta}
+                onChange={(e) => setTitularCuenta(e.target.value)}
+              />
+              <Input placeholder="NIT del titular" value={nitTitular} onChange={(e) => setNitTitular(e.target.value)} />
+            </>
+          )}
         </Space>
       </Modal>
 
@@ -676,6 +1133,152 @@ export function SiguientePasoComparendo({
           message="Firmeza por vencimiento de términos"
           description="Vencidos los términos sin objeción ni comparecencia, se genera el acta de firmeza de la multa general y se descarga el PDF para el expediente."
         />
+      </Modal>
+
+      {/* Terminar por inactividad */}
+      <Modal
+        open={modalTerminacionInactividad}
+        width={600}
+        title="Terminar por inactividad"
+        okText="Generar decisión y previsualizar"
+        cancelText="Cancelar"
+        okButtonProps={{ loading: pendiente || generandoPrevia }}
+        onCancel={() => setModalTerminacionInactividad(false)}
+        onOk={() => {
+          const datos = datosFallo('terminacion_inactividad');
+          if (!datos) return;
+          const fallo = generarFalloComparendo(datos);
+          setModalTerminacionInactividad(false);
+          void generarYPrevisualizar(fallo, `Terminación por inactividad ${caso?.radicado}.pdf`, () =>
+            transicionar(
+              'terminado_inactividad',
+              { bienJuridico, medidasCorrectivas, apeloSiNo, comparecioVoluntariamente, terminoActividadPedagogica },
+              'Trámite terminado por inactividad procesal.',
+            ),
+          );
+        }}
+      >
+        <Space direction="vertical" size="middle" style={{ width: '100%', marginTop: 8 }}>
+          <Alert
+            type="info"
+            showIcon
+            message="Inactividad procesal superior a un (1) año"
+            description="Art. 2.2.8.18.9.4, Decreto 768 de 2025 — ausencia de decisión de fondo dentro del expediente."
+          />
+          <Checkbox
+            checked={comparecioVoluntariamente}
+            onChange={(e) => setComparecioVoluntariamente(e.target.checked)}
+          >
+            El ciudadano compareció voluntariamente solicitando resolver su situación
+          </Checkbox>
+          {comparecioVoluntariamente && (
+            <>
+              <Text type="secondary">
+                Se ejerce control de legalidad y se sustituye la multa por actividad pedagógica.
+              </Text>
+              <Input
+                placeholder="Término para acreditar la actividad pedagógica (p. ej. dos (2) meses)"
+                value={terminoActividadPedagogica}
+                onChange={(e) => setTerminoActividadPedagogica(e.target.value)}
+              />
+            </>
+          )}
+          <Input
+            placeholder="Bien jurídico protegido"
+            value={bienJuridico}
+            onChange={(e) => setBienJuridico(e.target.value)}
+          />
+          <Input
+            placeholder="Medidas correctivas previstas para el comportamiento"
+            value={medidasCorrectivas}
+            onChange={(e) => setMedidasCorrectivas(e.target.value)}
+          />
+        </Space>
+      </Modal>
+
+      {/* Constancia de incumplimiento de pronto pago */}
+      <Modal
+        open={modalIncumplimientoPago}
+        title="Constancia de incumplimiento de pronto pago"
+        okText="Generar constancia y previsualizar"
+        cancelText="Cancelar"
+        okButtonProps={{ disabled: !documentoCobro, loading: pendiente || generandoPrevia }}
+        onCancel={() => setModalIncumplimientoPago(false)}
+        onOk={() => {
+          const datos = datosConstanciaPago();
+          if (!datos) return;
+          const constancia = generarConstanciaIncumplimientoProntoPago(datos);
+          setModalIncumplimientoPago(false);
+          void generarYPrevisualizar(constancia, `Constancia incumplimiento pago ${caso?.radicado}.pdf`, () =>
+            transicionar('incumplimiento_constatado', { documentoCobro }, 'Incumplimiento de pronto pago constatado.'),
+          );
+        }}
+      >
+        <Space direction="vertical" size="middle" style={{ width: '100%', marginTop: 8 }}>
+          <Alert
+            type="warning"
+            showIcon
+            message="No se allegó soporte de pago dentro del término"
+            description="Se remitirá el expediente a la Unidad de Recursos Tributarios para cobro coactivo por el valor total."
+          />
+          <Input
+            placeholder="Número del documento de cobro expedido"
+            value={documentoCobro}
+            onChange={(e) => setDocumentoCobro(e.target.value)}
+          />
+        </Space>
+      </Modal>
+
+      {/* Constancia de inasistencia a actividad pedagógica */}
+      <Modal
+        open={modalIncumplimientoActividad}
+        title="Constancia de inasistencia a actividad pedagógica"
+        okText="Generar constancia y previsualizar"
+        cancelText="Cancelar"
+        okButtonProps={{ disabled: !firmanteNombre || !firmanteRol, loading: pendiente || generandoPrevia }}
+        onCancel={() => setModalIncumplimientoActividad(false)}
+        onOk={() => {
+          const datos = datosConstanciaActividad();
+          if (!datos) return;
+          const constancia = generarConstanciaIncumplimientoActividadPedagogica(datos);
+          setModalIncumplimientoActividad(false);
+          void generarYPrevisualizar(constancia, `Constancia inasistencia actividad ${caso?.radicado}.pdf`, () =>
+            transicionar('incumplimiento_constatado', { firmanteNombre, firmanteRol }, 'Inasistencia a actividad pedagógica constatada.'),
+          );
+        }}
+      >
+        <Space direction="vertical" size="middle" style={{ width: '100%', marginTop: 8 }}>
+          <Alert
+            type="warning"
+            showIcon
+            message="No se acreditó la asistencia a la actividad pedagógica"
+            description="Esta constancia la firma personal de la oficina (nunca el inspector por defecto)."
+          />
+          <Input
+            placeholder="Nombre de quien firma (auxiliar administrativo)"
+            value={firmanteNombre}
+            onChange={(e) => setFirmanteNombre(e.target.value)}
+          />
+          <Input placeholder="Cargo de quien firma" value={firmanteRol} onChange={(e) => setFirmanteRol(e.target.value)} />
+        </Space>
+      </Modal>
+
+      {/* Previsualización + incorporación del documento generado al expediente */}
+      <Modal
+        open={previa !== null}
+        width={720}
+        title="Previsualizar documento"
+        okText="Incorporar al expediente y continuar"
+        cancelText="Cancelar"
+        okButtonProps={{ loading: subirDocumento.isPending }}
+        onCancel={() => setPrevia(null)}
+        onOk={confirmarPrevia}
+      >
+        {previa && (
+          <div style={{ maxHeight: 560, overflowY: 'auto' }}>
+            <PdfViewer archivo={previa.blob} />
+          </div>
+        )}
       </Modal>
     </>
   );

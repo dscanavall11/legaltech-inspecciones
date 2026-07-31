@@ -3,14 +3,12 @@ import type { ActaFirmeza } from '@/derecho';
 import { cargarPdfMake } from '@/shared/documentos/pdfMake';
 
 /**
- * Genera y descarga el acta de firmeza como PDF (texto real, no imagen),
- * con el membrete del despacho si el inspector lo cargó.
- *
- * pdfmake (~2.7 MB) se importa dinámicamente solo al descargar, para no
- * inflar el bundle de entrada de la aplicación.
+ * Definición pdfmake del acta de firmeza — extraída para que la descarga
+ * directa (`descargarActaPdf`) y la generación en memoria como Blob
+ * (`generarActaFirmezaBlob`, usada por la previsualización de plantillas en
+ * Configuración del Despacho) compartan el mismo layout sin duplicarlo.
  */
-export async function descargarActaPdf(acta: ActaFirmeza, membreteDataUrl?: string | null) {
-  const pdfMake = await cargarPdfMake();
+function definicionActaFirmeza(acta: ActaFirmeza, membreteDataUrl?: string | null): TDocumentDefinitions {
   const contenido: Content[] = [];
 
   if (membreteDataUrl) {
@@ -74,7 +72,7 @@ export async function descargarActaPdf(acta: ActaFirmeza, membreteDataUrl?: stri
     { text: acta.firma.cargo, fontSize: 9.5 },
   );
 
-  const documento: TDocumentDefinitions = {
+  return {
     pageSize: 'LETTER',
     pageMargins: [62, 52, 62, 60],
     content: contenido,
@@ -84,6 +82,26 @@ export async function descargarActaPdf(acta: ActaFirmeza, membreteDataUrl?: stri
       subject: 'Acta de firmeza de multa general — art. 223A, Ley 1801 de 2016',
     },
   };
+}
 
-  pdfMake.createPdf(documento).download(`Acta de firmeza ${acta.proceso}.pdf`);
+/**
+ * Genera y descarga el acta de firmeza como PDF (texto real, no imagen),
+ * con el membrete del despacho si el inspector lo cargó.
+ *
+ * pdfmake (~2.7 MB) se importa dinámicamente solo al descargar, para no
+ * inflar el bundle de entrada de la aplicación.
+ */
+export async function descargarActaPdf(acta: ActaFirmeza, membreteDataUrl?: string | null) {
+  const pdfMake = await cargarPdfMake();
+  pdfMake.createPdf(definicionActaFirmeza(acta, membreteDataUrl)).download(`Acta de firmeza ${acta.proceso}.pdf`);
+}
+
+/**
+ * Genera el acta de firmeza como Blob, para previsualizarla (PdfViewer) sin
+ * descargarla — usada por la previsualización de plantillas de Configuración
+ * del Despacho. Mismo layout que `descargarActaPdf` (ver `definicionActaFirmeza`).
+ */
+export async function generarActaFirmezaBlob(acta: ActaFirmeza, membreteDataUrl?: string | null): Promise<Blob> {
+  const pdfMake = await cargarPdfMake();
+  return pdfMake.createPdf(definicionActaFirmeza(acta, membreteDataUrl)).getBlob();
 }

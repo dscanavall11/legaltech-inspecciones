@@ -22,6 +22,7 @@ import {
   ANALISIS_IA_DEMO,
 } from './dataLegacy';
 import { fallosMock } from './dataFallos';
+import { CHECKLIST_DESPACHO_NODE_MOCK, TEMPLATE_RESOLUTION_MOCK } from './dataChecklistDespacho';
 
 const API = import.meta.env.VITE_API_BASE_URL ?? '/api';
 
@@ -764,6 +765,29 @@ export const handlers = [
     return new HttpResponse(stream, {
       headers: { 'Content-Type': 'text/plain; charset=utf-8' },
     });
+  }),
+
+  // ── Configuración del Despacho (Task 12) — nodo OKF + resolución de plantillas ──
+  // Task 5/7 backend real vive en legalcase (KnowledgeNodeController,
+  // TemplateResolutionController); la orchestrator BFF aún no expone
+  // passthrough para estas dos rutas — se verifica/añade en Task 13.
+
+  http.get(`${API}/knowledge-nodes/:conceptId`, async ({ params }) => {
+    await delay(300);
+    if (params.conceptId !== CHECKLIST_DESPACHO_NODE_MOCK.conceptId) {
+      return HttpResponse.json({ message: 'Nodo de conocimiento no encontrado' }, { status: 404 });
+    }
+    return HttpResponse.json(CHECKLIST_DESPACHO_NODE_MOCK);
+  }),
+
+  // workspaceId/instanceId/inspectorId son opcionales en el backend real
+  // (cascada inspector -> oficina -> sistema); el mock devuelve la misma
+  // demo sin importar qué combinación llegó, para que la página sea
+  // demostrable incluso cuando el workspace de la microsite no resuelve
+  // (ver resolveWorkspaceContext, sin handler mockeado hoy).
+  http.get(`${API}/template-resolution`, async () => {
+    await delay(350);
+    return HttpResponse.json(TEMPLATE_RESOLUTION_MOCK);
   }),
 
   // Asistente IA: respuesta en streaming token-a-token (simula Spring AI /legal/chat)

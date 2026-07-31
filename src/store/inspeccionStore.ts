@@ -17,6 +17,13 @@ export interface ConfigInspeccion {
   inspectorNombre: string; // nombre del inspector
   inspeccion: string; // código/nombre de la inspección
   membreteDataUrl: string | null; // imagen del encabezado (PNG/JPG dataURL)
+  // Cuenta de recaudo de multas (checklist configuracion-despacho.yaml, item cuenta-recaudo).
+  // Estos mismos campos prellenan el modal de fallo en SiguientePasoComparendo.
+  cuentaRecaudo: string;
+  titularCuenta: string;
+  nitTitular: string;
+  // Correo institucional para notificaciones electrónicas (item correo-notificaciones).
+  correoNotificaciones: string;
   configurado: boolean; // true tras el 1er guardado fuerte
 }
 
@@ -34,6 +41,10 @@ const VACIO: ConfigInspeccion = {
   inspectorNombre: '',
   inspeccion: '',
   membreteDataUrl: null,
+  cuentaRecaudo: '',
+  titularCuenta: '',
+  nitTitular: '',
+  correoNotificaciones: '',
   configurado: false,
 };
 

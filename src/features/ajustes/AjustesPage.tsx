@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Typography,
   Card,
@@ -24,6 +25,8 @@ import {
   ThunderboltOutlined,
   FileSearchOutlined,
   SafetyOutlined,
+  FileProtectOutlined,
+  RightOutlined,
 } from '@ant-design/icons';
 import { ArrowUp, Square } from 'lucide-react';
 import { useAiChat } from '@/shared/ai/useAiChat';
@@ -64,6 +67,7 @@ const PILARES_ARQUITECTURA = [
 ];
 
 export function AjustesPage() {
+  const navigate = useNavigate();
   const { message } = App.useApp();
   const [ayudaAbierta, setAyudaAbierta] = useState(false);
   const [texto, setTexto] = useState('');
@@ -117,6 +121,41 @@ export function AjustesPage() {
         Ajustes
       </Title>
       <Text type="secondary">Tu inspección, tu plan y cómo trabaja la IA en esta plataforma.</Text>
+
+      {/* Link card — checklist de configuración del despacho (Task 12) */}
+      <Card
+        variant="borderless"
+        hoverable
+        style={{ boxShadow: ELEVACION.base, marginTop: 20, cursor: 'pointer' }}
+        styles={{ body: { padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14 } }}
+        onClick={() => navigate('/panel/ajustes/despacho')}
+      >
+        <div
+          style={{
+            width: 38,
+            height: 38,
+            borderRadius: 11,
+            background: PALETA.azulSuave,
+            color: PALETA.azulOscuro,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+            fontSize: 16,
+          }}
+        >
+          <FileProtectOutlined />
+        </div>
+        <div style={{ flex: 1 }}>
+          <Text strong style={{ fontSize: 14.5 }}>
+            Configuración del despacho
+          </Text>
+          <Text type="secondary" style={{ fontSize: 12.5, display: 'block' }}>
+            Checklist de datos, membrete, cuenta de recaudo y plantillas propias del despacho.
+          </Text>
+        </div>
+        <RightOutlined style={{ color: PALETA.textoTenue }} />
+      </Card>
 
       <Row gutter={[24, 24]} style={{ marginTop: 24 }}>
         {/* Perfil e inspección */}

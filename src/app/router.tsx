@@ -50,6 +50,9 @@ const AnalisisPage = lazy(() =>
 const AjustesPage = lazy(() =>
   import('@/features/ajustes/AjustesPage').then((m) => ({ default: m.AjustesPage })),
 );
+const ConfiguracionDespachoPage = lazy(() =>
+  import('@/features/ajustes/ConfiguracionDespachoPage').then((m) => ({ default: m.ConfiguracionDespachoPage })),
+);
 const FallosPage = lazy(() =>
   import('@/features/fallos/FallosPage').then((m) => ({ default: m.FallosPage })),
 );
@@ -123,6 +126,7 @@ export const router = createBrowserRouter([
       { path: 'fallos', element: <Cargando><FallosPage /></Cargando> },
       { path: 'actas-firmeza', element: <Cargando><ActasFirmezaPage /></Cargando> },
       { path: 'ajustes', element: <Cargando><AjustesPage /></Cargando> },
+      { path: 'ajustes/despacho', element: <Cargando><ConfiguracionDespachoPage /></Cargando> },
       { path: 'medidas-correctivas', element: <Cargando><MultasPage /></Cargando> },
       // Módulos migrados del dashboard Angular (se mantienen montados para deep-links)
       { path: 'analisis', element: <Cargando><AnalisisPage /></Cargando> },

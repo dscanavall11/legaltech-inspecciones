@@ -18,3 +18,5 @@ export * from './plantillas/autoAvocaCitaAudiencia';
 export * from './plantillas/autoDecretaPruebasSuspende';
 export * from './plantillas/autoInasistencia';
 export * from './plantillas/constanciasIncumplimiento';
+export * from './plantillas/falloComparendo';
+export * from './plantillas/declaracionTestigo';

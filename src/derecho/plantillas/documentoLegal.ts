@@ -10,7 +10,8 @@
 export interface FirmaLinea {
   nombre: string;
   rol: string;
-  tipo?: 'notificado';
+  /** 'solicitado'/'testigo': usados por declaracion-testigo.yaml (recepción de prueba testimonial). */
+  tipo?: 'notificado' | 'solicitado' | 'testigo';
 }
 
 export interface SeccionDocumento {

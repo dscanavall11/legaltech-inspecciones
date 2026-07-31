@@ -117,6 +117,13 @@ export interface ComparendoMetadata {
   fechaAudiencia?: string; // ISO date
   horaAudiencia?: string; // "HH:mm"
   lugarAudiencia?: string;
+  /**
+   * decretar_pruebas / constancia_inasistencia — snapshot de fechaAudiencia
+   * en el momento en que esa audiencia queda suspendida. Su sola presencia
+   * es el marcador de "hubo una suspensión previa" (distingue un
+   * emitir_fallo/sanciona alcanzado sin pasar por audiencia previa).
+   */
+  fechaAudienciaAnterior?: string; // ISO date
   /** decretar_pruebas */
   pruebasDecretadas?: string[];
   fechaReanudacion?: string; // ISO date

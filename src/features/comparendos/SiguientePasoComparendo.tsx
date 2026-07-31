@@ -332,16 +332,20 @@ export function SiguientePasoComparendo({
   // ── Validación del modal de fallo — habilita el OK solo con los datos
   //    mínimos exigidos por la variante seleccionada (fallo-comparendo.yaml). ──
   const falloEsSancion = modalFallo === 'fallo_por_inasistencia' || (modalFallo === 'emitir_fallo' && sentido === 'sanciona');
-  const falloEsContinuacion = varianteFallo === 'absuelve_continuacion' || varianteFallo === 'sanciona_continuacion';
+  // Incluye 'inasistencia': fallo_por_inasistencia también interpola fechaAudienciaAnterior
+  // (fecha de la audiencia previa que constató la inasistencia) en la plantilla.
+  const falloEsContinuacion =
+    varianteFallo === 'absuelve_continuacion' || varianteFallo === 'sanciona_continuacion' || varianteFallo === 'inasistencia';
   const faltanDatosRecaudo = falloEsSancion && (!cuentaRecaudo || !titularCuenta || !nitTitular);
   const faltaAudienciaAnterior = falloEsContinuacion && !fechaAudienciaAnterior;
   const modalFalloDeshabilitado =
     (modalFallo === 'emitir_fallo' && (!sentido || !varianteFallo)) || faltanDatosRecaudo || faltaAudienciaAnterior;
   // Advertencia informativa (no bloqueante): el OKF solo modela sanciona_continuacion
-  // — si se sanciona sin audiencia previa registrada en el expediente, el fallo
-  // narrará una suspensión que nunca ocurrió.
+  // — si se sanciona sin que el expediente registre una suspensión previa
+  // (decretar_pruebas / constancia_inasistencia), el fallo narrará una
+  // audiencia anterior que nunca ocurrió.
   const avisoSancionSinAudienciaPrevia =
-    modalFallo === 'emitir_fallo' && sentido === 'sanciona' && !meta.fechaAudiencia;
+    modalFallo === 'emitir_fallo' && sentido === 'sanciona' && !meta.fechaAudienciaAnterior;
 
   const ejecutar = (tipo: AccionComparendoTipo) => {
     switch (tipo) {
@@ -378,7 +382,15 @@ export function SiguientePasoComparendo({
         setVariante('');
         setVarianteFallo(tipo === 'fallo_por_inasistencia' ? 'inasistencia' : '');
         setPruebasPracticadas(meta.pruebasDecretadas || []);
-        setFechaAudienciaAnterior(meta.fechaAudiencia ? dayjs(meta.fechaAudiencia) : null);
+        // Preferir el marcador dedicado; fechaAudiencia queda como fallback para
+        // expedientes suspendidos antes de que existiera fechaAudienciaAnterior.
+        setFechaAudienciaAnterior(
+          meta.fechaAudienciaAnterior
+            ? dayjs(meta.fechaAudienciaAnterior)
+            : meta.fechaAudiencia
+              ? dayjs(meta.fechaAudiencia)
+              : null,
+        );
         setBienJuridico(meta.bienJuridico || '');
         setMedidasCorrectivas(meta.medidasCorrectivas || '');
         setApeloSiNo(meta.apeloSiNo || 'NO');
@@ -752,9 +764,16 @@ export function SiguientePasoComparendo({
           void generarYPrevisualizar(auto, `Auto inasistencia ${caso?.radicado}.pdf`, () =>
             transicionar(
               'suspendida_inasistencia',
-              // fechaAudiencia se reutiliza como "fecha de la audiencia previa" —
-              // insumo de fallo_por_inasistencia (fechaAudienciaAnterior).
-              { bienJuridico, medidasCorrectivas, fechaAudiencia: dayjs().format('YYYY-MM-DD') },
+              {
+                bienJuridico,
+                medidasCorrectivas,
+                // fechaAudiencia se reutiliza como "fecha de la audiencia previa" —
+                // insumo de fallo_por_inasistencia (fechaAudienciaAnterior).
+                fechaAudiencia: dayjs().format('YYYY-MM-DD'),
+                // Marcador explícito: la audiencia que queda suspendida por esta
+                // inasistencia es la que hasta ahora registraba meta.fechaAudiencia.
+                fechaAudienciaAnterior: meta.fechaAudiencia,
+              },
               'Constancia de inasistencia registrada.',
             ),
           );
@@ -806,6 +825,9 @@ export function SiguientePasoComparendo({
                 // fechaAudiencia se reutiliza como "fecha de la audiencia previa
                 // que decretó pruebas" — insumo de las variantes *_continuacion.
                 fechaAudiencia: dayjs().format('YYYY-MM-DD'),
+                // Marcador explícito: la audiencia que queda suspendida por este
+                // decreto de pruebas es la que hasta ahora registraba meta.fechaAudiencia.
+                fechaAudienciaAnterior: meta.fechaAudiencia,
               },
               'Pruebas decretadas. Audiencia suspendida.',
             ),

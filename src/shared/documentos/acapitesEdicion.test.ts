@@ -5,6 +5,7 @@ import {
   parrafosDesdeTexto,
   aplicarEdicionesAcapites,
   acapitesModificados,
+  acapitesSinGuardar,
 } from './acapitesEdicion';
 
 const ACAPITES: Acapite[] = [
@@ -59,5 +60,32 @@ describe('acapitesModificados', () => {
   it('reporta solo los acápites cuyo texto editado difiere del original', () => {
     const ediciones = { hechos: 'Cambiado.', resuelve: textoAcapite(ACAPITES[1]) };
     expect(acapitesModificados(ACAPITES, ediciones)).toEqual(['hechos']);
+  });
+});
+
+describe('acapitesSinGuardar', () => {
+  it('no reporta nada cuando la edición en curso coincide con la última guardada', () => {
+    const guardadas = { hechos: 'Editado y guardado.' };
+    expect(acapitesSinGuardar(guardadas, guardadas)).toEqual([]);
+  });
+
+  it('reporta un acápite recién editado que aún no se guardó', () => {
+    const guardadas = {};
+    const enCurso = { hechos: 'Recién escrito, sin guardar.' };
+    expect(acapitesSinGuardar(enCurso, guardadas)).toEqual(['hechos']);
+  });
+
+  it('se vacía justo después de guardar, aunque siga difiriendo del original (no confundir con acapitesModificados)', () => {
+    const edicionesGuardadas = { hechos: 'Editado y ya guardado — distinto del original.' };
+    // Tras un guardarCambios exitoso, `ediciones` pasa a ser exactamente lo guardado.
+    expect(acapitesSinGuardar(edicionesGuardadas, edicionesGuardadas)).toEqual([]);
+    // Pero acapitesModificados (contra el original) lo sigue marcando "Editado".
+    expect(acapitesModificados(ACAPITES, edicionesGuardadas)).toEqual(['hechos']);
+  });
+
+  it('reporta un acápite modificado tras guardarse una vez y volver a editarse', () => {
+    const edicionesGuardadas = { hechos: 'Primera versión guardada.' };
+    const enCurso = { hechos: 'Segunda edición, todavía sin guardar.' };
+    expect(acapitesSinGuardar(enCurso, edicionesGuardadas)).toEqual(['hechos']);
   });
 });

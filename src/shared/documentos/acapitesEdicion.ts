@@ -34,7 +34,19 @@ export function aplicarEdicionesAcapites(acapites: Acapite[], ediciones: Acapite
   });
 }
 
-/** Ids de acápites cuya edición en curso difiere realmente del texto original (para el badge "N sin guardar"). */
+/** Ids de acápites editados por un humano (difieren del texto original generado) — marca permanente "Editado", sobrevive al guardado. */
 export function acapitesModificados(acapites: Acapite[], ediciones: AcapitesEditados): string[] {
   return acapites.filter((a) => ediciones[a.id] !== undefined && ediciones[a.id] !== textoAcapite(a)).map((a) => a.id);
+}
+
+/**
+ * Ids de acápites cuya edición en curso todavía no se persistió: compara
+ * contra la última versión guardada en caseMetadata (no contra el original),
+ * así que se vacía justo después de un "Guardar cambios" exitoso — a
+ * diferencia de `acapitesModificados`, que sigue marcando el acápite como
+ * "Editado" indefinidamente porque difiere del texto generado.
+ */
+export function acapitesSinGuardar(ediciones: AcapitesEditados, edicionesGuardadas: AcapitesEditados): string[] {
+  const ids = new Set([...Object.keys(ediciones), ...Object.keys(edicionesGuardadas)]);
+  return [...ids].filter((id) => ediciones[id] !== edicionesGuardadas[id]);
 }

@@ -13,7 +13,13 @@ import {
 } from '@ant-design/icons';
 import { Sparkles } from 'lucide-react';
 import type { Acapite } from './acapites';
-import { aplicarEdicionesAcapites, textoAcapite, acapitesModificados, type AcapitesEditados } from './acapitesEdicion';
+import {
+  aplicarEdicionesAcapites,
+  textoAcapite,
+  acapitesModificados,
+  acapitesSinGuardar,
+  type AcapitesEditados,
+} from './acapitesEdicion';
 import { descargarBlob } from './descargarBlob';
 import { VisorLateral } from './VisorLateral';
 import { ResumenLateral } from './ResumenLateral';
@@ -84,13 +90,13 @@ export function DocumentoEditorPage({
   const actualizarCampos = useUpdateCaseFields();
   const cambiarEstado = useChangeCaseState();
 
-  const edicionesGuardadas = useMemo(
+  // Última versión persistida en caseMetadata — línea base contra la que se
+  // mide "sin guardar" (acapitesSinGuardar). Se actualiza también, en
+  // memoria, justo después de un guardarCambios exitoso (más abajo), sin
+  // esperar a que refetchee caseMetadataRaw.
+  const [edicionesGuardadas, setEdicionesGuardadas] = useState<AcapitesEditados>(
     () => parseCaseMetadata<DocumentosEditadosMeta>(caseMetadataRaw ?? null).documentosEditados?.[documentoKey] ?? {},
-    // Solo se recalcula si cambia el caso/documento — nunca mientras el inspector edita.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [caseId, documentoKey],
   );
-
   const [ediciones, setEdiciones] = useState<AcapitesEditados>(edicionesGuardadas);
   const [activo, setActivo] = useState<string | null>(null);
   const [editando, setEditando] = useState<string | null>(null);
@@ -101,7 +107,10 @@ export function DocumentoEditorPage({
   const [previaPdf, setPreviaPdf] = useState<Blob | null>(null);
 
   const acapitesEfectivos = useMemo(() => aplicarEdicionesAcapites(acapites, ediciones), [acapites, ediciones]);
+  // "Editado": difiere del texto original generado (marca permanente, sobrevive al guardado).
   const modificados = useMemo(() => acapitesModificados(acapites, ediciones), [acapites, ediciones]);
+  // "Sin guardar": difiere de la última versión persistida (se vacía justo al guardar).
+  const sinGuardar = useMemo(() => acapitesSinGuardar(ediciones, edicionesGuardadas), [ediciones, edicionesGuardadas]);
 
   const irAAcapite = (acapiteId: string) => {
     setActivo(acapiteId);
@@ -172,6 +181,8 @@ export function DocumentoEditorPage({
         id: caseId,
         fields: { caseMetadata: buildCaseMetadata({ ...metaActual, documentosEditados }) },
       });
+      // La línea base de "sin guardar" avanza de inmediato — no hace falta esperar al refetch.
+      setEdicionesGuardadas(ediciones);
       message.success('Cambios guardados: se conservan al volver a abrir el documento.');
     } catch {
       message.error('No se pudieron guardar los cambios.');
@@ -224,9 +235,9 @@ export function DocumentoEditorPage({
           </Title>
           <Space size={8} align="center">
             <Text type="secondary">Radicado {radicado}</Text>
-            {modificados.length > 0 && (
+            {sinGuardar.length > 0 && (
               <Tag color="gold" style={{ marginRight: 0 }}>
-                {modificados.length} acápite(s) sin guardar
+                {sinGuardar.length} acápite(s) sin guardar
               </Tag>
             )}
           </Space>
@@ -239,7 +250,7 @@ export function DocumentoEditorPage({
             Regenerar PDF
           </Button>
           <Button
-            type={modificados.length > 0 ? 'primary' : 'default'}
+            type={sinGuardar.length > 0 ? 'primary' : 'default'}
             icon={<SaveOutlined />}
             loading={guardandoCambios}
             onClick={guardarCambios}
@@ -397,7 +408,7 @@ export function DocumentoEditorPage({
                 }}
               >
                 <span style={{ flex: 1 }}>{a.titulo}</span>
-                {modificados.includes(a.id) && (
+                {sinGuardar.includes(a.id) && (
                   <Tooltip title="Editado, sin guardar">
                     <span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: PALETA.amarillo, display: 'inline-block' }} />
                   </Tooltip>

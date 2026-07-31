@@ -126,7 +126,7 @@ export const CATALOGO_COMPORTAMIENTOS: readonly ComportamientoCatalogo[] = [
   {
     articuloNumeral: 'Artículo 140 Numeral 13',
     descripcionConducta:
-      'Consumir, portar, distribuir, ofrecer o comercializar sustancias psicoactivas, inclusive la dosis personal, en el perímetro de centros educativos, al interior de centros deportivos y en parques.',
+      'Consumir, portar, distribuir, ofrecer o comercializar sustancias psicoactivas, inclusive la dosis personal, en el perímetro de centros educativos; además al interior de centros deportivos, y en parques. También, corresponderá a la Asamblea o Consejo de Administración regular la prohibición del consumo de sustancias psicoactivas en determinadas áreas de las zonas comunes en conjuntos residenciales o las unidades de propiedad horizontal de propiedades horizontales, en los términos de la Ley 675 de 2001.',
     bienJuridico: BIEN_JURIDICO_ESPACIO_PUBLICO,
     medidasCorrectivas: 'Multa General Tipo 4; destrucción del bien.',
   },

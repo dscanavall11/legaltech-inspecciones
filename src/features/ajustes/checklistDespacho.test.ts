@@ -41,7 +41,7 @@ const CONFIG_VACIA: ConfigParaChecklist = {
 };
 
 describe('parseChecklistYaml — nodo OKF configuracion-despacho.yaml', () => {
-  it('parsea los 5 ítems con su label y tipo, en el orden del YAML', () => {
+  it('parsea los 4 ítems con su label y tipo, en el orden del YAML', () => {
     const items = parseChecklistYaml(YAML_CHECKLIST);
     expect(items.map((i) => i.key)).toEqual([
       'datos-despacho',

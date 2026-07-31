@@ -40,6 +40,10 @@ describe('buscarComportamiento — catálogo CNSCC (Ley 1801 de 2016)', () => {
         'Artículo 124 Numeral 7',
         'Tolerar, permitir o inducir por acción u omisión el que un animal ataque a una persona, a un animal o a bienes de terceros.',
       ],
+      [
+        'Artículo 140 Numeral 13',
+        'Consumir, portar, distribuir, ofrecer o comercializar sustancias psicoactivas, inclusive la dosis personal, en el perímetro de centros educativos; además al interior de centros deportivos, y en parques. También, corresponderá a la Asamblea o Consejo de Administración regular la prohibición del consumo de sustancias psicoactivas en determinadas áreas de las zonas comunes en conjuntos residenciales o las unidades de propiedad horizontal de propiedades horizontales, en los términos de la Ley 675 de 2001.',
+      ],
     ];
     casos.forEach(([articulo, descripcion]) => {
       expect(buscarComportamiento(articulo)?.descripcionConducta).toBe(descripcion);
@@ -66,7 +70,7 @@ describe('buscarComportamiento — catálogo CNSCC (Ley 1801 de 2016)', () => {
     expect(buscarComportamiento('Artículo 27 Numeral 6')?.bienJuridico).toMatch(/vida e integridad/i);
   });
 
-  it('cubre los 15 artículo/numeral exigidos por el despacho más el art. 180 (sin numeral)', () => {
+  it('cubre los 13 artículo/numeral exigidos por el despacho más el art. 180 (sin numeral)', () => {
     const requeridos = [
       'Artículo 27 Numeral 3',
       'Artículo 27 Numeral 6',

@@ -46,6 +46,12 @@ const actasMock: Array<{
   datos: any;
 }> = [];
 
+// Plantillas propias subidas por el inspector (Task 14) - override en memoria por documentKey, superpuesto sobre TEMPLATE_RESOLUTION_MOCK.
+const mockInspectorTemplateOverrides = new Map<
+  string,
+  { documentKey: string; resolvedConceptId: string; resolvedSourceKey: string; level: 'inspector' }
+>();
+
 // querellasLegalCaseMock/quejasLegalCaseMock (ver data.ts) espejan
 // querellasDetalleMock/quejasDetalleMock como LegalCase para que los
 // handlers genéricos de /legal-cases (find-by-criteria, :id, PATCH
@@ -784,10 +790,69 @@ export const handlers = [
   // (cascada inspector -> oficina -> sistema); el mock devuelve la misma
   // demo sin importar qué combinación llegó, para que la página sea
   // demostrable incluso cuando el workspace de la microsite no resuelve
-  // (ver resolveWorkspaceContext, sin handler mockeado hoy).
+  // (ver resolveWorkspaceContext, sin handler mockeado hoy). Los overrides
+  // subidos vía PUT /inspector-templates se superponen en memoria (mockInspectorTemplateOverrides).
   http.get(`${API}/template-resolution`, async () => {
     await delay(350);
-    return HttpResponse.json(TEMPLATE_RESOLUTION_MOCK);
+    return HttpResponse.json(
+      TEMPLATE_RESOLUTION_MOCK.map(
+        (resolucion) => mockInspectorTemplateOverrides.get(resolucion.documentKey) ?? resolucion,
+      ),
+    );
+  }),
+
+  // ── Plantilla propia del inspector (Task 14) — legalcase real vive en
+  // InspectorTemplateController; este mock mantiene un mapa en memoria por
+  // documentKey para que subir/restaurar sea demostrable sin backend.
+  http.put(`${API}/inspector-templates/:documentKey`, async ({ params, request }) => {
+    await delay(300);
+    const documentKey = String(params.documentKey);
+    const url = new URL(request.url);
+    const workspaceId = url.searchParams.get('workspaceId');
+    const instanceId = url.searchParams.get('instanceId');
+    const inspectorId = url.searchParams.get('inspectorId');
+    if (!workspaceId || !instanceId || !inspectorId) {
+      return HttpResponse.json(
+        { message: 'workspaceId, instanceId e inspectorId son obligatorios' },
+        { status: 400 },
+      );
+    }
+    const { content, title } = (await request.json()) as { content: string; title?: string };
+    const sourceKey = `workspaces/${workspaceId}/instancias/${instanceId}/inspectores/${inspectorId}/formatos/${documentKey}/index.md`;
+    const conceptId = `${workspaceId}-${instanceId}-${inspectorId}-formato-${documentKey}`;
+    const nodo = {
+      conceptId,
+      title: title || documentKey,
+      conceptType: 'formato',
+      brainId: 'derecho-policia-convivencia',
+      documentBody: content,
+      sourceKey,
+      syncedAt: new Date().toISOString(),
+    };
+    mockInspectorTemplateOverrides.set(documentKey, {
+      documentKey,
+      resolvedConceptId: conceptId,
+      resolvedSourceKey: sourceKey,
+      level: 'inspector' as const,
+    });
+    return HttpResponse.json(nodo);
+  }),
+
+  http.delete(`${API}/inspector-templates/:documentKey`, async ({ params, request }) => {
+    await delay(250);
+    const documentKey = String(params.documentKey);
+    const url = new URL(request.url);
+    const workspaceId = url.searchParams.get('workspaceId');
+    const instanceId = url.searchParams.get('instanceId');
+    const inspectorId = url.searchParams.get('inspectorId');
+    if (!workspaceId || !instanceId || !inspectorId) {
+      return HttpResponse.json(
+        { message: 'workspaceId, instanceId e inspectorId son obligatorios' },
+        { status: 400 },
+      );
+    }
+    mockInspectorTemplateOverrides.delete(documentKey);
+    return new HttpResponse(null, { status: 204 });
   }),
 
   // Asistente IA: respuesta en streaming token-a-token (simula Spring AI /legal/chat)

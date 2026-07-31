@@ -14,6 +14,7 @@ import {
   Alert,
   Drawer,
   Space,
+  Popconfirm,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -26,10 +27,17 @@ import {
   EyeOutlined,
   BankOutlined,
   MailOutlined,
+  UploadOutlined,
+  RollbackOutlined,
 } from '@ant-design/icons';
 import { useInspeccionStore } from '@/store/inspeccionStore';
 import { useChecklistDespacho } from './useChecklistDespacho';
-import { useTemplateResolution, type NivelResolucionPlantilla } from './useTemplateResolution';
+import {
+  useTemplateResolution,
+  useUpsertInspectorTemplate,
+  useDeleteInspectorTemplate,
+  type NivelResolucionPlantilla,
+} from './useTemplateResolution';
 import { derivarEstadoChecklist, type ChecklistItemEstado, type TipoItemChecklist } from './checklistDespacho';
 import { generarBlobEjemploPlantilla, NOMBRE_PLANTILLA } from './ejemploPlantillas';
 import { PdfViewer } from '@/shared/documentos/PdfViewer';
@@ -96,6 +104,8 @@ export function ConfiguracionDespachoPage() {
   const guardarConfig = useInspeccionStore((s) => s.guardarConfig);
   const { data: checklist, isLoading: cargandoChecklist, isError: errorChecklist } = useChecklistDespacho();
   const { data: resolucion, isLoading: cargandoResolucion } = useTemplateResolution();
+  const subirPlantillaInspector = useUpsertInspectorTemplate();
+  const restaurarPlantillaSistema = useDeleteInspectorTemplate();
 
   const [formDespacho] = Form.useForm<{ municipio: string; inspectorNombre: string; inspeccion: string }>();
   const [formRecaudo] = Form.useForm<{ cuentaRecaudo: string; titularCuenta: string; nitTitular: string }>();
@@ -194,6 +204,35 @@ export function ConfiguracionDespachoPage() {
     }
   }
 
+  // v1 solo texto plano/markdown/YAML - convertir .docx queda para una iteración futura.
+  const EXTENSIONES_PLANTILLA_RE = /\.(md|txt|yaml|yml)$/i;
+
+  async function subirPlantillaPropia(documentKey: string, archivo: File) {
+    if (!EXTENSIONES_PLANTILLA_RE.test(archivo.name)) {
+      message.error('Solo se aceptan archivos .md, .txt o .yaml.');
+      return false;
+    }
+    try {
+      const contenido = await archivo.text();
+      await subirPlantillaInspector.mutateAsync({
+        documentKey,
+        content: contenido,
+        title: NOMBRE_PLANTILLA[documentKey] ?? documentKey,
+      });
+      message.success('Plantilla propia guardada.');
+    } catch {
+      message.error('No se pudo guardar la plantilla.');
+    }
+    return false;
+  }
+
+  function restaurarPlantilla(documentKey: string) {
+    restaurarPlantillaSistema.mutate(documentKey, {
+      onSuccess: () => message.success('Se restauró la plantilla de oficina/sistema.'),
+      onError: () => message.error('No se pudo restaurar la plantilla.'),
+    });
+  }
+
   const filasPlantillas = documentosPlantillas.map((documentKey) => ({
     documentKey,
     resolucion: (resolucion ?? []).find((r) => r.documentKey === documentKey) ?? null,
@@ -225,16 +264,54 @@ export function ConfiguracionDespachoPage() {
     },
     {
       title: 'Acciones',
-      width: 140,
+      width: 320,
       render: (_, fila) => (
-        <Button
-          size="small"
-          icon={<EyeOutlined />}
-          loading={generandoPrevia === fila.documentKey}
-          onClick={() => verPrevia(fila.documentKey)}
-        >
-          Vista previa
-        </Button>
+        <Space size={6} wrap>
+          <Button
+            size="small"
+            icon={<EyeOutlined />}
+            loading={generandoPrevia === fila.documentKey}
+            onClick={() => verPrevia(fila.documentKey)}
+          >
+            Vista previa
+          </Button>
+          <Upload
+            accept=".md,.txt,.yaml,.yml"
+            showUploadList={false}
+            beforeUpload={(archivo) => subirPlantillaPropia(fila.documentKey, archivo)}
+          >
+            <Button
+              size="small"
+              icon={<UploadOutlined />}
+              loading={
+                subirPlantillaInspector.isPending &&
+                subirPlantillaInspector.variables?.documentKey === fila.documentKey
+              }
+            >
+              Subir mi plantilla
+            </Button>
+          </Upload>
+          {fila.resolucion?.level === 'inspector' && (
+            <Popconfirm
+              title="Restaurar plantilla de sistema"
+              description="Se elimina la plantilla propia; vuelve a usarse la de oficina o sistema."
+              okText="Restaurar"
+              cancelText="Cancelar"
+              onConfirm={() => restaurarPlantilla(fila.documentKey)}
+            >
+              <Button
+                size="small"
+                danger
+                icon={<RollbackOutlined />}
+                loading={
+                  restaurarPlantillaSistema.isPending && restaurarPlantillaSistema.variables === fila.documentKey
+                }
+              >
+                Restaurar plantilla de sistema
+              </Button>
+            </Popconfirm>
+          )}
+        </Space>
       ),
     },
   ];

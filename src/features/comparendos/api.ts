@@ -148,6 +148,8 @@ export function useCreateComparendo() {
       };
       const input: CreateLegalCaseInput = {
         caseType: CASE_TYPE,
+        // legal_cases.class_name is NOT NULL — the backend does not default it
+        className: `Comparendo ${datos.articuloNumeral || datos.numeroComparendo}`.trim(),
         venueCity: municipio || 'Manizales',
         caseMetadata: buildCaseMetadata(metadata as unknown as Record<string, unknown>),
         background: {

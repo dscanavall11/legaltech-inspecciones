@@ -217,7 +217,13 @@ export function SiguientePasoComparendo({
         onSuccess: () => {
           if (metaExtra) {
             const metaActual = parseCaseMetadata<Record<string, unknown>>(caseMetadata ?? null);
-            actualizarCampos.mutate({ id, fields: { caseMetadata: buildCaseMetadata({ ...metaActual, ...metaExtra }) } });
+            actualizarCampos.mutate(
+              { id, fields: { caseMetadata: buildCaseMetadata({ ...metaActual, ...metaExtra }) } },
+              {
+                onError: () =>
+                  message.error('El estado cambió pero los datos del paso no se guardaron — reintenta desde el detalle'),
+              },
+            );
           }
           if (exito) message.success(exito);
         },

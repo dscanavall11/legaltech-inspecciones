@@ -40,8 +40,20 @@ export function ChecklistVisual({
         <div
           key={item.key}
           onClick={item.onToggle ? () => item.onToggle!(item.key) : undefined}
+          onKeyDown={
+            item.onToggle
+              ? (e) => {
+                  if (e.key === 'Enter') item.onToggle!(item.key);
+                  if (e.key === ' ') {
+                    e.preventDefault();
+                    item.onToggle!(item.key);
+                  }
+                }
+              : undefined
+          }
           role={item.onToggle ? 'checkbox' : undefined}
           aria-checked={item.onToggle ? item.done : undefined}
+          tabIndex={item.onToggle ? 0 : undefined}
           style={{
             display: 'flex',
             alignItems: 'center',

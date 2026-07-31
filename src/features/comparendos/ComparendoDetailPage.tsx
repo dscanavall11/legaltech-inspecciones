@@ -14,16 +14,26 @@ import {
   Space,
   Collapse,
 } from 'antd';
-import { ArrowLeftOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, FileTextOutlined } from '@ant-design/icons';
 import { NormaMark } from '@/shared/ai/NormaMark';
 import { NORMA } from '@/shared/ai/identity';
 import dayjs from 'dayjs';
 import { useComparendo } from './api';
-import { ESTADO_COMPARENDO_COLOR, ESTADO_COMPARENDO_LABEL, type ActuacionComparendo, type TipoActuacionComparendo } from './types';
+import {
+  ESTADO_COMPARENDO_COLOR,
+  ESTADO_COMPARENDO_LABEL,
+  type ActuacionComparendo,
+  type ComparendoDetalle,
+  type ComparendoMetadata,
+  type TipoActuacionComparendo,
+} from './types';
 import { SiguientePasoComparendo } from './SiguientePasoComparendo';
+import { documentosComparendoDisponibles } from './documento/documentoComparendo';
 import { FlujoNavegable } from '@/shared/components/FlujoNavegable';
 import { DocumentosExpediente } from '@/shared/documentos/DocumentosExpediente';
+import { NOMBRE_PLANTILLA } from '@/shared/documentos/ejemploPlantillas';
 import { EtapaProcesal } from '@/shared/components/EtapaProcesal';
+import { parseCaseMetadata } from '@/shared/legalCases/types';
 import {
   ETAPAS_COMPARENDO,
   ETAPA_COMPARENDO_ACTIVA,
@@ -116,6 +126,37 @@ function TerminosCard({ fechaComparendo }: { fechaComparendo: string }) {
         Cálculo sujeto a validación jurídica — no sustituye el término real aplicado por el despacho.
       </div>
     </Card>
+  );
+}
+
+/**
+ * Piezas procesales ya generables con los datos reales del expediente — cada
+ * una navega al visor/editor compartido (Task 18, deliverable 3), donde el
+ * inspector puede revisar, editar por acápite y volver a archivar la versión.
+ */
+function PiezasProcesalesCard({ id, data }: { id: string; data: ComparendoDetalle }) {
+  const navigate = useNavigate();
+  const meta = parseCaseMetadata<ComparendoMetadata>(data.caseMetadataRaw ?? null);
+  const disponibles = documentosComparendoDisponibles(data, meta);
+
+  if (disponibles.length === 0) {
+    return (
+      <Text type="secondary">Aún no hay piezas procesales generables — se habilitan a medida que avanza el trámite.</Text>
+    );
+  }
+
+  return (
+    <Space wrap size={8} style={{ marginBottom: 16 }}>
+      {disponibles.map((tipo) => (
+        <Button
+          key={tipo}
+          icon={<FileTextOutlined />}
+          onClick={() => navigate(`/panel/comparendos/${id}/documento/${tipo}`)}
+        >
+          {NOMBRE_PLANTILLA[tipo] ?? tipo}
+        </Button>
+      ))}
+    </Space>
   );
 }
 
@@ -237,7 +278,15 @@ export function ComparendoDetailPage() {
     {
       key: 'documentos',
       label: 'Documentos',
-      children: <DocumentosExpediente caseId={data.id} />,
+      children: (
+        <>
+          <Text type="secondary" style={{ fontSize: 12, letterSpacing: 0.3, display: 'block', marginBottom: 8 }}>
+            PIEZAS PROCESALES DEL EXPEDIENTE
+          </Text>
+          <PiezasProcesalesCard id={data.id} data={data} />
+          <DocumentosExpediente caseId={data.id} />
+        </>
+      ),
     },
   ];
 

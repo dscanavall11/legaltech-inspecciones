@@ -11,25 +11,16 @@ import { MULTA_LABEL, valorMulta, formatearPesos } from '@/shared/multas/multas'
  * los datos del expediente para previsualizar la estructura.
  *
  * ⚠️ Contenido jurídico de muestra — pendiente de validación legal.
+ *
+ * `Acapite`/`DocumentoGenerado` ahora viven en shared/documentos/acapites
+ * (Task 18: DocumentoEditorPage genérico) — se re-exportan aquí para no
+ * romper a quejas/SiguientePasoQueja.tsx y querellas/SiguientePaso.tsx, que
+ * ya los importaban desde este módulo.
  */
+export type { Acapite, DocumentoGenerado } from '@/shared/documentos/acapites';
+import type { DocumentoGenerado } from '@/shared/documentos/acapites';
+
 export type TipoDocumento = 'fallo' | 'acta' | 'citacion' | 'constancia';
-
-export interface Acapite {
-  id: string;
-  titulo: string;
-  /** Resumen de una línea para el sidebar. */
-  resumen: string;
-  /** Párrafos del cuerpo del documento. */
-  parrafos: string[];
-  /** Origen del contenido: plantilla fija o generado por IA. */
-  fuente: 'ia' | 'plantilla';
-}
-
-export interface DocumentoGenerado {
-  titulo: string;
-  inspeccion: string;
-  acapites: Acapite[];
-}
 
 const fmt = (f: string) => dayjs(f).format('D [de] MMMM [de] YYYY');
 

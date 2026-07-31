@@ -84,6 +84,114 @@ export const CONVERSION_ACTA_FIRMEZA = {
   estadoInicial: 'pendiente',
 } as const;
 
+export interface TransicionComparendo {
+  de: EstadoComparendo;
+  /** 'acta_firmeza' marca un convierte_a (ver CONVERSION_ACTA_FIRMEZA), no un estado del propio comparendo. */
+  a: EstadoComparendo | 'acta_firmeza';
+  evento: AccionComparendoTipo;
+  label: string;
+}
+
+/**
+ * Espejo declarativo — para el mapa navegable de Task 15 — de las 27
+ * transiciones del bloque `comparendo` en maquinas-estado.yaml, expandiendo
+ * la única entrada con `de:` agrupado (terminar_por_inactividad: audiencia_programada
+ * | en_audiencia | suspendida_pruebas) en transiciones individuales: 29 filas.
+ * `siguientePasoComparendo` sigue siendo la fuente de la guía procesal; este
+ * arreglo sólo añade la forma de grafo (de -> a) que la guía no expone.
+ */
+export const TRANSICIONES_COMPARENDO: ReadonlyArray<TransicionComparendo> = [
+  { de: 'recibido', a: 'verificado', evento: 'verificar_comparendo', label: 'Verificar comparendo (checklist)' },
+  { de: 'verificado', a: 'en_espera_objecion', evento: 'abrir_termino_objecion', label: 'Abrir término de objeción' },
+  { de: 'en_espera_objecion', a: 'objetado', evento: 'registrar_impugnacion', label: 'Registrar impugnación oportuna' },
+  {
+    de: 'en_espera_objecion',
+    a: 'pronto_pago_acordado',
+    evento: 'suscribir_acta_pronto_pago',
+    label: 'Suscribir acta de pronto pago',
+  },
+  {
+    de: 'en_espera_objecion',
+    a: 'conmutacion_acordada',
+    evento: 'suscribir_acta_conmutacion',
+    label: 'Suscribir acta de conmutación',
+  },
+  { de: 'en_espera_objecion', a: 'sin_objecion', evento: 'constancia_no_objecion', label: 'Dejar constancia de no objeción' },
+  { de: 'sin_objecion', a: 'acta_firmeza', evento: 'generar_acta_firmeza', label: 'Generar acta de firmeza' },
+  {
+    de: 'objetado',
+    a: 'audiencia_programada',
+    evento: 'avocar_y_citar_audiencia',
+    label: 'Proferir auto que avoca y fija audiencia',
+  },
+  { de: 'audiencia_programada', a: 'audiencia_programada', evento: 'reagendar_audiencia', label: 'Reagendar audiencia' },
+  { de: 'audiencia_programada', a: 'en_audiencia', evento: 'instalar_audiencia', label: 'Instalar audiencia pública' },
+  { de: 'en_audiencia', a: 'suspendida_pruebas', evento: 'decretar_pruebas', label: 'Decretar pruebas y suspender' },
+  {
+    de: 'en_audiencia',
+    a: 'suspendida_inasistencia',
+    evento: 'constancia_inasistencia',
+    label: 'Dejar constancia de inasistencia',
+  },
+  { de: 'en_audiencia', a: 'fallo_emitido', evento: 'emitir_fallo', label: 'Emitir fallo en audiencia' },
+  { de: 'suspendida_pruebas', a: 'en_audiencia', evento: 'reanudar_audiencia', label: 'Reanudar audiencia' },
+  {
+    de: 'suspendida_inasistencia',
+    a: 'audiencia_programada',
+    evento: 'admitir_justa_causa',
+    label: 'Admitir justa causa y reprogramar',
+  },
+  {
+    de: 'suspendida_inasistencia',
+    a: 'fallo_emitido',
+    evento: 'fallo_por_inasistencia',
+    label: 'Resolver de fondo por inasistencia',
+  },
+  { de: 'fallo_emitido', a: 'en_recurso', evento: 'conceder_recursos', label: 'Conceder reposición/apelación' },
+  { de: 'fallo_emitido', a: 'en_firmeza', evento: 'constancia_ejecutoria', label: 'Dejar constancia de firmeza' },
+  { de: 'en_recurso', a: 'en_firmeza', evento: 'resolver_recursos', label: 'Registrar resolución de recursos' },
+  { de: 'pronto_pago_acordado', a: 'archivado', evento: 'confirmar_pago', label: 'Confirmar pago y archivar' },
+  {
+    de: 'pronto_pago_acordado',
+    a: 'incumplimiento_constatado',
+    evento: 'constancia_incumplimiento_pago',
+    label: 'Constancia de incumplimiento de pronto pago',
+  },
+  {
+    de: 'conmutacion_acordada',
+    a: 'archivado',
+    evento: 'confirmar_actividad',
+    label: 'Confirmar actividad pedagógica y archivar',
+  },
+  {
+    de: 'conmutacion_acordada',
+    a: 'incumplimiento_constatado',
+    evento: 'constancia_incumplimiento_actividad',
+    label: 'Constancia de inasistencia a actividad pedagógica',
+  },
+  {
+    de: 'incumplimiento_constatado',
+    a: 'archivado',
+    evento: 'remitir_cobro_coactivo',
+    label: 'Remitir a cobro coactivo y archivar',
+  },
+  { de: 'en_firmeza', a: 'archivado', evento: 'archivar', label: 'Ordenar archivo' },
+  {
+    de: 'audiencia_programada',
+    a: 'terminado_inactividad',
+    evento: 'terminar_por_inactividad',
+    label: 'Terminar por inactividad',
+  },
+  { de: 'en_audiencia', a: 'terminado_inactividad', evento: 'terminar_por_inactividad', label: 'Terminar por inactividad' },
+  {
+    de: 'suspendida_pruebas',
+    a: 'terminado_inactividad',
+    evento: 'terminar_por_inactividad',
+    label: 'Terminar por inactividad',
+  },
+  { de: 'terminado_inactividad', a: 'archivado', evento: 'archivar', label: 'Ordenar archivo' },
+];
+
 export interface PasoFlujoComparendo {
   /** Mensaje que contextualiza en qué punto del trámite está el caso. */
   mensaje: string;

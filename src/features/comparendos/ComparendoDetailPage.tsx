@@ -12,6 +12,7 @@ import {
   Row,
   Col,
   Space,
+  Collapse,
 } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import { NormaMark } from '@/shared/ai/NormaMark';
@@ -20,6 +21,7 @@ import dayjs from 'dayjs';
 import { useComparendo } from './api';
 import { ESTADO_COMPARENDO_COLOR, ESTADO_COMPARENDO_LABEL, type ActuacionComparendo, type TipoActuacionComparendo } from './types';
 import { SiguientePasoComparendo } from './SiguientePasoComparendo';
+import { FlujoNavegable } from './FlujoNavegable';
 import { DocumentosExpediente } from '@/shared/documentos/DocumentosExpediente';
 import { EtapaProcesal } from '@/shared/components/EtapaProcesal';
 import { ETAPAS_COMPARENDO, ETAPA_COMPARENDO_ACTIVA, TERMINOS_COMPARENDO, INCREMENTO_LABEL, liquidarMulta } from '@/derecho';
@@ -246,6 +248,19 @@ export function ComparendoDetailPage() {
       <div style={{ marginBottom: 26 }}>
         <EtapaProcesal etapas={[...ETAPAS_COMPARENDO]} activa={ETAPA_COMPARENDO_ACTIVA[data.estado]} />
       </div>
+
+      <Collapse
+        defaultActiveKey={['mapa']}
+        style={{ marginBottom: 24, background: 'transparent', border: 'none' }}
+        items={[
+          {
+            key: 'mapa',
+            label: <Text strong>Mapa del trámite (todos los estados)</Text>,
+            children: <FlujoNavegable id={data.id} estadoActual={data.estado} actuaciones={data.actuaciones} />,
+            style: { border: 'none', padding: 0 },
+          },
+        ]}
+      />
 
       <div style={{ marginBottom: 24 }}>
         <SiguientePasoComparendo id={data.id} estado={data.estado} caseMetadata={data.caseMetadataRaw} caso={data} />

@@ -6,25 +6,25 @@ const DATOS: DatosDeclaracionTestigo = {
   inspeccion: 'Inspección Permanente de Convivencia y Paz Turno Uno',
   inspectorNombre: 'ANDRÉS FELIPE EJEMPLO ROJAS',
   inspectorRol: 'Inspector Permanente de Convivencia y Paz – Turno Uno',
-  fechaResolucion: '2026-04-15',
-  horaDiligencia: '09:30 a.m.',
-  proceso: '2026-0005',
-  comparendo: '17-001-6-2026-0004',
-  articuloNumeral: 'Artículo 140 Numeral 13',
-  fechaComparendo: '2026-03-08',
-  lugarComportamiento: 'CALLE 9 VÍA EJEMPLO',
-  solicitado: 'JULIÁN EJEMPLO MARTÍNEZ',
-  cedulaSolicitado: '1.000.000.020',
-  solicitante: 'CAI EJEMPLO',
+  fechaResolucion: '2026-09-10',
+  horaDiligencia: '02:15 p.m.',
+  proceso: '2026-0009',
+  comparendo: '17-001-6-2026-0008',
+  articuloNumeral: 'Artículo 27 Numeral 6',
+  fechaComparendo: '2026-08-01',
+  lugarComportamiento: 'AVENIDA EJEMPLO CON CARRERA 50',
+  solicitado: 'RODRIGO EJEMPLO VALENCIA',
+  cedulaSolicitado: '1.000.000.040',
+  solicitante: 'CAI EJEMPLO SUR',
   representanteApoderado: 'actúa por sí mismo',
-  testigoNombre: 'JUAN EJEMPLO CASTRO',
-  testigoCedula: '1.000.000.021',
-  testigoDireccion: 'Calle 68A No. 8-34, Manizales',
-  testigoTelefono: '3000000021',
-  vinculoConSolicitado: 'amigos, sin parentesco',
+  testigoNombre: 'PATRICIA EJEMPLO NARANJO',
+  testigoCedula: '1.000.000.041',
+  testigoDireccion: 'Transversal 14 No. 22-51, Manizales',
+  testigoTelefono: '3000000041',
+  vinculoConSolicitado: 'vecinos, sin parentesco',
   preguntasYRespuestas: [
-    { pregunta: '¿tiene algún vínculo de consanguinidad con el solicitado?', respuesta: 'no, somos amigos' },
-    { pregunta: '¿se encontraba en el lugar el día de los hechos?', respuesta: 'sí, señor' },
+    { pregunta: '¿tiene algún vínculo de consanguinidad con el solicitado?', respuesta: 'no, somos vecinos' },
+    { pregunta: '¿se encontraba en el lugar el día de los hechos?', respuesta: 'sí, señora' },
   ],
   manifestacionTraslado: 'no tengo ninguna objeción',
 };
@@ -41,15 +41,15 @@ describe('generarDeclaracionTestigo', () => {
     const acta = generarDeclaracionTestigo(DATOS);
     const interrogatorio = acta.secciones.find((s) => s.titulo === 'INTERROGATORIO');
     expect(interrogatorio?.parrafos).toContain(
-      'PREGUNTANDO: "¿se encontraba en el lugar el día de los hechos?". RESPONDE: "sí, señor".',
+      'PREGUNTANDO: "¿se encontraba en el lugar el día de los hechos?". RESPONDE: "sí, señora".',
     );
   });
 
   it('firma: solicitado, testigo e inspector, en ese orden', () => {
     const acta = generarDeclaracionTestigo(DATOS);
     expect(acta.firma).toHaveLength(3);
-    expect(acta.firma[0]).toEqual({ nombre: 'JULIÁN EJEMPLO MARTÍNEZ', rol: 'C.C. Nro. 1.000.000.020', tipo: 'solicitado' });
-    expect(acta.firma[1]).toEqual({ nombre: 'JUAN EJEMPLO CASTRO', rol: 'C.C. Nro. 1.000.000.021', tipo: 'testigo' });
+    expect(acta.firma[0]).toEqual({ nombre: 'RODRIGO EJEMPLO VALENCIA', rol: 'C.C. Nro. 1.000.000.040', tipo: 'solicitado' });
+    expect(acta.firma[1]).toEqual({ nombre: 'PATRICIA EJEMPLO NARANJO', rol: 'C.C. Nro. 1.000.000.041', tipo: 'testigo' });
     expect(acta.firma[2].nombre).toBe('ANDRÉS FELIPE EJEMPLO ROJAS');
   });
 

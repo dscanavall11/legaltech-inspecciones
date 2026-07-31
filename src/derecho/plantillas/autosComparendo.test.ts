@@ -239,7 +239,7 @@ describe('generarConstanciaIncumplimientoProntoPago', () => {
 const datosPedagogica: DatosConstanciaIncumplimientoActividadPedagogica = {
   municipio: 'Manizales',
   inspeccion: 'Inspección Permanente de Convivencia y Paz Turno Uno',
-  firmanteNombre: 'JULIANA EJEMPLO CASTRO',
+  firmanteNombre: 'MARCELA EJEMPLO OSORIO',
   firmanteRol: 'Auxiliar Administrativo',
   fechaResolucion: '2026-05-15',
   proceso: '2026-0007',
@@ -258,7 +258,7 @@ describe('generarConstanciaIncumplimientoActividadPedagogica', () => {
 
   it('la firma es la del firmante de oficina, nunca el inspector por defecto', () => {
     const constancia = generarConstanciaIncumplimientoActividadPedagogica(datosPedagogica);
-    expect(constancia.firma).toEqual([{ nombre: 'JULIANA EJEMPLO CASTRO', rol: 'Auxiliar Administrativo' }]);
+    expect(constancia.firma).toEqual([{ nombre: 'MARCELA EJEMPLO OSORIO', rol: 'Auxiliar Administrativo' }]);
     expect(constancia.secciones[0].parrafos[0]).toContain('MIGUEL EJEMPLO SUÁREZ');
     expect(constancia.secciones[1].parrafos[0]).toContain('Sispaz');
     expect(constancia.secciones[2].parrafos[0]).toContain('cobro coactivo');

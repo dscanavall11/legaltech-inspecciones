@@ -329,6 +329,20 @@ export function SiguientePasoComparendo({
 
   const pendiente = cambiarEstado.isPending || actualizarCampos.isPending;
 
+  // ── Validación del modal de fallo — habilita el OK solo con los datos
+  //    mínimos exigidos por la variante seleccionada (fallo-comparendo.yaml). ──
+  const falloEsSancion = modalFallo === 'fallo_por_inasistencia' || (modalFallo === 'emitir_fallo' && sentido === 'sanciona');
+  const falloEsContinuacion = varianteFallo === 'absuelve_continuacion' || varianteFallo === 'sanciona_continuacion';
+  const faltanDatosRecaudo = falloEsSancion && (!cuentaRecaudo || !titularCuenta || !nitTitular);
+  const faltaAudienciaAnterior = falloEsContinuacion && !fechaAudienciaAnterior;
+  const modalFalloDeshabilitado =
+    (modalFallo === 'emitir_fallo' && (!sentido || !varianteFallo)) || faltanDatosRecaudo || faltaAudienciaAnterior;
+  // Advertencia informativa (no bloqueante): el OKF solo modela sanciona_continuacion
+  // — si se sanciona sin audiencia previa registrada en el expediente, el fallo
+  // narrará una suspensión que nunca ocurrió.
+  const avisoSancionSinAudienciaPrevia =
+    modalFallo === 'emitir_fallo' && sentido === 'sanciona' && !meta.fechaAudiencia;
+
   const ejecutar = (tipo: AccionComparendoTipo) => {
     switch (tipo) {
       case 'avocar_y_citar_audiencia':
@@ -918,7 +932,7 @@ export function SiguientePasoComparendo({
         okText="Generar fallo y previsualizar"
         cancelText="Cancelar"
         okButtonProps={{
-          disabled: modalFallo === 'emitir_fallo' ? !sentido || !varianteFallo : false,
+          disabled: modalFalloDeshabilitado,
           loading: pendiente || generandoPrevia,
         }}
         onCancel={() => setModalFallo(null)}
@@ -980,6 +994,14 @@ export function SiguientePasoComparendo({
                     <Radio value="absuelve_continuacion">Continuación de audiencia suspendida por pruebas</Radio>
                   </Space>
                 </Radio.Group>
+              )}
+              {avisoSancionSinAudienciaPrevia && (
+                <Alert
+                  type="warning"
+                  showIcon
+                  message="Sanción sin audiencia previa registrada"
+                  description="El OKF aún no modela una variante de sanción en audiencia única: el documento narrará una audiencia anterior que decretó pruebas y suspendió el trámite, pero el expediente no tiene registrada esa audiencia previa. Verifique la fecha de la audiencia previa antes de continuar."
+                />
               )}
               <div>
                 <Text style={{ display: 'block', marginBottom: 6 }}>

@@ -131,7 +131,7 @@ export function useCreateComparendo() {
       datos: NuevoComparendoInput,
       options?: { onSuccess?: (caso: LegalCase) => void; onError?: () => void },
     ) => {
-      const { municipio } = useInspeccionStore.getState().config;
+      const { municipio, inspeccion } = useInspeccionStore.getState().config;
       const metadata: ComparendoMetadata = {
         numeroComparendo: datos.numeroComparendo,
         articuloNumeral: datos.articuloNumeral,
@@ -148,8 +148,9 @@ export function useCreateComparendo() {
       };
       const input: CreateLegalCaseInput = {
         caseType: CASE_TYPE,
-        // legal_cases.class_name is NOT NULL — the backend does not default it
+        // class_name and judicial_office_id are NOT NULL — the backend does not default them
         className: `Comparendo ${datos.articuloNumeral || datos.numeroComparendo}`.trim(),
+        judicialOfficeId: inspeccion || 'Inspección de Convivencia y Paz',
         venueCity: municipio || 'Manizales',
         caseMetadata: buildCaseMetadata(metadata as unknown as Record<string, unknown>),
         background: {

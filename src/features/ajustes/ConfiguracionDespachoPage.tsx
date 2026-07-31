@@ -110,6 +110,11 @@ export function ConfiguracionDespachoPage() {
   const [formCorreo] = Form.useForm<{ correoNotificaciones: string }>();
 
   useEffect(() => {
+    // cargandoChecklist is the exact flag the JSX below gates the Skeleton vs.
+    // the real <Form> on (not `checklist` itself - with TanStack Query v5 the
+    // two can be a tick apart) - setting fields before the Form mounts fires
+    // AntD's "Instance not connected" warning for nothing.
+    if (cargandoChecklist) return;
     formDespacho.setFieldsValue({
       municipio: config.municipio,
       inspectorNombre: config.inspectorNombre,
@@ -117,7 +122,7 @@ export function ConfiguracionDespachoPage() {
     });
     formCorreo.setFieldsValue({ correoNotificaciones: config.correoNotificaciones });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [cargandoChecklist]);
 
   const documentosPlantillas = useMemo(
     () => checklist?.items.find((i) => i.key === 'plantillas-personalizadas')?.documentos ?? [],

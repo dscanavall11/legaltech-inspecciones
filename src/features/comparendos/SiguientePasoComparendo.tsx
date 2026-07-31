@@ -68,6 +68,9 @@ import { useUploadCaseDocument } from '@/shared/documentos/api';
 import { useInspeccionStore } from '@/store/inspeccionStore';
 import type { ComparendoDetalle, ComparendoMetadata } from './types';
 import { PALETA } from '@/theme/theme';
+import { ChecklistVisual } from '@/shared/components/ChecklistVisual';
+import { CHECKLIST_VERIFICACION_COMPARENDO } from './checklistVerificacionComparendo';
+import { derivarRequisitosFallo, requisitosFalloCumplidos } from './falloRequisitos';
 
 const { Text } = Typography;
 const { TextArea } = Input;
@@ -105,13 +108,6 @@ const ICONO: Record<AccionComparendoTipo, ReactNode> = {
 const SIMPLE_ACCIONES: Partial<
   Record<AccionComparendoTipo, { estado: EstadoComparendo; titulo: string; descripcion: string; exito: string }>
 > = {
-  verificar_comparendo: {
-    estado: 'verificado',
-    titulo: 'Verificar comparendo',
-    descripcion:
-      'Confirme que revisó el checklist de verificación humana (firma del infractor, causal, tipo de multa, datos legibles) antes de darle trámite.',
-    exito: 'Comparendo verificado.',
-  },
   abrir_termino_objecion: {
     estado: 'en_espera_objecion',
     titulo: 'Abrir término de objeción',
@@ -233,6 +229,11 @@ export function SiguientePasoComparendo({
   // ── Modal genérico de confirmación (acciones sin metadata propia) ────────
   const [modalSimple, setModalSimple] = useState<AccionComparendoTipo | null>(null);
 
+  // ── Verificar comparendo — checklist de verificación humana tickable ─────
+  const [modalVerificacion, setModalVerificacion] = useState(false);
+  const [itemsVerificados, setItemsVerificados] = useState<Record<string, boolean>>({});
+  const verificacionCompleta = CHECKLIST_VERIFICACION_COMPARENDO.every((item) => itemsVerificados[item.key]);
+
   // ── Citar / reagendar audiencia / admitir justa causa ─────────────────────
   const [modalAudiencia, setModalAudiencia] = useState<
     'avocar_y_citar_audiencia' | 'reagendar_audiencia' | 'admitir_justa_causa' | null
@@ -335,16 +336,19 @@ export function SiguientePasoComparendo({
   const pendiente = cambiarEstado.isPending || actualizarCampos.isPending;
 
   // ── Validación del modal de fallo — habilita el OK solo con los datos
-  //    mínimos exigidos por la variante seleccionada (fallo-comparendo.yaml). ──
-  const falloEsSancion = modalFallo === 'fallo_por_inasistencia' || (modalFallo === 'emitir_fallo' && sentido === 'sanciona');
-  // Incluye 'inasistencia': fallo_por_inasistencia también interpola fechaAudienciaAnterior
-  // (fecha de la audiencia previa que constató la inasistencia) en la plantilla.
-  const falloEsContinuacion =
-    varianteFallo === 'absuelve_continuacion' || varianteFallo === 'sanciona_continuacion' || varianteFallo === 'inasistencia';
-  const faltanDatosRecaudo = falloEsSancion && (!cuentaRecaudo || !titularCuenta || !nitTitular);
-  const faltaAudienciaAnterior = falloEsContinuacion && !fechaAudienciaAnterior;
-  const modalFalloDeshabilitado =
-    (modalFallo === 'emitir_fallo' && (!sentido || !varianteFallo)) || faltanDatosRecaudo || faltaAudienciaAnterior;
+  //    mínimos exigidos por la variante seleccionada (fallo-comparendo.yaml),
+  //    derivados por el helper puro falloRequisitos.ts (Task 17) y mostrados
+  //    en vivo como checklist visual dentro del modal. ───────────────────────
+  const requisitosFallo = derivarRequisitosFallo({
+    modalFallo,
+    sentido,
+    varianteFallo,
+    cuentaRecaudo,
+    titularCuenta,
+    nitTitular,
+    tieneFechaAudienciaAnterior: Boolean(fechaAudienciaAnterior),
+  });
+  const modalFalloDeshabilitado = !requisitosFalloCumplidos(requisitosFallo);
   // Advertencia informativa (no bloqueante): el OKF solo modela sanciona_continuacion
   // — si se sanciona sin que el expediente registre una suspensión previa
   // (decretar_pruebas / constancia_inasistencia), el fallo narrará una
@@ -354,6 +358,9 @@ export function SiguientePasoComparendo({
 
   const ejecutar = (tipo: AccionComparendoTipo) => {
     switch (tipo) {
+      case 'verificar_comparendo':
+        setItemsVerificados({});
+        return setModalVerificacion(true);
       case 'avocar_y_citar_audiencia':
       case 'reagendar_audiencia':
       case 'admitir_justa_causa':
@@ -682,6 +689,35 @@ export function SiguientePasoComparendo({
         <Text type="secondary">{modalSimple ? SIMPLE_ACCIONES[modalSimple]?.descripcion : ''}</Text>
       </Modal>
 
+      {/* Verificar comparendo — checklist de verificación humana tickable */}
+      <Modal
+        open={modalVerificacion}
+        title="Verificar comparendo"
+        okText="Confirmar verificación"
+        cancelText="Cancelar"
+        okButtonProps={{ disabled: !verificacionCompleta, loading: pendiente }}
+        onCancel={() => setModalVerificacion(false)}
+        onOk={() => {
+          setModalVerificacion(false);
+          transicionar('verificado', undefined, 'Comparendo verificado.');
+        }}
+      >
+        <Space direction="vertical" size="middle" style={{ width: '100%', marginTop: 8 }}>
+          <Text type="secondary">
+            Marque cada punto del checklist de verificación humana antes de darle trámite al comparendo.
+          </Text>
+          <ChecklistVisual
+            items={CHECKLIST_VERIFICACION_COMPARENDO.map((item) => ({
+              key: item.key,
+              label: item.label,
+              done: Boolean(itemsVerificados[item.key]),
+              onToggle: (key) => setItemsVerificados((prev) => ({ ...prev, [key]: !prev[key] })),
+            }))}
+            showSummary
+          />
+        </Space>
+      </Modal>
+
       {/* Avocar y citar / reagendar audiencia / admitir justa causa */}
       <Modal
         open={modalAudiencia !== null}
@@ -750,6 +786,13 @@ export function SiguientePasoComparendo({
               onChange={(e) => setMedioNotificacionAutorizado(e.target.value)}
             />
           )}
+          <ChecklistVisual
+            items={[
+              { key: 'fecha', label: 'Fecha de la audiencia', done: Boolean(fechaAudiencia) },
+              { key: 'hora', label: 'Hora de la audiencia', done: Boolean(horaAudiencia) },
+              { key: 'lugar', label: 'Lugar de la audiencia', done: Boolean(lugarAudiencia) },
+            ]}
+          />
         </Space>
       </Modal>
 
@@ -993,6 +1036,21 @@ export function SiguientePasoComparendo({
         }}
       >
         <Space direction="vertical" size="middle" style={{ width: '100%', marginTop: 8 }}>
+          {requisitosFallo.length > 0 && (
+            <div
+              style={{
+                background: PALETA.fondo,
+                borderRadius: 12,
+                padding: '10px 14px',
+                border: `1px solid ${PALETA.borde}`,
+              }}
+            >
+              <ChecklistVisual
+                items={requisitosFallo.map((r) => ({ key: r.key, label: r.label, done: r.cumplido }))}
+                showSummary
+              />
+            </div>
+          )}
           {modalFallo === 'emitir_fallo' && (
             <>
               <Text>¿Cuál es el sentido de la decisión?</Text>

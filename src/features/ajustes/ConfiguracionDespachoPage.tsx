@@ -7,7 +7,6 @@ import {
   Form,
   Upload,
   App,
-  Progress,
   Tag,
   Table,
   Skeleton,
@@ -21,8 +20,7 @@ import {
   FormOutlined,
   PictureOutlined,
   SaveOutlined,
-  CheckCircleOutlined,
-  ClockCircleOutlined,
+  CheckCircleFilled,
   FileProtectOutlined,
   EyeOutlined,
   MailOutlined,
@@ -41,6 +39,7 @@ import { derivarEstadoChecklist, type ChecklistItemEstado, type TipoItemChecklis
 import { generarBlobEjemploPlantilla, NOMBRE_PLANTILLA } from './ejemploPlantillas';
 import { PdfViewer } from '@/shared/documentos/PdfViewer';
 import { PALETA, ELEVACION } from '@/theme/theme';
+import { ChecklistVisual } from '@/shared/components/ChecklistVisual';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -56,15 +55,21 @@ const NIVEL_ESTILO: Record<NivelResolucionPlantilla, { texto: string; color: str
   inspector: { texto: 'Inspector', color: PALETA.moradoOscuro, fondo: PALETA.moradoBg },
 };
 
-function EstadoTag({ hecho }: { hecho: boolean }) {
+/** Círculo verde relleno (completo) / círculo neutro vacío (pendiente) — mismo lenguaje visual que ChecklistVisual. */
+function EstadoIndicador({ hecho }: { hecho: boolean }) {
   return hecho ? (
-    <Tag color="success" icon={<CheckCircleOutlined />} style={{ marginRight: 0 }}>
-      Completo
-    </Tag>
+    <CheckCircleFilled style={{ color: PALETA.verde, fontSize: 18 }} />
   ) : (
-    <Tag icon={<ClockCircleOutlined />} style={{ marginRight: 0 }}>
-      Pendiente
-    </Tag>
+    <span
+      aria-hidden
+      style={{
+        width: 15,
+        height: 15,
+        borderRadius: '50%',
+        border: `1.5px solid ${PALETA.borde}`,
+        display: 'inline-block',
+      }}
+    />
   );
 }
 
@@ -90,7 +95,7 @@ function ItemCard({ item, children }: { item: ChecklistItemEstado; children: Rea
         <Text strong style={{ flex: 1, fontSize: 14.5 }}>
           {item.label}
         </Text>
-        <EstadoTag hecho={item.hecho} />
+        <EstadoIndicador hecho={item.hecho} />
       </div>
       {children}
     </Card>
@@ -139,9 +144,6 @@ export function ConfiguracionDespachoPage() {
     () => (checklist ? derivarEstadoChecklist(checklist.items, config, plantillasPersonalizadasCount) : []),
     [checklist, config, plantillasPersonalizadasCount],
   );
-
-  const completos = estadoChecklist.filter((i) => i.hecho).length;
-  const progreso = estadoChecklist.length > 0 ? Math.round((completos / estadoChecklist.length) * 100) : 0;
 
   // ── Membrete: mismo patrón local-dataURL de AjustesPage. TODO(S3): cuando el
   // membrete se persista en S3 (ver project_data_governance), este handler y
@@ -331,15 +333,13 @@ export function ConfiguracionDespachoPage() {
           <Skeleton active paragraph={{ rows: 1 }} />
         ) : (
           <>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-              <Text strong style={{ fontSize: 13 }}>
-                Progreso de configuración
-              </Text>
-              <Text type="secondary" style={{ fontSize: 13 }}>
-                {completos} / {estadoChecklist.length} completos
-              </Text>
-            </div>
-            <Progress percent={progreso} strokeColor={progreso === 100 ? PALETA.verde : PALETA.azul} showInfo={false} />
+            <Text strong style={{ fontSize: 13, display: 'block', marginBottom: 10 }}>
+              Progreso de configuración
+            </Text>
+            <ChecklistVisual
+              items={estadoChecklist.map((item) => ({ key: item.key, label: item.label, done: item.hecho }))}
+              showSummary
+            />
           </>
         )}
       </Card>

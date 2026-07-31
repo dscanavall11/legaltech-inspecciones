@@ -23,7 +23,15 @@ import { useComparendos, useCreateComparendo, type NuevoComparendoInput } from '
 import { ESTADO_COMPARENDO_COLOR, ESTADO_COMPARENDO_LABEL, type Comparendo } from './types';
 import { extraerComparendoPdf } from '@/features/actas/extraerComparendoPdf';
 import type { Comparendo as ComparendoExtraido } from '@/features/actas/comparendos';
-import { ETAPAS_COMPARENDO, ETAPA_COMPARENDO_ACTIVA, MULTA_GENERAL, INCREMENTO_LABEL, type TipoMulta, type CausalIncremento } from '@/derecho';
+import {
+  ETAPAS_COMPARENDO,
+  ETAPA_COMPARENDO_ACTIVA,
+  MULTA_GENERAL,
+  INCREMENTO_LABEL,
+  buscarComportamiento,
+  type TipoMulta,
+  type CausalIncremento,
+} from '@/derecho';
 import { ELEVACION, PALETA } from '@/theme/theme';
 
 const { Title } = Typography;
@@ -70,6 +78,8 @@ const CAMPO_VACIO: NuevoComparendoInput = {
   solicitante: '',
   articuloNumeral: '',
   descripcionConducta: '',
+  bienJuridico: '',
+  medidasCorrectivas: '',
   hechos: '',
   tipoMulta: 1,
   causal: 'ninguna',
@@ -97,6 +107,23 @@ function ModalRadicarComparendo({
     setDatos((prev) => ({ ...prev, [k]: v }));
   }
 
+  /**
+   * Al cambiar el artículo/numeral, autocompleta descripcionConducta,
+   * bienJuridico y medidasCorrectivas desde el catálogo normativo
+   * (src/derecho/catalogoComportamientos.ts) — solo si el inspector aún no
+   * los diligenció a mano, para no pisar una corrección ya hecha.
+   */
+  function aplicarArticulo(valor: string) {
+    const catalogo = buscarComportamiento(valor);
+    setDatos((prev) => ({
+      ...prev,
+      articuloNumeral: valor,
+      descripcionConducta: prev.descripcionConducta || catalogo?.descripcionConducta || '',
+      bienJuridico: prev.bienJuridico || catalogo?.bienJuridico || '',
+      medidasCorrectivas: prev.medidasCorrectivas || catalogo?.medidasCorrectivas || '',
+    }));
+  }
+
   async function cargarPdf(archivo: File | undefined) {
     if (!archivo) return;
     setExtrayendo(true);
@@ -109,21 +136,28 @@ function ModalRadicarComparendo({
         return;
       }
       const e = extraidos as Partial<ComparendoExtraido>;
-      setDatos((prev) => ({
-        ...prev,
-        numeroComparendo: e.comparendo ?? prev.numeroComparendo,
-        solicitado: e.solicitado ?? prev.solicitado,
-        cedula: e.cedula ?? prev.cedula,
-        direccion: e.direccion ?? prev.direccion,
-        telefono: e.telefono ?? prev.telefono,
-        lugar: e.lugar ?? prev.lugar,
-        fechaComparendo: e.fechaComparendo ?? prev.fechaComparendo,
-        solicitante: e.solicitante ?? prev.solicitante,
-        articuloNumeral: e.articuloNumeral ?? prev.articuloNumeral,
-        descripcionConducta: e.descripcionConducta ?? prev.descripcionConducta,
-        hechos: e.hechos ?? prev.hechos,
-        tipoMulta: e.tipoMulta ?? prev.tipoMulta,
-      }));
+      setDatos((prev) => {
+        const articuloNumeral = e.articuloNumeral ?? prev.articuloNumeral;
+        const catalogo = buscarComportamiento(articuloNumeral);
+        return {
+          ...prev,
+          numeroComparendo: e.comparendo ?? prev.numeroComparendo,
+          solicitado: e.solicitado ?? prev.solicitado,
+          cedula: e.cedula ?? prev.cedula,
+          direccion: e.direccion ?? prev.direccion,
+          telefono: e.telefono ?? prev.telefono,
+          lugar: e.lugar ?? prev.lugar,
+          fechaComparendo: e.fechaComparendo ?? prev.fechaComparendo,
+          solicitante: e.solicitante ?? prev.solicitante,
+          articuloNumeral,
+          // El PDF (Literal RNMC) manda si trae texto; si no, cae al catálogo.
+          descripcionConducta: e.descripcionConducta ?? catalogo?.descripcionConducta ?? prev.descripcionConducta,
+          bienJuridico: prev.bienJuridico || catalogo?.bienJuridico || '',
+          medidasCorrectivas: prev.medidasCorrectivas || catalogo?.medidasCorrectivas || '',
+          hechos: e.hechos ?? prev.hechos,
+          tipoMulta: e.tipoMulta ?? prev.tipoMulta,
+        };
+      });
       setCamposDetectados(detectados);
       message.success(`Comparendo leído: ${detectados.length} campos extraídos. Verifíquelos antes de radicar.`);
     } catch {
@@ -239,7 +273,25 @@ function ModalRadicarComparendo({
           <Input
             placeholder="Artículo y numeral (Ley 1801)"
             value={datos.articuloNumeral}
-            onChange={(e) => set('articuloNumeral', e.target.value)}
+            onChange={(e) => aplicarArticulo(e.target.value)}
+            style={{ gridColumn: '1 / span 2' }}
+          />
+          <Input
+            placeholder="Descripción de la conducta (autocompletada por el catálogo, editable)"
+            value={datos.descripcionConducta}
+            onChange={(e) => set('descripcionConducta', e.target.value)}
+            style={{ gridColumn: '1 / span 2' }}
+          />
+          <Input
+            placeholder="Bien jurídico protegido (autocompletado por el catálogo, editable)"
+            value={datos.bienJuridico}
+            onChange={(e) => set('bienJuridico', e.target.value)}
+            style={{ gridColumn: '1 / span 2' }}
+          />
+          <Input
+            placeholder="Medidas correctivas previstas (autocompletadas por el catálogo, editable)"
+            value={datos.medidasCorrectivas}
+            onChange={(e) => set('medidasCorrectivas', e.target.value)}
             style={{ gridColumn: '1 / span 2' }}
           />
           <Select

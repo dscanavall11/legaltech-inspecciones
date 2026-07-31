@@ -12,6 +12,7 @@ export * from './flujoComparendo';
 export * from './etapas';
 export * from './letras';
 export * from './multas';
+export * from './catalogoComportamientos';
 export * from './plantillas/actaFirmeza';
 export * from './plantillas/documentoLegal';
 export * from './plantillas/autoAvocaCitaAudiencia';

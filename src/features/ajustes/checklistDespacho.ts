@@ -79,9 +79,6 @@ export interface ConfigParaChecklist {
   inspectorNombre: string;
   inspeccion: string;
   membreteDataUrl: string | null;
-  cuentaRecaudo: string;
-  titularCuenta: string;
-  nitTitular: string;
   correoNotificaciones: string;
 }
 
@@ -111,8 +108,6 @@ function estaHecho(key: string, config: ConfigParaChecklist, plantillasPersonali
       return lleno(config.municipio) && lleno(config.inspectorNombre) && lleno(config.inspeccion);
     case 'membrete':
       return Boolean(config.membreteDataUrl);
-    case 'cuenta-recaudo':
-      return lleno(config.cuentaRecaudo) && lleno(config.titularCuenta) && lleno(config.nitTitular);
     case 'correo-notificaciones':
       return lleno(config.correoNotificaciones);
     case 'plantillas-personalizadas':

@@ -23,9 +23,6 @@ items:
   - key: membrete
     label: "Membrete del despacho (PNG/JPG 800x200, fondo transparente)"
     tipo: archivo
-  - key: cuenta-recaudo
-    label: "Cuenta de recaudo de multas (banco, número, titular, NIT)"
-    tipo: formulario
   - key: correo-notificaciones
     label: "Correo institucional para notificaciones electrónicas"
     tipo: formulario

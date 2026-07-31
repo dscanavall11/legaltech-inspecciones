@@ -1,7 +1,7 @@
 import { useLegalCases, useLegalCase, useCreateLegalCase } from '@/shared/legalCases/api';
 import { parseCaseMetadata, buildCaseMetadata, type LegalCase, type CreateLegalCaseInput } from '@/shared/legalCases/types';
 import { useInspeccionStore } from '@/store/inspeccionStore';
-import type { EstadoComparendo } from '@/derecho';
+import { buscarComportamiento, type EstadoComparendo } from '@/derecho';
 import type {
   ActuacionComparendo,
   Comparendo,
@@ -117,9 +117,28 @@ export interface NuevoComparendoInput {
   solicitante: string;
   articuloNumeral: string;
   descripcionConducta?: string;
+  /** Bien jurídico protegido por el artículo/numeral — capturado en radicación, catalogado por defecto (ver derivarDatosCatalogo). */
+  bienJuridico?: string;
+  /** Medidas correctivas previstas para el comportamiento — ídem. */
+  medidasCorrectivas?: string;
   hechos: string;
   tipoMulta: ComparendoMetadata['tipoMulta'];
   causal: ComparendoMetadata['causal'];
+}
+
+/**
+ * Completa descripcionConducta/bienJuridico/medidasCorrectivas desde el
+ * catálogo normativo (src/derecho/catalogoComportamientos.ts) cuando el
+ * articuloNumeral es conocido y el campo llegó vacío — red de seguridad al
+ * radicar, independiente de que el modal ya haya prellenado los campos.
+ */
+function derivarDatosCatalogo(datos: NuevoComparendoInput): Pick<NuevoComparendoInput, 'descripcionConducta' | 'bienJuridico' | 'medidasCorrectivas'> {
+  const catalogo = buscarComportamiento(datos.articuloNumeral);
+  return {
+    descripcionConducta: datos.descripcionConducta || catalogo?.descripcionConducta,
+    bienJuridico: datos.bienJuridico || catalogo?.bienJuridico,
+    medidasCorrectivas: datos.medidasCorrectivas || catalogo?.medidasCorrectivas,
+  };
 }
 
 /** Radica un nuevo comparendo — mismo recurso genérico /legal-cases, caseType="comparendo". */
@@ -132,10 +151,13 @@ export function useCreateComparendo() {
       options?: { onSuccess?: (caso: LegalCase) => void; onError?: () => void },
     ) => {
       const { municipio, inspeccion } = useInspeccionStore.getState().config;
+      const { descripcionConducta, bienJuridico, medidasCorrectivas } = derivarDatosCatalogo(datos);
       const metadata: ComparendoMetadata = {
         numeroComparendo: datos.numeroComparendo,
         articuloNumeral: datos.articuloNumeral,
-        descripcionConducta: datos.descripcionConducta,
+        descripcionConducta,
+        bienJuridico,
+        medidasCorrectivas,
         lugar: datos.lugar,
         fechaComparendo: datos.fechaComparendo,
         tipoMulta: datos.tipoMulta,

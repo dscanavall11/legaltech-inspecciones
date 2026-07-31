@@ -25,7 +25,6 @@ import {
   ClockCircleOutlined,
   FileProtectOutlined,
   EyeOutlined,
-  BankOutlined,
   MailOutlined,
   UploadOutlined,
   RollbackOutlined,
@@ -108,7 +107,6 @@ export function ConfiguracionDespachoPage() {
   const restaurarPlantillaSistema = useDeleteInspectorTemplate();
 
   const [formDespacho] = Form.useForm<{ municipio: string; inspectorNombre: string; inspeccion: string }>();
-  const [formRecaudo] = Form.useForm<{ cuentaRecaudo: string; titularCuenta: string; nitTitular: string }>();
   const [formCorreo] = Form.useForm<{ correoNotificaciones: string }>();
 
   useEffect(() => {
@@ -116,11 +114,6 @@ export function ConfiguracionDespachoPage() {
       municipio: config.municipio,
       inspectorNombre: config.inspectorNombre,
       inspeccion: config.inspeccion,
-    });
-    formRecaudo.setFieldsValue({
-      cuentaRecaudo: config.cuentaRecaudo,
-      titularCuenta: config.titularCuenta,
-      nitTitular: config.nitTitular,
     });
     formCorreo.setFieldsValue({ correoNotificaciones: config.correoNotificaciones });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -166,16 +159,6 @@ export function ConfiguracionDespachoPage() {
       inspeccion: v.inspeccion ?? config.inspeccion,
     });
     message.success('Datos del despacho guardados.');
-  }
-
-  function guardarCuentaRecaudo() {
-    const v = formRecaudo.getFieldsValue();
-    guardarConfig({
-      cuentaRecaudo: v.cuentaRecaudo ?? config.cuentaRecaudo,
-      titularCuenta: v.titularCuenta ?? config.titularCuenta,
-      nitTitular: v.nitTitular ?? config.nitTitular,
-    });
-    message.success('Cuenta de recaudo guardada.');
   }
 
   function guardarCorreoNotificaciones() {
@@ -335,7 +318,7 @@ export function ConfiguracionDespachoPage() {
         Configuración del despacho
       </Title>
       <Text type="secondary">
-        Los datos, membrete, cuenta de recaudo y plantillas propias que usan los documentos que genera este despacho.
+        Los datos, membrete y plantillas propias que usan los documentos que genera este despacho.
       </Text>
 
       <Card variant="borderless" style={{ boxShadow: ELEVACION.base, marginTop: 18 }} styles={{ body: { padding: '14px 20px' } }}>
@@ -421,28 +404,6 @@ export function ConfiguracionDespachoPage() {
                         </Button>
                       </Upload>
                     </div>
-                  </ItemCard>
-                );
-
-              case 'cuenta-recaudo':
-                return (
-                  <ItemCard key={item.key} item={item}>
-                    <Form form={formRecaudo} layout="vertical" requiredMark={false}>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-                        <Form.Item label="Cuenta (banco, tipo y número)" name="cuentaRecaudo" style={{ marginBottom: 10 }}>
-                          <Input placeholder="Ahorros Banco XYZ No. 123-456789" prefix={<BankOutlined />} />
-                        </Form.Item>
-                        <Form.Item label="Titular" name="titularCuenta" style={{ marginBottom: 10 }}>
-                          <Input placeholder="Municipio de Manizales" />
-                        </Form.Item>
-                        <Form.Item label="NIT del titular" name="nitTitular" style={{ marginBottom: 10 }}>
-                          <Input placeholder="890801052-1" />
-                        </Form.Item>
-                      </div>
-                    </Form>
-                    <Button icon={<SaveOutlined />} onClick={guardarCuentaRecaudo}>
-                      Guardar
-                    </Button>
                   </ItemCard>
                 );
 

@@ -15,9 +15,6 @@ items:
   - key: membrete
     label: "Membrete del despacho (PNG/JPG 800x200, fondo transparente)"
     tipo: archivo
-  - key: cuenta-recaudo
-    label: "Cuenta de recaudo de multas (banco, número, titular, NIT)"
-    tipo: formulario
   - key: correo-notificaciones
     label: "Correo institucional para notificaciones electrónicas"
     tipo: formulario
@@ -40,9 +37,6 @@ const CONFIG_VACIA: ConfigParaChecklist = {
   inspectorNombre: '',
   inspeccion: '',
   membreteDataUrl: null,
-  cuentaRecaudo: '',
-  titularCuenta: '',
-  nitTitular: '',
   correoNotificaciones: '',
 };
 
@@ -52,7 +46,6 @@ describe('parseChecklistYaml — nodo OKF configuracion-despacho.yaml', () => {
     expect(items.map((i) => i.key)).toEqual([
       'datos-despacho',
       'membrete',
-      'cuenta-recaudo',
       'correo-notificaciones',
       'plantillas-personalizadas',
     ]);
@@ -111,18 +104,6 @@ describe('derivarEstadoChecklist — done-state de cada ítem', () => {
 
     const conMembrete = derivarEstadoChecklist(items, { ...CONFIG_VACIA, membreteDataUrl: 'data:image/png;base64,x' }, 0);
     expect(conMembrete.find((i) => i.key === 'membrete')?.hecho).toBe(true);
-  });
-
-  it('cuenta-recaudo exige banco, titular y NIT', () => {
-    const parcial = derivarEstadoChecklist(items, { ...CONFIG_VACIA, cuentaRecaudo: '123-456' }, 0);
-    expect(parcial.find((i) => i.key === 'cuenta-recaudo')?.hecho).toBe(false);
-
-    const completo = derivarEstadoChecklist(
-      items,
-      { ...CONFIG_VACIA, cuentaRecaudo: '123-456', titularCuenta: 'Municipio de Manizales', nitTitular: '890801052' },
-      0,
-    );
-    expect(completo.find((i) => i.key === 'cuenta-recaudo')?.hecho).toBe(true);
   });
 
   it('correo-notificaciones se marca hecho con el campo lleno', () => {

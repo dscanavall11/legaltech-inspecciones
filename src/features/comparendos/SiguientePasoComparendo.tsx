@@ -50,6 +50,7 @@ import {
   generarFalloComparendo,
   generarConstanciaIncumplimientoProntoPago,
   generarConstanciaIncumplimientoActividadPedagogica,
+  buscarComportamiento,
   ESTADO_DESTINO_RESOLVER_RECURSOS,
   CONVERSION_ACTA_FIRMEZA,
   type AccionComparendoTipo,
@@ -208,6 +209,10 @@ export function SiguientePasoComparendo({
   // expediente (bienJuridico, medidasCorrectivas, descargos, pruebas…) se
   // recuerdan aquí para no pedirlos de nuevo en cada modal.
   const meta = parseCaseMetadata<Partial<ComparendoMetadata>>(caseMetadata ?? null);
+  // Catálogo normativo por articuloNumeral (src/derecho/catalogoComportamientos.ts)
+  // — única fuente del fallback cuando el expediente no trae descripcionConducta/
+  // bienJuridico/medidasCorrectivas propios (radicaciones previas a esta catalogación).
+  const catalogoComportamiento = caso ? buscarComportamiento(caso.articuloNumeral) : undefined;
 
   function transicionar(nuevoEstado: EstadoComparendo, metaExtra?: Record<string, unknown>, exito?: string) {
     cambiarEstado.mutate(
@@ -360,14 +365,14 @@ export function SiguientePasoComparendo({
       case 'decretar_pruebas':
         setPruebasDecretadas([]);
         setFechaReanudacion(null);
-        setBienJuridico(meta.bienJuridico || '');
-        setMedidasCorrectivas(meta.medidasCorrectivas || '');
+        setBienJuridico(meta.bienJuridico || catalogoComportamiento?.bienJuridico || '');
+        setMedidasCorrectivas(meta.medidasCorrectivas || catalogoComportamiento?.medidasCorrectivas || '');
         setApeloSiNo(meta.apeloSiNo || 'NO');
         setDescargos(meta.descargos || '');
         return setModalPruebas(true);
       case 'constancia_inasistencia':
-        setBienJuridico(meta.bienJuridico || '');
-        setMedidasCorrectivas(meta.medidasCorrectivas || '');
+        setBienJuridico(meta.bienJuridico || catalogoComportamiento?.bienJuridico || '');
+        setMedidasCorrectivas(meta.medidasCorrectivas || catalogoComportamiento?.medidasCorrectivas || '');
         return setModalInasistenciaAuto(true);
       case 'registrar_impugnacion':
         setMedioImpugnacion(null);
@@ -391,8 +396,8 @@ export function SiguientePasoComparendo({
               ? dayjs(meta.fechaAudiencia)
               : null,
         );
-        setBienJuridico(meta.bienJuridico || '');
-        setMedidasCorrectivas(meta.medidasCorrectivas || '');
+        setBienJuridico(meta.bienJuridico || catalogoComportamiento?.bienJuridico || '');
+        setMedidasCorrectivas(meta.medidasCorrectivas || catalogoComportamiento?.medidasCorrectivas || '');
         setApeloSiNo(meta.apeloSiNo || 'NO');
         setDescargos(meta.descargos || '');
         setAplicaActividadPedagogica(false);
@@ -401,8 +406,8 @@ export function SiguientePasoComparendo({
         setNitTitular(meta.nitTitular || '');
         return setModalFallo(tipo);
       case 'terminar_por_inactividad':
-        setBienJuridico(meta.bienJuridico || '');
-        setMedidasCorrectivas(meta.medidasCorrectivas || '');
+        setBienJuridico(meta.bienJuridico || catalogoComportamiento?.bienJuridico || '');
+        setMedidasCorrectivas(meta.medidasCorrectivas || catalogoComportamiento?.medidasCorrectivas || '');
         setApeloSiNo(meta.apeloSiNo || 'NO');
         setComparecioVoluntariamente(false);
         setTerminoActividadPedagogica('dos (2) meses');
@@ -527,7 +532,7 @@ export function SiguientePasoComparendo({
       solicitante: caso.solicitante,
       tipoMulta: caso.tipoMulta,
       hechos: caso.hechos,
-      descripcionConducta: caso.descripcionConducta || bienJuridico || '(descripción no registrada)',
+      descripcionConducta: caso.descripcionConducta || catalogoComportamiento?.descripcionConducta || '(no registrado)',
       bienJuridico,
       medidasCorrectivas,
       apeloSiNo,
@@ -554,7 +559,7 @@ export function SiguientePasoComparendo({
       telefonoSolicitado: caso.telefono,
       solicitante: caso.solicitante,
       hechos: caso.hechos,
-      descripcionConducta: caso.descripcionConducta || bienJuridico || '(descripción no registrada)',
+      descripcionConducta: caso.descripcionConducta || catalogoComportamiento?.descripcionConducta || '(no registrado)',
       bienJuridico,
       medidasCorrectivas,
       medioNotificacionAutorizado: meta.medioNotificacionAutorizado,
@@ -578,7 +583,7 @@ export function SiguientePasoComparendo({
       telefonoSolicitado: caso.telefono,
       solicitante: caso.solicitante,
       hechos: caso.hechos,
-      descripcionConducta: caso.descripcionConducta || bienJuridico || '(descripción no registrada)',
+      descripcionConducta: caso.descripcionConducta || catalogoComportamiento?.descripcionConducta || '(no registrado)',
       bienJuridico,
       medidasCorrectivas,
       apeloSiNo,
@@ -1103,9 +1108,11 @@ export function SiguientePasoComparendo({
               <Alert
                 type="info"
                 showIcon
-                message="Datos de recaudo de la multa (configuración de la inspección)"
-                description="Cuenta oficial de recaudo del municipio — nunca se hardcodea en el documento."
+                message="Datos de recaudo de la multa"
+                description="Cuenta oficial de recaudo del municipio — nunca se hardcodea en el documento. Se pregunta aquí, por fallo, hasta que exista una fuente confiable de oficina."
               />
+              {/* Único punto donde se piden estos datos hoy (ver caseMetadata.cuentaRecaudo/titularCuenta/nitTitular).
+                  Futuro: parsear la plantilla de fallo que suba el inspector en Ajustes > Despacho en vez de config. */}
               <Input
                 placeholder="Cuenta de recaudo (banco, tipo y número)"
                 value={cuentaRecaudo}

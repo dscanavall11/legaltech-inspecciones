@@ -21,14 +21,41 @@ import dayjs from 'dayjs';
 import { useComparendo } from './api';
 import { ESTADO_COMPARENDO_COLOR, ESTADO_COMPARENDO_LABEL, type ActuacionComparendo, type TipoActuacionComparendo } from './types';
 import { SiguientePasoComparendo } from './SiguientePasoComparendo';
-import { FlujoNavegable } from './FlujoNavegable';
+import { FlujoNavegable } from '@/shared/components/FlujoNavegable';
 import { DocumentosExpediente } from '@/shared/documentos/DocumentosExpediente';
 import { EtapaProcesal } from '@/shared/components/EtapaProcesal';
-import { ETAPAS_COMPARENDO, ETAPA_COMPARENDO_ACTIVA, TERMINOS_COMPARENDO, INCREMENTO_LABEL, liquidarMulta } from '@/derecho';
+import {
+  ETAPAS_COMPARENDO,
+  ETAPA_COMPARENDO_ACTIVA,
+  TERMINOS_COMPARENDO,
+  INCREMENTO_LABEL,
+  liquidarMulta,
+  TODOS_LOS_ESTADOS_COMPARENDO,
+  TRANSICIONES_COMPARENDO,
+  siguientePasoComparendo,
+  type AccionComparendoTipo,
+} from '@/derecho';
 import { calcularTermino } from '@/shared/terminos/diasHabiles';
 import { ELEVACION, PALETA } from '@/theme/theme';
 
 const { Title, Text } = Typography;
+
+/**
+ * evento -> documentKey del checklist `plantillas-personalizadas`. Mismo
+ * asociado que usa SiguientePasoComparendo.tsx para generar y previsualizar
+ * (Task 10/11) — FlujoNavegable (Task 15, genérico desde Task 20) lo recibe
+ * como prop porque ya no conoce el dominio comparendo directamente.
+ */
+const DOCUMENT_KEY_POR_EVENTO: Partial<Record<AccionComparendoTipo, string>> = {
+  avocar_y_citar_audiencia: 'auto-avoca-cita-audiencia',
+  decretar_pruebas: 'auto-decreta-pruebas-suspende',
+  constancia_inasistencia: 'auto-inasistencia',
+  emitir_fallo: 'fallo-comparendo',
+  fallo_por_inasistencia: 'fallo-comparendo',
+  constancia_incumplimiento_pago: 'constancia-incumplimiento-pronto-pago',
+  constancia_incumplimiento_actividad: 'constancia-incumplimiento-actividad-pedagogica',
+  generar_acta_firmeza: 'acta-firmeza',
+};
 
 const COLOR_ACTUACION: Record<TipoActuacionComparendo, string> = {
   radicacion: PALETA.azul,
@@ -256,7 +283,22 @@ export function ComparendoDetailPage() {
           {
             key: 'mapa',
             label: <Text strong>Mapa del trámite (todos los estados)</Text>,
-            children: <FlujoNavegable id={data.id} estadoActual={data.estado} actuaciones={data.actuaciones} />,
+            children: (
+              <FlujoNavegable
+                id={data.id}
+                estadoActual={data.estado}
+                actuaciones={data.actuaciones}
+                todosLosEstados={TODOS_LOS_ESTADOS_COMPARENDO}
+                transiciones={TRANSICIONES_COMPARENDO}
+                excluirDestino="acta_firmeza"
+                etapas={ETAPAS_COMPARENDO}
+                etapaActivaPorEstado={ETAPA_COMPARENDO_ACTIVA}
+                estadoLabel={ESTADO_COMPARENDO_LABEL}
+                siguientePaso={siguientePasoComparendo}
+                documentKeyPorEvento={DOCUMENT_KEY_POR_EVENTO}
+                descripcionMapa="Los 17 estados del comparendo (arts. 180, 222, 223 y 223A, Ley 1801/2016) y dónde está este expediente."
+              />
+            ),
             style: { border: 'none', padding: 0 },
           },
         ]}

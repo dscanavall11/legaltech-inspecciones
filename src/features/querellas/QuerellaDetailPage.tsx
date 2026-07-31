@@ -12,6 +12,7 @@ import {
   Row,
   Col,
   Space,
+  Collapse,
 } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import { NormaMark } from '@/shared/ai/NormaMark';
@@ -24,7 +25,14 @@ import { SiguientePaso } from './SiguientePaso';
 import { LineaTiempoEstados } from './LineaTiempoEstados';
 import { DocumentosExpediente } from '@/shared/documentos/DocumentosExpediente';
 import { EtapaProcesal } from '@/shared/components/EtapaProcesal';
-import { ETAPAS_QUERELLA, ETAPA_QUERELLA_ACTIVA } from '@/derecho';
+import { FlujoNavegable } from '@/shared/components/FlujoNavegable';
+import {
+  ETAPAS_QUERELLA,
+  ETAPA_QUERELLA_ACTIVA,
+  TODOS_LOS_ESTADOS_QUERELLA,
+  TRANSICIONES_QUERELLA,
+  siguientePaso,
+} from '@/derecho';
 import { ELEVACION, PALETA } from '@/theme/theme';
 
 const { Title, Text } = Typography;
@@ -203,6 +211,32 @@ export function QuerellaDetailPage() {
       <div style={{ marginBottom: 26 }}>
         <EtapaProcesal etapas={[...ETAPAS_QUERELLA]} activa={ETAPA_QUERELLA_ACTIVA[data.estado]} />
       </div>
+
+      <Collapse
+        defaultActiveKey={['mapa']}
+        style={{ marginBottom: 24, background: 'transparent', border: 'none' }}
+        items={[
+          {
+            key: 'mapa',
+            label: <Text strong>Mapa del trámite (todos los estados)</Text>,
+            children: (
+              <FlujoNavegable
+                id={data.id}
+                estadoActual={data.estado}
+                actuaciones={data.actuaciones}
+                todosLosEstados={TODOS_LOS_ESTADOS_QUERELLA}
+                transiciones={TRANSICIONES_QUERELLA}
+                etapas={ETAPAS_QUERELLA}
+                etapaActivaPorEstado={ETAPA_QUERELLA_ACTIVA}
+                estadoLabel={ESTADO_LABEL}
+                siguientePaso={siguientePaso}
+                descripcionMapa="Los 9 estados de la querella (proceso verbal abreviado, art. 223, Ley 1801/2016) y dónde está este expediente."
+              />
+            ),
+            style: { border: 'none', padding: 0 },
+          },
+        ]}
+      />
 
       <div style={{ marginBottom: 24 }}>
         <SiguientePaso id={data.id} estado={data.estado} caseMetadata={data.caseMetadataRaw} caso={data} />

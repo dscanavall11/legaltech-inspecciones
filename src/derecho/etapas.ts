@@ -33,6 +33,9 @@ export const ETAPA_QUERELLA_ACTIVA: Record<EstadoQuerella, number> = {
   archivada: 4,
 };
 
+/** Los 9 EstadoQuerella, en el mismo orden declarativo de ETAPA_QUERELLA_ACTIVA — para el mapa navegable (Task 20). */
+export const TODOS_LOS_ESTADOS_QUERELLA = Object.keys(ETAPA_QUERELLA_ACTIVA) as EstadoQuerella[];
+
 export const ETAPAS_QUEJA = [
   'Radicación',
   'Conciliación',
@@ -77,3 +80,6 @@ export const ETAPA_COMPARENDO_ACTIVA: Record<EstadoComparendo, number> = {
   terminado_inactividad: 5,
   archivado: 5,
 };
+
+/** Los 17 EstadoComparendo, en el mismo orden declarativo de ETAPA_COMPARENDO_ACTIVA — para el mapa navegable (Task 15/20). */
+export const TODOS_LOS_ESTADOS_COMPARENDO = Object.keys(ETAPA_COMPARENDO_ACTIVA) as EstadoComparendo[];

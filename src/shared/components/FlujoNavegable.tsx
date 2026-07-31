@@ -1,39 +1,19 @@
 import { useState } from 'react';
 import { Card, Switch, Popover, Popconfirm, Button, Drawer, Typography, Space, Tag, App } from 'antd';
 import { EyeOutlined, SendOutlined } from '@ant-design/icons';
-import {
-  siguientePasoComparendo,
-  ETAPAS_COMPARENDO,
-  type EstadoComparendo,
-  type AccionComparendoTipo,
-} from '@/derecho';
+import { agruparEstadosPorEtapa, derivarEstadosFlujo, type EstadoNodoFlujo, type TransicionFlujo } from '@/derecho';
 import { useChangeCaseState } from '@/shared/legalCases/api';
 import { useInspeccionStore } from '@/store/inspeccionStore';
 import { generarBlobEjemploPlantilla, NOMBRE_PLANTILLA } from '@/features/ajustes/ejemploPlantillas';
 import { PdfViewer } from '@/shared/documentos/PdfViewer';
-import { ESTADO_COMPARENDO_LABEL, type ActuacionComparendo } from './types';
-import { agruparEstadosPorEtapa, derivarEstadosFlujo, type EstadoNodoFlujo } from './flujoNavegableEstado';
 import { PALETA, ELEVACION } from '@/theme/theme';
 
 const { Text } = Typography;
 
-/**
- * evento -> documentKey del checklist `plantillas-personalizadas`. Mismo
- * asociado que usa SiguientePasoComparendo.tsx para generar y previsualizar
- * (Task 10/11) — aquí se reutiliza generarBlobEjemploPlantilla con datos de
- * ejemplo (nunca datos reales del expediente) porque este mapa es guía, no
- * el trámite en curso.
- */
-const DOCUMENT_KEY_POR_EVENTO: Partial<Record<AccionComparendoTipo, string>> = {
-  avocar_y_citar_audiencia: 'auto-avoca-cita-audiencia',
-  decretar_pruebas: 'auto-decreta-pruebas-suspende',
-  constancia_inasistencia: 'auto-inasistencia',
-  emitir_fallo: 'fallo-comparendo',
-  fallo_por_inasistencia: 'fallo-comparendo',
-  constancia_incumplimiento_pago: 'constancia-incumplimiento-pronto-pago',
-  constancia_incumplimiento_actividad: 'constancia-incumplimiento-actividad-pedagogica',
-  generar_acta_firmeza: 'acta-firmeza',
-};
+interface PasoFlujoGenerico {
+  mensaje: string;
+  acciones: ReadonlyArray<{ tipo: string; label: string }>;
+}
 
 const ESTILO_NODO: Record<EstadoNodoFlujo, { background: string; color: string; border: string; fontWeight: number }> = {
   actual: { background: PALETA.azul, color: '#ffffff', border: `1px solid ${PALETA.azul}`, fontWeight: 700 },
@@ -54,37 +34,43 @@ const LEYENDA: ReadonlyArray<{ estado: EstadoNodoFlujo; label: string }> = [
   { estado: 'neutral', label: 'Sin recorrer' },
 ];
 
-function NodoEstado({
+function NodoEstado<TEstado extends string>({
   estado,
   status,
   modoPruebas,
   generandoPrevia,
   saltando,
+  estadoLabel,
+  siguientePaso,
+  documentKeyPorEvento,
   onVerPrevia,
   onSaltarA,
 }: {
-  estado: EstadoComparendo;
+  estado: TEstado;
   status: EstadoNodoFlujo;
   modoPruebas: boolean;
   generandoPrevia: string | null;
   saltando: boolean;
+  estadoLabel: Record<TEstado, string>;
+  siguientePaso: (estado: TEstado) => PasoFlujoGenerico;
+  documentKeyPorEvento?: Partial<Record<string, string>>;
   onVerPrevia: (documentKey: string) => void;
-  onSaltarA: (estado: EstadoComparendo) => void;
+  onSaltarA: (estado: TEstado) => void;
 }) {
-  const paso = siguientePasoComparendo(estado);
+  const paso = siguientePaso(estado);
   const estilo = ESTILO_NODO[status];
 
   return (
     <Popover
       trigger="click"
-      title={ESTADO_COMPARENDO_LABEL[estado]}
+      title={estadoLabel[estado]}
       content={
         <div style={{ maxWidth: 300 }}>
           <Text style={{ fontSize: 12.5 }}>{paso.mensaje}</Text>
           {paso.acciones.length > 0 && (
             <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
               {paso.acciones.map((a) => {
-                const documentKey = DOCUMENT_KEY_POR_EVENTO[a.tipo];
+                const documentKey = documentKeyPorEvento?.[a.tipo];
                 return (
                   <div
                     key={a.tipo}
@@ -111,7 +97,7 @@ function NodoEstado({
             <div style={{ marginTop: 12, paddingTop: 10, borderTop: `1px solid ${PALETA.borde}` }}>
               <Popconfirm
                 title="Modo pruebas"
-                description={`Lleva el expediente al estado "${ESTADO_COMPARENDO_LABEL[estado]}" sin pasar por el trámite real — solo para pruebas.`}
+                description={`Lleva el expediente al estado "${estadoLabel[estado]}" sin pasar por el trámite real — solo para pruebas.`}
                 okText="Llevar el caso aquí"
                 cancelText="Cancelar"
                 okButtonProps={{ danger: true, loading: saltando }}
@@ -141,31 +127,54 @@ function NodoEstado({
           ...estilo,
         }}
       >
-        {ESTADO_COMPARENDO_LABEL[estado]}
+        {estadoLabel[estado]}
       </button>
     </Popover>
   );
 }
 
 /**
- * Mapa navegable de la máquina de estados del comparendo (Task 15): las
- * columnas son las etapas (ETAPAS_COMPARENDO), cada nodo un EstadoComparendo.
- * El estado actual, los ya recorridos (historial de actuaciones) y los
- * alcanzables en un salto se resaltan (derivarEstadosFlujo). Cada nodo
- * expone en su Popover la guía procesal, sus acciones salientes y —cuando
- * corresponde— una vista previa de la plantilla que produce esa acción.
+ * Mapa navegable de una máquina de estados (Task 15, generalizado en Task 20
+ * para servir cualquier trámite — comparendo, querella — vía props en vez de
+ * imports fijos a un dominio). Las columnas son las etapas, cada nodo un
+ * estado. El estado actual, los ya recorridos (historial de actuaciones) y
+ * los alcanzables en un salto se resaltan (derivarEstadosFlujo, @/derecho).
+ * Cada nodo expone en su Popover la guía procesal, sus acciones salientes y
+ * — cuando `documentKeyPorEvento` trae una entrada para esa acción — una
+ * vista previa de la plantilla que produce (si el dominio no genera
+ * documentos todavía, como querella, el botón simplemente no aparece).
  * "Modo pruebas" añade un salto directo a cualquier estado, vía el mismo
- * useChangeCaseState advisory que usa SiguientePasoComparendo (el backend
- * acepta cualquier estado y devuelve warnings/withinFlow, nunca rechaza).
+ * useChangeCaseState advisory que usan los SiguientePaso* del dominio (el
+ * backend acepta cualquier estado y devuelve warnings/withinFlow, nunca
+ * rechaza).
  */
-export function FlujoNavegable({
+export function FlujoNavegable<TEstado extends string>({
   id,
   estadoActual,
   actuaciones,
+  todosLosEstados,
+  transiciones,
+  excluirDestino,
+  etapas,
+  etapaActivaPorEstado,
+  estadoLabel,
+  siguientePaso,
+  documentKeyPorEvento,
+  descripcionMapa,
 }: {
   id: string;
-  estadoActual: EstadoComparendo;
-  actuaciones: ActuacionComparendo[];
+  estadoActual: TEstado;
+  actuaciones: ReadonlyArray<{ estadoCodigo?: string | null }>;
+  todosLosEstados: ReadonlyArray<TEstado>;
+  transiciones: ReadonlyArray<TransicionFlujo<TEstado>>;
+  /** Destino a excluir de "alcanzable" que no es un estado propio de la máquina (p. ej. acta_firmeza del comparendo). */
+  excluirDestino?: string;
+  etapas: ReadonlyArray<string>;
+  etapaActivaPorEstado: Record<TEstado, number>;
+  estadoLabel: Record<TEstado, string>;
+  siguientePaso: (estado: TEstado) => PasoFlujoGenerico;
+  documentKeyPorEvento?: Partial<Record<string, string>>;
+  descripcionMapa: string;
 }) {
   const { message } = App.useApp();
   const config = useInspeccionStore((s) => s.config);
@@ -175,10 +184,13 @@ export function FlujoNavegable({
   const [generandoPrevia, setGenerandoPrevia] = useState<string | null>(null);
 
   const mapaEstados = derivarEstadosFlujo(
+    todosLosEstados,
     estadoActual,
     actuaciones.map((a) => a.estadoCodigo),
+    transiciones,
+    excluirDestino,
   );
-  const columnas = agruparEstadosPorEtapa(ETAPAS_COMPARENDO.length);
+  const columnas = agruparEstadosPorEtapa(todosLosEstados, etapaActivaPorEstado, etapas.length);
 
   async function verPrevia(documentKey: string) {
     setGenerandoPrevia(documentKey);
@@ -196,14 +208,14 @@ export function FlujoNavegable({
     }
   }
 
-  function saltarA(estado: EstadoComparendo) {
+  function saltarA(estado: TEstado) {
     cambiarEstado.mutate(
       { id, state: estado },
       {
         onSuccess: (data) =>
           data.warnings.length > 0
             ? message.warning(`Aplicado fuera del flujo definido: ${data.warnings.join(' ')}`)
-            : message.success(`Caso llevado a "${ESTADO_COMPARENDO_LABEL[estado]}".`),
+            : message.success(`Caso llevado a "${estadoLabel[estado]}".`),
         onError: () => message.error('No se pudo cambiar el estado del expediente.'),
       },
     );
@@ -224,9 +236,7 @@ export function FlujoNavegable({
           <Text strong style={{ fontSize: 14.5 }}>
             Mapa del trámite
           </Text>
-          <div style={{ fontSize: 12, color: PALETA.textoTenue, marginTop: 1 }}>
-            Los 17 estados del comparendo (arts. 180, 222, 223 y 223A, Ley 1801/2016) y dónde está este expediente.
-          </div>
+          <div style={{ fontSize: 12, color: PALETA.textoTenue, marginTop: 1 }}>{descripcionMapa}</div>
         </div>
         <Space size={8} align="center">
           {modoPruebas && (
@@ -264,9 +274,9 @@ export function FlujoNavegable({
 
       <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
         {columnas.map((estados, i) => (
-          <div key={ETAPAS_COMPARENDO[i]} style={{ minWidth: 168, flex: '1 1 0' }}>
+          <div key={etapas[i]} style={{ minWidth: 168, flex: '1 1 0' }}>
             <Text type="secondary" style={{ fontSize: 11, letterSpacing: '0.06em', fontWeight: 600 }}>
-              {ETAPAS_COMPARENDO[i].toUpperCase()}
+              {etapas[i].toUpperCase()}
             </Text>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
               {estados.map((estado) => (
@@ -277,6 +287,9 @@ export function FlujoNavegable({
                   modoPruebas={modoPruebas}
                   generandoPrevia={generandoPrevia}
                   saltando={cambiarEstado.isPending}
+                  estadoLabel={estadoLabel}
+                  siguientePaso={siguientePaso}
+                  documentKeyPorEvento={documentKeyPorEvento}
                   onVerPrevia={verPrevia}
                   onSaltarA={saltarA}
                 />

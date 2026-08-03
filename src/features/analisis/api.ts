@@ -127,13 +127,21 @@ export interface ComplaintResponseFields {
  * Pide el borrador estructurado enviando solo el caseId: legal extrae el
  * expediente (datos del caso + .md saneado) server-side. El front ya no baja
  * ni compone la información general (principio de gobernanza de datos).
+ *
+ * `currentStateCode` es un campo aditivo: el backend prefiere la etapa que
+ * resuelva server-side desde legalcase y solo usa este valor como respaldo
+ * (p. ej. si legalcase no responde) para que el análisis nunca trate el
+ * proceso como si ya estuviera fallado cuando en realidad sigue en curso.
  */
-export async function analizarEstructurado(caseId: string): Promise<ComplaintResponseFields> {
+export async function analizarEstructurado(
+  caseId: string,
+  currentStateCode?: string,
+): Promise<ComplaintResponseFields> {
   const data = new FormData();
   data.append(
     'data',
     new Blob(
-      [JSON.stringify({ caseId, processInformation: { processType: 'COMPLAINT' } })],
+      [JSON.stringify({ caseId, currentStateCode, processInformation: { processType: 'COMPLAINT' } })],
       { type: 'application/json' },
     ),
   );

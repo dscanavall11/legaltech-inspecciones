@@ -51,7 +51,7 @@ const CAMPO_LABEL: Record<keyof BorradorFallo, string> = {
   evidences: 'Pruebas valoradas',
   juridicFundamentals: 'Fundamentos jurídicos',
   juridicResponse: 'Consideraciones del despacho',
-  parteResolutiva: 'Parte resolutiva (RESUELVE)',
+  parteResolutiva: 'Parte resolutiva (solo si la etapa procesal ya admite decisión)',
 };
 
 const BORRADOR_VACIO: BorradorFallo = {
@@ -137,7 +137,7 @@ export function AnalisisPage() {
     setGenerando(true);
     setErrorGeneracion(null);
     try {
-      const campos: ComplaintResponseFields = await analizarEstructurado(casoId ?? '');
+      const campos: ComplaintResponseFields = await analizarEstructurado(casoId ?? '', caso?.currentStateCode);
       setBorrador({
         antecedents: campos.antecedents ?? '',
         juridicProblem: campos.juridicProblem ?? '',

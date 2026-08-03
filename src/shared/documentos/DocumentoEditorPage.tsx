@@ -61,6 +61,8 @@ export interface DocumentoEditorPageProps {
   nombreArchivo: (acapitesEfectivos: Acapite[]) => string;
   /** Si se omite, el documento no cierra ninguna etapa (p. ej. piezas de comparendo que sólo se archivan). */
   aprobarYFirmar?: AprobarYFirmarConfig;
+  /** Genera el Resumen IA del panel lateral — inyectado por el llamador (feature) para que este módulo compartido no dependa de features/analisis/api. */
+  generarResumen: (req: { tipoDocumento: string; texto: string }) => Promise<string>;
 }
 
 /**
@@ -83,6 +85,7 @@ export function DocumentoEditorPage({
   generarBlob,
   nombreArchivo,
   aprobarYFirmar,
+  generarResumen,
 }: DocumentoEditorPageProps) {
   const navigate = useNavigate();
   const { message } = App.useApp();
@@ -382,6 +385,7 @@ export function DocumentoEditorPage({
           <ResumenLateral
             tipoDocumento={titulo}
             texto={acapitesEfectivos.map((a) => `${a.titulo}\n${a.parrafos.join('\n')}`).join('\n\n')}
+            onGenerarResumen={generarResumen}
           />
           <Text type="secondary" style={{ fontSize: 12, letterSpacing: 0.3, padding: '0 8px 6px' }}>
             ACÁPITES DEL DOCUMENTO

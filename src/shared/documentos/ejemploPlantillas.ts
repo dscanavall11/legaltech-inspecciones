@@ -12,7 +12,7 @@ import {
   type ActaFirmeza,
 } from '@/derecho';
 import { generarDocumentoLegalBlob } from '@/shared/documentos/documentoLegalPdf';
-import { generarActaFirmezaBlob } from '@/features/actas/actaPdf';
+import { generarActaFirmezaBlob } from './actaPdf';
 
 /**
  * Datos de ejemplo (sintéticos, sin PII real) para previsualizar cada una de

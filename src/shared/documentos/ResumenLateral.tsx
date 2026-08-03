@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Alert, Button, Card, Typography } from 'antd';
 import { Sparkles } from 'lucide-react';
-import { resumirDocumento } from '@/features/analisis/api';
 import { PALETA } from '@/theme/theme';
 
 const { Text, Paragraph } = Typography;
@@ -12,13 +11,18 @@ const { Text, Paragraph } = Typography;
  * acápites/razones-de-peso/normas-citadas estructurados, solo texto. Sin
  * acoplamiento a ningún dominio (querella/comparendo/...) — Task 18 lo
  * promueve a compartido junto con el resto del visor de documento.
+ *
+ * `onGenerarResumen` se inyecta desde el llamador (shared no debe depender de
+ * features/analisis/api) — DocumentoEditorPage lo recibe como prop y lo pasa aquí.
  */
 export function ResumenLateral({
   tipoDocumento,
   texto,
+  onGenerarResumen,
 }: {
   tipoDocumento: string;
   texto: string;
+  onGenerarResumen: (req: { tipoDocumento: string; texto: string }) => Promise<string>;
 }) {
   const [resumen, setResumen] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
@@ -28,7 +32,7 @@ export function ResumenLateral({
     setCargando(true);
     setError(null);
     try {
-      setResumen(await resumirDocumento({ tipoDocumento, texto }));
+      setResumen(await onGenerarResumen({ tipoDocumento, texto }));
     } catch {
       setError('No fue posible generar el resumen. Intenta de nuevo.');
     } finally {

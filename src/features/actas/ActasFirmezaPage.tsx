@@ -37,7 +37,7 @@ import {
 import { calcularTermino } from '@/shared/terminos/diasHabiles';
 import { COMPARENDOS_DEMO, parsearBdComparendos, type Comparendo, type ReporteImportacion } from './comparendos';
 import { extraerComparendoPdf } from './extraerComparendoPdf';
-import { descargarActaPdf } from './actaPdf';
+import { descargarActaPdf } from '@/shared/documentos/actaPdf';
 import { PdfViewer } from '@/shared/documentos/PdfViewer';
 import { ELEVACION, PALETA } from '@/theme/theme';
 import { useInspeccionStore } from '@/store/inspeccionStore';

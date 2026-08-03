@@ -4,6 +4,7 @@ import { useQuerella } from '../api';
 import { construirDocumento, type TipoDocumento } from './acapites';
 import { documentoPdfBlob, nombreArchivoDocumento } from './documentoPdf';
 import { DocumentoEditorPage } from '@/shared/documentos/DocumentoEditorPage';
+import { resumirDocumento } from '@/features/analisis/api';
 
 // Estado al que avanza el caso cuando se expide la constancia de ejecutoria
 // (ver flujoQuerella: fallo_emitido --constancia_ejecutoria--> en_firmeza).
@@ -55,6 +56,7 @@ export function DocumentoPage() {
       volverLabel="Volver al expediente"
       generarBlob={(acapitesEfectivos) => documentoPdfBlob({ ...doc, acapites: acapitesEfectivos }, data.radicado)}
       nombreArchivo={(acapitesEfectivos) => nombreArchivoDocumento({ ...doc, acapites: acapitesEfectivos }, data.radicado)}
+      generarResumen={resumirDocumento}
       aprobarYFirmar={{
         estadoDestino,
         navigateTrasFirmar: `/panel/querellas/${id}`,

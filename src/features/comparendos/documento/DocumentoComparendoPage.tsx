@@ -9,6 +9,7 @@ import { generarDocumentoLegalBlob } from '@/shared/documentos/documentoLegalPdf
 import { NOMBRE_PLANTILLA } from '@/shared/documentos/ejemploPlantillas';
 import { DocumentoEditorPage } from '@/shared/documentos/DocumentoEditorPage';
 import { useInspeccionStore } from '@/store/inspeccionStore';
+import { resumirDocumento } from '@/features/analisis/api';
 
 /**
  * Wrapper delgado de comparendos sobre el editor de documentos compartido
@@ -78,6 +79,7 @@ export function DocumentoComparendoPage() {
         generarDocumentoLegalBlob(aplicarAcapitesADocumentoLegal(doc, acapitesEfectivos), membreteDataUrl)
       }
       nombreArchivo={() => `${titulo} ${data.radicado}.pdf`}
+      generarResumen={resumirDocumento}
     />
   );
 }

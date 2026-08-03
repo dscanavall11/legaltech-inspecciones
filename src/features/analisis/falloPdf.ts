@@ -5,7 +5,7 @@ import { cargarPdfMake } from '@/shared/documentos/pdfMake';
 /**
  * Genera y descarga el fallo como PDF (texto real, no imagen), con el
  * membrete del despacho si el inspector lo cargó. Mismo patrón que
- * features/actas/actaPdf.ts.
+ * shared/documentos/actaPdf.ts.
  */
 async function construirFalloPdf(documento: DocumentoFallo, membreteDataUrl?: string | null) {
   const pdfMake = await cargarPdfMake();

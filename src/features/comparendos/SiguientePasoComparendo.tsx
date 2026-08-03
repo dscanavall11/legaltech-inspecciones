@@ -61,7 +61,7 @@ import {
 } from '@/derecho';
 import { useChangeCaseState, useUpdateCaseFields } from '@/shared/legalCases/api';
 import { parseCaseMetadata, buildCaseMetadata } from '@/shared/legalCases/types';
-import { descargarActaPdf } from '@/features/actas/actaPdf';
+import { descargarActaPdf } from '@/shared/documentos/actaPdf';
 import { generarDocumentoLegalBlob } from '@/shared/documentos/documentoLegalPdf';
 import { PdfViewer } from '@/shared/documentos/PdfViewer';
 import { useUploadCaseDocument } from '@/shared/documentos/api';

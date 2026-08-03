@@ -1,12 +1,17 @@
 import type { Content, TDocumentDefinitions } from 'pdfmake/interfaces';
 import type { ActaFirmeza } from '@/derecho';
-import { cargarPdfMake } from '@/shared/documentos/pdfMake';
+import { cargarPdfMake } from './pdfMake';
 
 /**
  * Definición pdfmake del acta de firmeza — extraída para que la descarga
  * directa (`descargarActaPdf`) y la generación en memoria como Blob
  * (`generarActaFirmezaBlob`, usada por la previsualización de plantillas en
  * Configuración del Despacho) compartan el mismo layout sin duplicarlo.
+ *
+ * Vive en shared/documentos (no en features/actas) porque ya lo consumen
+ * varias features (actas, comparendos) además de ejemploPlantillas.ts — moverlo
+ * corrige la inversión de dependencias shared -> features detectada en la
+ * revisión de la rama.
  */
 function definicionActaFirmeza(acta: ActaFirmeza, membreteDataUrl?: string | null): TDocumentDefinitions {
   const contenido: Content[] = [];

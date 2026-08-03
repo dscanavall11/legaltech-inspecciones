@@ -40,6 +40,20 @@ const VACIO: ConfigInspeccion = {
   configurado: false,
 };
 
+/**
+ * Fusiona la config persistida (de cualquier versión previa) sobre los
+ * defaults actuales: `persist` hace merge superficial por clave top-level,
+ * así que sin esto un campo añadido después de la 1ª persistencia (p. ej.
+ * `correoNotificaciones`) llegaría como `undefined` en vez de `''`.
+ */
+export function migrarConfigInspeccion(persistido: unknown): Pick<InspeccionState, 'config'> {
+  const configPersistida =
+    persistido !== null && typeof persistido === 'object' && 'config' in persistido
+      ? (persistido as { config?: Partial<ConfigInspeccion> }).config
+      : undefined;
+  return { config: { ...VACIO, ...configPersistida } };
+}
+
 export const useInspeccionStore = create<InspeccionState>()(
   persist(
     (set) => ({
@@ -52,6 +66,10 @@ export const useInspeccionStore = create<InspeccionState>()(
         set((s) => ({ config: { ...s.config, ...c, configurado: true } })),
       limpiarConfig: () => set({ config: VACIO }),
     }),
-    { name: 'legaltech-inspeccion' },
+    {
+      name: 'legaltech-inspeccion',
+      version: 1,
+      migrate: migrarConfigInspeccion,
+    },
   ),
 );

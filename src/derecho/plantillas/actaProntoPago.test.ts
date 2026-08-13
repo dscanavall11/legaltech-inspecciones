@@ -7,7 +7,7 @@ import { TERMINOS_COMPARENDO } from '../multas';
 const BASE: DatosActaProntoPago = {
   municipio: 'Manizales',
   inspeccion: 'Inspección Permanente de Convivencia y Paz Turno Uno',
-  inspectorNombre: 'LUIS GABRIEL LADINO AYALA',
+  inspectorNombre: 'ANDRÉS FELIPE EJEMPLO ROJAS',
   inspectorRol: 'Inspector Permanente de Convivencia y Paz – Turno Uno',
   proceso: '2026-0501',
   fechaResolucion: '2026-04-27',

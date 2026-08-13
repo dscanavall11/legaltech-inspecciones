@@ -4,7 +4,7 @@ import { generarActaConmutacion, type DatosActaConmutacion } from './actaConmuta
 const BASE: DatosActaConmutacion = {
   municipio: 'Manizales',
   inspeccion: 'Inspección Permanente de Convivencia y Paz Turno Uno',
-  inspectorNombre: 'LUIS GABRIEL LADINO AYALA',
+  inspectorNombre: 'ANDRÉS FELIPE EJEMPLO ROJAS',
   inspectorRol: 'Inspector Permanente de Convivencia y Paz – Turno Uno',
   proceso: '2026-0502',
   fechaResolucion: '2026-01-06',

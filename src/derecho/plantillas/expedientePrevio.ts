@@ -1,26 +1,28 @@
 import { fechaALetras } from '../letras';
-import { incluirSi, type DocumentoLegal, type SeccionDocumento } from './documentoLegal';
-import type { TipoMulta } from '../multas';
+import type { DocumentoLegal, SeccionDocumento } from './documentoLegal';
+import {
+  generarConstanciaComparecenciaSolicitud,
+  type RutaComparecencia,
+} from './constanciaComparecenciaSolicitud';
 
 /**
- * Plantilla del EXPEDIENTE PREVIO — legajo de archivo (carátula + constancia
- * secretarial de recepción + constancia de inasistencia si aplica + consulta
- * RNMC) que antecede al acta final. Mirror de okf-bundles/roles-profesionales/
- * inspector-policia/plantillas/expediente-previo.yaml.
- *
- * Sirve para los tres desenlaces (firmeza, pronto pago, conmutación): la
- * última pieza es el acta que efectivamente se suscribió, recibida ya
- * generada (`actaFinal`) en vez de reconstruirla aquí — Open/Closed: un
- * cuarto desenlace futuro no requiere tocar este archivo, solo pasarle su
- * propio `DocumentoLegal` (usar `actaFirmezaComoDocumento` para adaptar
- * `ActaFirmeza`, que no comparte esa forma).
+ * Plantilla del EXPEDIENTE — el legajo de archivo. El inspector aclaró
+ * textualmente que son SOLO TRES PIEZAS: carátula de archivo + constancia
+ * secretarial de recepción del comparendo + una tercera pieza variable
+ * según la ruta (constancia de inasistencia en firmeza, constancia de
+ * comparecencia y solicitud en pronto pago/conmutación). NO incluye el
+ * comparendo (se descarga aparte), NI la consulta RNMC (motiva el acta, no
+ * el expediente), NI el acta final: "el acta va aparte y el expediente
+ * inicial también" — son DOS descargas independientes, no un solo
+ * documento. Mirror de okf-bundles/roles-profesionales/inspector-policia/
+ * plantillas/expediente-previo.yaml.
  */
-export type TipoActaFinal = 'acta_firmeza' | 'acta_pronto_pago' | 'acta_conmutacion';
+export type RutaExpediente = RutaComparecencia | 'firmeza';
 
-const TITULO_ACTA_FINAL: Record<TipoActaFinal, string> = {
-  acta_firmeza: 'ACTA DE FIRMEZA',
-  acta_pronto_pago: 'ACTA PRONTO PAGO',
-  acta_conmutacion: 'ACTA DE CONMUTACIÓN',
+const TITULO_TERCERA_PIEZA: Record<RutaExpediente, string> = {
+  firmeza: 'CONSTANCIA DE INASISTENCIA',
+  pronto_pago: 'CONSTANCIA SECRETARIAL DE COMPARECENCIA Y SOLICITUD',
+  conmutacion: 'CONSTANCIA SECRETARIAL DE COMPARECENCIA Y SOLICITUD',
 };
 
 export interface DatosExpedientePrevio {
@@ -38,14 +40,13 @@ export interface DatosExpedientePrevio {
   cedulaSolicitado: string;
   direccionSolicitado?: string; // fallback "NO APORTA"
   telefonoSolicitado?: string; // fallback "NO APORTA"
-  fechaComparendo: string; // ISO
+  fechaComparendo: string; // ISO — fecha de expedición del comparendo
+  /** Fecha de cargue del comparendo al sistema. Por defecto igual a fechaComparendo ("normalmente" el mismo día), pero EDITABLE — no siempre coincide. */
+  fechaRecepcion?: string; // ISO
   fechaResolucion: string; // ISO — cierre/expedición de este expediente
   hechos: string;
-  tipoMulta: TipoMulta;
-  firmanteNombre: string; // auxiliar administrativo que suscribe la constancia secretarial
+  firmanteNombre: string; // auxiliar administrativo que suscribe las constancias secretariales
   firmanteRol: string;
-  rnmcFechaConsulta: string; // ISO
-  rnmcEstado: string; // estado de la medida correctiva reportado por el RNMC
   serieCodigo?: string;
   serieNombre?: string;
   subserieCodigo?: string;
@@ -53,21 +54,20 @@ export interface DatosExpedientePrevio {
   folios?: string;
   carpeta?: string;
   caja?: string;
-  /** Cuál de las tres actas se anexa — decide si va la constancia de inasistencia. */
-  tipoActaFinal: TipoActaFinal;
+  /** Desenlace del comparendo — decide la tercera pieza. */
+  ruta: RutaExpediente;
+  /** Solo rutas pronto_pago / conmutacion: fecha en que el solicitado compareció y pidió el beneficio. */
+  fechaComparecencia?: string; // ISO
 }
 
 const VACIO_LARGO = '________________';
 const VACIO_CORTO = '_____';
 
-/**
- * Construye el expediente previo, anexando el `actaFinal` ya generado (no lo
- * reconstruye: delega en la plantilla correspondiente, igual que el YAML).
- */
-export function generarExpedientePrevio(d: DatosExpedientePrevio, actaFinal: DocumentoLegal): DocumentoLegal {
+/** Construye el expediente (carátula + constancia de recepción + tercera pieza según la ruta). */
+export function generarExpedientePrevio(d: DatosExpedientePrevio): DocumentoLegal {
   const fComparendo = fechaALetras(d.fechaComparendo);
   const fResolucion = fechaALetras(d.fechaResolucion);
-  const fRnmc = fechaALetras(d.rnmcFechaConsulta);
+  const fRecepcion = fechaALetras(d.fechaRecepcion || d.fechaComparendo);
   const direccion = d.direccionSolicitado || 'NO APORTA';
   const telefono = d.telefonoSolicitado || 'NO APORTA';
 
@@ -81,33 +81,34 @@ export function generarExpedientePrevio(d: DatosExpedientePrevio, actaFinal: Doc
   const piezaRecepcion: SeccionDocumento = {
     titulo: 'CONSTANCIA SECRETARIAL DE RECEPCIÓN DE COMPARENDO',
     parrafos: [
-      `${d.firmanteNombre}, ${d.firmanteRol} de la ${d.inspeccion}, deja constancia de que al despacho se allega la orden de comparendo con expediente ${d.comparendo}, de fecha ${fComparendo}, radicado mediante queja Nro. ${d.proceso}, impuesta por el personal uniformado de ${d.solicitante}, quienes inician de manera oficiosa Proceso Verbal Inmediato del artículo 222 de la Ley 1801 de 2016 en contra de ${d.solicitado}, quien es hallado(a) incurriendo en el siguiente comportamiento contrario a la convivencia: "${d.hechos}". Se da espera a fin de que el presunto(a) infractor(a) ejerza alguna de las acciones legales del artículo 180 de la Ley 1801, adicionado por la Ley 2197 de 2022.`,
+      `${d.municipio}, ${fRecepcion}. ${d.firmanteNombre}, ${d.firmanteRol} de la ${d.inspeccion}, deja constancia de que al despacho se allega la orden de comparendo con expediente ${d.comparendo}, de fecha ${fComparendo}, radicado mediante queja Nro. ${d.proceso}, impuesta por el personal uniformado de ${d.solicitante}, quienes inician de manera oficiosa Proceso Verbal Inmediato del artículo 222 de la Ley 1801 de 2016 en contra de ${d.solicitado}, quien es hallado(a) incurriendo en el siguiente comportamiento contrario a la convivencia: "${d.hechos}". Se da espera a fin de que el presunto(a) infractor(a) ejerza alguna de las acciones legales del artículo 180 de la Ley 1801, adicionado por la Ley 2197 de 2022.`,
     ],
   };
 
-  // Solo cuando el desenlace es firmeza: si el solicitado compareció (pronto
-  // pago o conmutación), esa comparecencia ya queda documentada en los
-  // ANTECEDENTES de la propia acta anexa — no hace falta esta constancia.
-  const piezaInasistencia: SeccionDocumento[] = incluirSi(d.tipoActaFinal === 'acta_firmeza', {
-    titulo: 'CONSTANCIA DE INASISTENCIA',
-    parrafos: [
-      `${d.firmanteNombre}, ${d.firmanteRol} de la ${d.inspeccion}, en aplicación del numeral 5 del artículo 223A de la Ley 1801, informa al inspector que transcurridos cinco (5) días posteriores a la expedición de la orden de comparendo, no se hizo presente ${d.solicitado}, identificado con cédula de ciudadanía No. ${d.cedulaSolicitado}, a fin de ejercer alguna de las acciones legales del artículo 180 de la Ley 1801 con ocasión del comparendo ${d.comparendo}.`,
-    ],
-  });
-
-  const piezaRnmc: SeccionDocumento = {
-    titulo: 'IMPRESIÓN DE CONSULTA RNMC',
-    parrafos: [
-      `Consulta del Registro Nacional de Medidas Correctivas para el comparendo ${d.comparendo}, realizada el ${fRnmc}: cédula ${d.cedulaSolicitado}, infractor ${d.solicitado}, estado ${d.rnmcEstado}. Esta consulta es el soporte documental con el que el inspector motiva si aplica o no incremento por reincidencia en el acta final.`,
-    ],
-  };
-
-  const piezaActaFinalEncabezado: SeccionDocumento = {
-    titulo: `ACTA FINAL ANEXA — ${TITULO_ACTA_FINAL[d.tipoActaFinal]}`,
-    parrafos: [
-      `Se anexa a continuación, en su integridad, el ${TITULO_ACTA_FINAL[d.tipoActaFinal]} suscrita respecto de la orden de comparendo Nro. ${d.comparendo}, radicada bajo la queja ${actaFinal.proceso} el ${actaFinal.fechaResolucionLetras}${actaFinal.epigrafe ? `: ${actaFinal.epigrafe}` : '.'}`,
-    ],
-  };
+  // Ruta firmeza: nadie compareció → constancia de inasistencia. Rutas
+  // pronto_pago/conmutacion: el solicitado compareció → constancia de
+  // comparecencia y solicitud (generador dedicado, no se duplica aquí).
+  const terceraPieza: SeccionDocumento =
+    d.ruta === 'firmeza'
+      ? {
+          titulo: TITULO_TERCERA_PIEZA.firmeza,
+          parrafos: [
+            `${d.firmanteNombre}, ${d.firmanteRol} de la ${d.inspeccion}, en aplicación del numeral 5 del artículo 223A de la Ley 1801, informa al inspector que transcurridos cinco (5) días posteriores a la expedición de la orden de comparendo, no se hizo presente ${d.solicitado}, identificado con cédula de ciudadanía No. ${d.cedulaSolicitado}, a fin de ejercer alguna de las acciones legales del artículo 180 de la Ley 1801 con ocasión del comparendo ${d.comparendo}.`,
+          ],
+        }
+      : generarConstanciaComparecenciaSolicitud({
+          municipio: d.municipio,
+          inspeccion: d.inspeccion,
+          firmanteNombre: d.firmanteNombre,
+          firmanteRol: d.firmanteRol,
+          proceso: d.proceso,
+          comparendo: d.comparendo,
+          fechaComparendo: d.fechaComparendo,
+          fechaComparecencia: d.fechaComparecencia || d.fechaResolucion,
+          solicitado: d.solicitado,
+          cedulaSolicitado: d.cedulaSolicitado,
+          ruta: d.ruta,
+        }).secciones[0];
 
   return {
     entidad: d.inspeccion.toUpperCase(),
@@ -123,18 +124,10 @@ export function generarExpedientePrevio(d: DatosExpedientePrevio, actaFinal: Doc
       { etiqueta: 'NOMBRE INFRACTOR', valor: d.solicitado },
       { etiqueta: 'CÉDULA DE CIUDADANÍA No.', valor: d.cedulaSolicitado },
       { etiqueta: 'DIRECCIÓN INFRACTOR', valor: `${direccion}, ${d.municipio}. Teléfono ${telefono}.` },
-      { etiqueta: 'DESENLACE', valor: TITULO_ACTA_FINAL[d.tipoActaFinal] },
     ],
-    secciones: [
-      piezaCaratula,
-      piezaRecepcion,
-      ...piezaInasistencia,
-      piezaRnmc,
-      piezaActaFinalEncabezado,
-      ...actaFinal.secciones,
-    ],
-    resuelve: actaFinal.resuelve,
+    secciones: [piezaCaratula, piezaRecepcion, terceraPieza],
+    resuelve: [],
     cierre: `${d.municipio}, ${fResolucion}.`,
-    firma: [...actaFinal.firma, { nombre: d.firmanteNombre, rol: d.firmanteRol }],
+    firma: [{ nombre: d.firmanteNombre, rol: d.firmanteRol }],
   };
 }

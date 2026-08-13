@@ -55,7 +55,7 @@ const CLAVE_DESPACHO = 'acta-firmeza:despacho';
 const DATOS_INICIALES: DatosActaFirmeza = {
   municipio: 'Manizales',
   inspeccion: 'Inspección Permanente de Convivencia y Paz Turno Uno',
-  inspectorNombre: 'LUIS GABRIEL LADINO AYALA',
+  inspectorNombre: 'ANDRÉS FELIPE EJEMPLO ROJAS',
   inspectorCargo: 'Inspector Permanente de Convivencia y Paz – Turno Uno',
   proceso: '',
   fechaResolucion: dayjs().format('YYYY-MM-DD'),
@@ -793,8 +793,8 @@ export function ActasFirmezaPage() {
                 Imprimir
               </Button>
               <ExpedientePrevioButton
-                acta={acta ? actaFirmezaComoDocumento(acta) : null}
-                tipoActaFinal="acta_firmeza"
+                ruta="firmeza"
+                disabled={!acta || apelo}
                 membreteDataUrl={inspeccion.membreteDataUrl}
                 datosBase={{
                   municipio: datos.municipio,
@@ -809,7 +809,6 @@ export function ActasFirmezaPage() {
                   telefonoSolicitado: datos.telefono,
                   fechaComparendo: datos.fechaComparendo,
                   hechos: datos.hechos,
-                  tipoMulta: datos.tipoMulta,
                 }}
               />
             </div>

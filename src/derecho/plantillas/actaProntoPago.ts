@@ -1,8 +1,9 @@
-import { fechaALetras } from '../letras';
+import { anioConCifra, fechaALetras } from '../letras';
 import { diasHabilesDesde } from '../diasHabiles';
 import {
   liquidarProntoPago,
   TERMINOS_COMPARENDO,
+  VIGENCIA_MULTAS,
   type CausalIncremento,
   type TipoMulta,
 } from '../multas';
@@ -58,7 +59,7 @@ export function generarActaProntoPago(d: DatosActaProntoPago): DocumentoLegal {
 
   const resuelve: string[] = [
     `PRIMERO: DECLARAR LA FIRMEZA DE LA MULTA GENERAL TIPO ${d.tipoMulta}, impuesta a ${d.solicitado}, C.C. ${d.cedula}, mediante la orden de comparendo Nro. ${d.comparendo} de fecha ${fComparendo}; en consecuencia, APLICAR el descuento del cincuenta por ciento (50%) por pronto pago, de conformidad con el parágrafo del artículo 180 de la Ley 1801 de 2016, modificado por el artículo 42 de la Ley 2197 de 2022. Valor a pagar a favor del tesoro municipal: ${liq.valorAPagarLetras}.`,
-    `SEGUNDO: ADVERTIR a ${d.solicitado} que el no pago dentro del término advertido (${fLimiteLetras}) dará lugar al cobro TOTAL de la multa, sin descuento, por la suma de ${liq.valorTotalLetras}.`,
+    `SEGUNDO: ADVERTIR a ${d.solicitado} que el no pago dentro del término advertido (${fLimiteLetras}) dará lugar al cobro TOTAL de la MULTA GENERAL TIPO ${d.tipoMulta} a favor del tesoro municipal, por una suma equivalente a ${liq.smdlvLetras} salarios mínimos diarios legales vigentes (SMDLV) para la vigencia ${anioConCifra(VIGENCIA_MULTAS)}, correspondiente a ${liq.valorTotalLetras}.`,
     ...incluirSi(
       d.causal !== 'ninguna',
       `Conforme a la motivación de reincidencia expuesta, el valor de la multa se incrementó en un ${liq.porcentajeIncremento}% ANTES de aplicar el descuento por pronto pago, según lo dispuesto en el artículo 223A de la Ley 1801 de 2016.`,

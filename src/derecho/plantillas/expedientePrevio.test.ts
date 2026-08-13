@@ -1,7 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { generarExpedientePrevio, type DatosExpedientePrevio } from './expedientePrevio';
-import { generarActaFirmeza, actaFirmezaComoDocumento, type DatosActaFirmeza } from './actaFirmeza';
-import { generarActaProntoPago, type DatosActaProntoPago } from './actaProntoPago';
 
 const DATOS_EXPEDIENTE_BASE: DatosExpedientePrevio = {
   municipio: 'Manizales',
@@ -21,88 +19,58 @@ const DATOS_EXPEDIENTE_BASE: DatosExpedientePrevio = {
   fechaComparendo: '2026-04-24',
   fechaResolucion: '2026-05-04',
   hechos: 'Hechos de prueba.',
-  tipoMulta: 4,
   firmanteNombre: 'MARÍA EJEMPLO GÓMEZ',
   firmanteRol: 'Auxiliar Administrativo',
-  rnmcFechaConsulta: '2026-05-03',
-  rnmcEstado: 'EN PROCESO',
-  tipoActaFinal: 'acta_firmeza',
+  ruta: 'firmeza',
 };
 
-const DATOS_ACTA_FIRMEZA: DatosActaFirmeza = {
-  municipio: 'Manizales',
-  inspeccion: 'Inspección Permanente de Convivencia y Paz Turno Uno',
-  inspectorNombre: 'LUIS GABRIEL LADINO AYALA',
-  inspectorCargo: 'Inspector Permanente de Convivencia y Paz – Turno Uno',
-  proceso: '2026-6829',
-  fechaResolucion: '2026-05-04',
-  comparendo: '17-001-085044',
-  fechaComparendo: '2026-04-24',
-  articuloNumeral: 'Artículo 92 Numeral 16',
-  lugar: 'CALLE 17 CARRERA 17 41',
-  solicitado: 'FERNANDO EJEMPLO BEDOLLA',
-  cedula: '1002592012',
-  direccion: 'CARRERA 17 CALLE 19 28',
-  telefono: '3175567171',
-  solicitante: 'CAI CHIPRE',
-  hechos: 'Hechos de prueba.',
-  tipoMulta: 4,
-  causal: 'ninguna',
-};
-
-describe('generarExpedientePrevio — legajo de archivo (carátula + constancias + acta anexa)', () => {
-  it('con acta de firmeza: incluye la constancia de inasistencia y anexa el acta completa', () => {
-    const acta = actaFirmezaComoDocumento(generarActaFirmeza(DATOS_ACTA_FIRMEZA));
-    const expediente = generarExpedientePrevio(DATOS_EXPEDIENTE_BASE, acta);
+describe('generarExpedientePrevio — legajo de tres piezas (carátula + constancias), independiente del acta', () => {
+  it('ruta firmeza: carátula + constancia de recepción + constancia de inasistencia, nada más', () => {
+    const expediente = generarExpedientePrevio(DATOS_EXPEDIENTE_BASE);
 
     expect(expediente.tituloDocumento).toBe('EXPEDIENTE');
     const titulos = expediente.secciones.map((s) => s.titulo);
-    expect(titulos).toContain('CARÁTULA DE ARCHIVO');
-    expect(titulos).toContain('CONSTANCIA SECRETARIAL DE RECEPCIÓN DE COMPARENDO');
-    expect(titulos).toContain('CONSTANCIA DE INASISTENCIA');
-    expect(titulos).toContain('IMPRESIÓN DE CONSULTA RNMC');
-    expect(titulos).toContain('ACTA FINAL ANEXA — ACTA DE FIRMEZA');
-    // El acta anexa se delega, no se duplica: sus propias secciones vienen incluidas.
-    expect(titulos).toContain('ANTECEDENTES');
-    expect(expediente.resuelve).toEqual(acta.resuelve);
+    expect(titulos).toEqual([
+      'CARÁTULA DE ARCHIVO',
+      'CONSTANCIA SECRETARIAL DE RECEPCIÓN DE COMPARENDO',
+      'CONSTANCIA DE INASISTENCIA',
+    ]);
+    // No incluye RNMC, comparendo ni acta.
+    expect(titulos).not.toContain('IMPRESIÓN DE CONSULTA RNMC');
+    expect(expediente.secciones.some((s) => (s.titulo || '').includes('ACTA'))).toBe(false);
+    expect(expediente.resuelve).toEqual([]);
   });
 
-  it('con acta de pronto pago: NO incluye constancia de inasistencia (el solicitado sí compareció)', () => {
-    const datosProntoPago: DatosActaProntoPago = {
-      municipio: 'Manizales',
-      inspeccion: 'Inspección Permanente de Convivencia y Paz Turno Uno',
-      inspectorNombre: 'LUIS GABRIEL LADINO AYALA',
-      inspectorRol: 'Inspector Permanente de Convivencia y Paz – Turno Uno',
-      proceso: '2026-0501',
-      fechaResolucion: '2026-04-27',
-      comparendo: '17-001-085044',
-      fechaComparendo: '2026-04-24',
-      articuloNumeral: 'Artículo 95 Numeral 1',
-      solicitado: 'FERNANDO EJEMPLO BEDOLLA',
-      cedula: '1002592012',
-      direccion: 'CARRERA 17 CALLE 19 28',
-      telefono: '3175567171',
-      tipoMulta: 4,
-      causal: 'ninguna',
-      documentoCobro: 'RC-2026-000501',
-    };
-    const acta = generarActaProntoPago(datosProntoPago);
-    const expediente = generarExpedientePrevio(
-      { ...DATOS_EXPEDIENTE_BASE, tipoActaFinal: 'acta_pronto_pago' },
-      acta,
-    );
+  it('ruta pronto_pago: la tercera pieza es la constancia de comparecencia y solicitud (no inasistencia)', () => {
+    const expediente = generarExpedientePrevio({
+      ...DATOS_EXPEDIENTE_BASE,
+      ruta: 'pronto_pago',
+      fechaComparecencia: '2026-04-27',
+    });
     const titulos = expediente.secciones.map((s) => s.titulo);
     expect(titulos).not.toContain('CONSTANCIA DE INASISTENCIA');
-    expect(titulos).toContain('ACTA FINAL ANEXA — ACTA PRONTO PAGO');
+    expect(titulos).toContain('CONSTANCIA SECRETARIAL DE COMPARECENCIA Y SOLICITUD');
+    expect(expediente.secciones[2].parrafos[0]).toContain('descuento del 50% por pronto pago');
   });
 
-  it('firma: incluye la firma del acta anexa y, al final, la del auxiliar que compiló el expediente', () => {
-    const acta = actaFirmezaComoDocumento(generarActaFirmeza(DATOS_ACTA_FIRMEZA));
-    const expediente = generarExpedientePrevio(DATOS_EXPEDIENTE_BASE, acta);
-    expect(expediente.firma.at(-1)).toEqual({
-      nombre: DATOS_EXPEDIENTE_BASE.firmanteNombre,
-      rol: DATOS_EXPEDIENTE_BASE.firmanteRol,
+  it('ruta conmutacion: la tercera pieza pide la conmutación, no el descuento', () => {
+    const expediente = generarExpedientePrevio({
+      ...DATOS_EXPEDIENTE_BASE,
+      ruta: 'conmutacion',
+      fechaComparecencia: '2026-04-27',
     });
-    expect(expediente.firma.length).toBe(acta.firma.length + 1);
+    expect(expediente.secciones[2].parrafos[0]).toContain('conmutación de la multa');
+  });
+
+  it('fechaRecepcion: por defecto usa fechaComparendo pero es editable', () => {
+    const sinFechaRecepcion = generarExpedientePrevio(DATOS_EXPEDIENTE_BASE);
+    const conFechaRecepcion = generarExpedientePrevio({ ...DATOS_EXPEDIENTE_BASE, fechaRecepcion: '2026-04-30' });
+    expect(sinFechaRecepcion.secciones[1].parrafos[0]).toContain('veinticuatro (24) de abril');
+    expect(conFechaRecepcion.secciones[1].parrafos[0]).toContain('treinta (30) de abril');
+  });
+
+  it('firma: solo el auxiliar que compiló el expediente (documento independiente del acta)', () => {
+    const expediente = generarExpedientePrevio(DATOS_EXPEDIENTE_BASE);
+    expect(expediente.firma).toEqual([{ nombre: DATOS_EXPEDIENTE_BASE.firmanteNombre, rol: DATOS_EXPEDIENTE_BASE.firmanteRol }]);
   });
 });

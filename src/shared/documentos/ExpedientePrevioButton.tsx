@@ -2,12 +2,7 @@ import { useState } from 'react';
 import { Button, DatePicker, Input, Modal, Space, App } from 'antd';
 import { FolderOpenOutlined, DownloadOutlined, FileWordOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import {
-  generarExpedientePrevio,
-  type DocumentoLegal,
-  type TipoActaFinal,
-  type TipoMulta,
-} from '@/derecho';
+import { generarExpedientePrevio, type RutaExpediente } from '@/derecho';
 import { descargarDocumentoLegalPdf } from './documentoLegalPdf';
 import { descargarDocumentoLegalDocx } from './documentoLegalDocx';
 
@@ -24,26 +19,30 @@ export interface DatosExpedienteBase {
   telefonoSolicitado?: string;
   fechaComparendo: string; // ISO
   hechos: string;
-  tipoMulta: TipoMulta;
 }
 
 /**
  * Botón "Descargar expediente", compartido por ActasFirmezaPage y
- * ProntoPagoPage (firmeza, pronto pago y conmutación): compone el legajo
- * previo (carátula + constancias + consulta RNMC + acta final) a partir del
- * acta ya generada por la página que lo invoca, sin conocer qué generador la
- * produjo (Open/Closed — cualquier `DocumentoLegal` + su `TipoActaFinal` sirve).
- * Pide en un modal los pocos datos que el acta no trae (identificación de
- * archivo, firmante secretarial, consulta RNMC).
+ * ProntoPagoPage (firmeza, pronto pago y conmutación): compone el legajo de
+ * TRES piezas (carátula + constancia de recepción + constancia de
+ * inasistencia o de comparecencia y solicitud, según `ruta`).
+ *
+ * Es un documento INDEPENDIENTE del acta — el inspector aclaró
+ * expresamente que expediente y acta son dos descargas separadas, no una
+ * sola: por eso este componente ya no recibe el acta generada, solo los
+ * datos propios del legajo (Open/Closed — cualquier `ruta` sirve sin tocar
+ * este archivo). Pide en un modal los pocos datos que la página que lo
+ * invoca no trae (identificación de archivo, firmante secretarial, fecha
+ * de recepción y, en pronto pago/conmutación, fecha de comparecencia).
  */
 export function ExpedientePrevioButton({
-  acta,
-  tipoActaFinal,
+  ruta,
+  disabled,
   membreteDataUrl,
   datosBase,
 }: {
-  acta: DocumentoLegal | null;
-  tipoActaFinal: TipoActaFinal;
+  ruta: RutaExpediente;
+  disabled?: boolean;
   membreteDataUrl?: string | null;
   datosBase: DatosExpedienteBase;
 }) {
@@ -54,40 +53,36 @@ export function ExpedientePrevioButton({
   const [expediente, setExpediente] = useState(datosBase.proceso);
   const [firmanteNombre, setFirmanteNombre] = useState('');
   const [firmanteRol, setFirmanteRol] = useState('Auxiliar Administrativo');
-  const [rnmcFechaConsulta, setRnmcFechaConsulta] = useState(dayjs().format('YYYY-MM-DD'));
-  const [rnmcEstado, setRnmcEstado] = useState('EN PROCESO');
+  // Por defecto igual a la fecha del comparendo ("normalmente" coincide), pero editable.
+  const [fechaRecepcion, setFechaRecepcion] = useState(datosBase.fechaComparendo);
+  const [fechaComparecencia, setFechaComparecencia] = useState(dayjs().format('YYYY-MM-DD'));
   const [generando, setGenerando] = useState<'pdf' | 'docx' | null>(null);
 
   function construirExpediente() {
-    if (!acta) return null;
-    return generarExpedientePrevio(
-      {
-        municipio: datosBase.municipio,
-        inspeccion: datosBase.inspeccion,
-        unidad,
-        grupo,
-        anio: new Date(datosBase.fechaComparendo).getFullYear() || new Date().getFullYear(),
-        expediente,
-        proceso: datosBase.proceso,
-        comparendo: datosBase.comparendo,
-        articuloNumeral: datosBase.articuloNumeral,
-        solicitante: datosBase.solicitante,
-        solicitado: datosBase.solicitado,
-        cedulaSolicitado: datosBase.cedulaSolicitado,
-        direccionSolicitado: datosBase.direccionSolicitado,
-        telefonoSolicitado: datosBase.telefonoSolicitado,
-        fechaComparendo: datosBase.fechaComparendo,
-        fechaResolucion: dayjs().format('YYYY-MM-DD'),
-        hechos: datosBase.hechos,
-        tipoMulta: datosBase.tipoMulta,
-        firmanteNombre,
-        firmanteRol,
-        rnmcFechaConsulta,
-        rnmcEstado,
-        tipoActaFinal,
-      },
-      acta,
-    );
+    return generarExpedientePrevio({
+      municipio: datosBase.municipio,
+      inspeccion: datosBase.inspeccion,
+      unidad,
+      grupo,
+      anio: new Date(datosBase.fechaComparendo).getFullYear() || new Date().getFullYear(),
+      expediente,
+      proceso: datosBase.proceso,
+      comparendo: datosBase.comparendo,
+      articuloNumeral: datosBase.articuloNumeral,
+      solicitante: datosBase.solicitante,
+      solicitado: datosBase.solicitado,
+      cedulaSolicitado: datosBase.cedulaSolicitado,
+      direccionSolicitado: datosBase.direccionSolicitado,
+      telefonoSolicitado: datosBase.telefonoSolicitado,
+      fechaComparendo: datosBase.fechaComparendo,
+      fechaRecepcion,
+      fechaResolucion: dayjs().format('YYYY-MM-DD'),
+      hechos: datosBase.hechos,
+      firmanteNombre,
+      firmanteRol,
+      ruta,
+      fechaComparecencia: ruta === 'firmeza' ? undefined : fechaComparecencia,
+    });
   }
 
   async function generar(formato: 'pdf' | 'docx') {
@@ -96,7 +91,6 @@ export function ExpedientePrevioButton({
       return;
     }
     const expedientePrevio = construirExpediente();
-    if (!expedientePrevio) return;
     setGenerando(formato);
     try {
       if (formato === 'pdf') await descargarDocumentoLegalPdf(expedientePrevio, membreteDataUrl);
@@ -111,11 +105,11 @@ export function ExpedientePrevioButton({
 
   return (
     <>
-      <Button icon={<FolderOpenOutlined />} disabled={!acta} onClick={() => setAbierto(true)}>
+      <Button icon={<FolderOpenOutlined />} disabled={disabled} onClick={() => setAbierto(true)}>
         Descargar expediente
       </Button>
       <Modal
-        title="Expediente previo — datos del legajo"
+        title="Expediente — datos del legajo"
         open={abierto}
         onCancel={() => setAbierto(false)}
         footer={
@@ -149,7 +143,7 @@ export function ExpedientePrevioButton({
             <Input value={expediente} onChange={(e) => setExpediente(e.target.value)} />
           </div>
           <div>
-            <div style={{ fontSize: 12, marginBottom: 4 }}>Suscribe la constancia secretarial</div>
+            <div style={{ fontSize: 12, marginBottom: 4 }}>Suscribe las constancias secretariales</div>
             <Input
               value={firmanteNombre}
               onChange={(e) => setFirmanteNombre(e.target.value)}
@@ -161,18 +155,27 @@ export function ExpedientePrevioButton({
             <Input value={firmanteRol} onChange={(e) => setFirmanteRol(e.target.value)} />
           </div>
           <div>
-            <div style={{ fontSize: 12, marginBottom: 4 }}>Fecha de consulta RNMC</div>
+            <div style={{ fontSize: 12, marginBottom: 4 }}>
+              Fecha de recepción del comparendo (cargue al sistema — normalmente coincide con la del comparendo, pero es editable)
+            </div>
             <DatePicker
               style={{ width: '100%' }}
               format="DD/MM/YYYY"
-              value={dayjs(rnmcFechaConsulta)}
-              onChange={(d) => d && setRnmcFechaConsulta(d.format('YYYY-MM-DD'))}
+              value={dayjs(fechaRecepcion)}
+              onChange={(d) => d && setFechaRecepcion(d.format('YYYY-MM-DD'))}
             />
           </div>
-          <div>
-            <div style={{ fontSize: 12, marginBottom: 4 }}>Estado reportado por el RNMC</div>
-            <Input value={rnmcEstado} onChange={(e) => setRnmcEstado(e.target.value)} />
-          </div>
+          {ruta !== 'firmeza' && (
+            <div>
+              <div style={{ fontSize: 12, marginBottom: 4 }}>Fecha de comparecencia y solicitud</div>
+              <DatePicker
+                style={{ width: '100%' }}
+                format="DD/MM/YYYY"
+                value={dayjs(fechaComparecencia)}
+                onChange={(d) => d && setFechaComparecencia(d.format('YYYY-MM-DD'))}
+              />
+            </div>
+          )}
         </Space>
       </Modal>
     </>

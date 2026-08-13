@@ -20,6 +20,7 @@ export * from './plantillas/documentoLegal';
 export * from './plantillas/actaProntoPago';
 export * from './plantillas/actaConmutacion';
 export * from './plantillas/expedientePrevio';
+export * from './plantillas/constanciaComparecenciaSolicitud';
 export * from './plantillas/autoAvocaCitaAudiencia';
 export * from './plantillas/autoDecretaPruebasSuspende';
 export * from './plantillas/autoInasistencia';

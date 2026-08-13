@@ -87,7 +87,7 @@ interface FormularioProntoPago {
 const DATOS_INICIALES: FormularioProntoPago = {
   municipio: 'Manizales',
   inspeccion: 'Inspección Permanente de Convivencia y Paz Turno Uno',
-  inspectorNombre: 'LUIS GABRIEL LADINO AYALA',
+  inspectorNombre: 'ANDRÉS FELIPE EJEMPLO ROJAS',
   inspectorRol: 'Inspector Permanente de Convivencia y Paz – Turno Uno',
   proceso: '',
   fechaResolucion: dayjs().format('YYYY-MM-DD'),
@@ -673,8 +673,8 @@ export function ProntoPagoPage() {
                 Imprimir
               </Button>
               <ExpedientePrevioButton
-                acta={acta}
-                tipoActaFinal={rutaEfectiva === 'pronto_pago' ? 'acta_pronto_pago' : 'acta_conmutacion'}
+                ruta={rutaEfectiva}
+                disabled={!listoParaGenerar}
                 membreteDataUrl={inspeccion.membreteDataUrl}
                 datosBase={{
                   municipio: datos.municipio,
@@ -689,7 +689,6 @@ export function ProntoPagoPage() {
                   telefonoSolicitado: datos.telefono,
                   fechaComparendo: datos.fechaComparendo,
                   hechos: datos.hechos,
-                  tipoMulta: datos.tipoMulta,
                 }}
               />
             </div>

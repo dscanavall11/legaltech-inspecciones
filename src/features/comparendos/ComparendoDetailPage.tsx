@@ -31,6 +31,7 @@ import { SiguientePasoComparendo } from './SiguientePasoComparendo';
 import { documentosComparendoDisponibles } from './documento/documentoComparendo';
 import { FlujoNavegable } from '@/shared/components/FlujoNavegable';
 import { DocumentosExpediente } from '@/shared/documentos/DocumentosExpediente';
+import { PruebasExpediente } from '@/shared/pruebas/PruebasExpediente';
 import { NOMBRE_PLANTILLA } from '@/shared/documentos/ejemploPlantillas';
 import { EtapaProcesal } from '@/shared/components/EtapaProcesal';
 import { parseCaseMetadata } from '@/shared/legalCases/types';
@@ -287,6 +288,11 @@ export function ComparendoDetailPage() {
           <DocumentosExpediente caseId={data.id} />
         </>
       ),
+    },
+    {
+      key: 'pruebas',
+      label: 'Pruebas',
+      children: <PruebasExpediente caseId={data.id} />,
     },
   ];
 

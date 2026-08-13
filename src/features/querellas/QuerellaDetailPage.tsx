@@ -24,6 +24,7 @@ import { calcularTermino } from '@/shared/terminos/diasHabiles';
 import { SiguientePaso } from './SiguientePaso';
 import { LineaTiempoEstados } from './LineaTiempoEstados';
 import { DocumentosExpediente } from '@/shared/documentos/DocumentosExpediente';
+import { PruebasExpediente } from '@/shared/pruebas/PruebasExpediente';
 import { EtapaProcesal } from '@/shared/components/EtapaProcesal';
 import { FlujoNavegable } from '@/shared/components/FlujoNavegable';
 import {
@@ -174,6 +175,11 @@ export function QuerellaDetailPage() {
       key: 'documentos',
       label: 'Documentos',
       children: <DocumentosExpediente caseId={data.id} />,
+    },
+    {
+      key: 'pruebas',
+      label: 'Pruebas',
+      children: <PruebasExpediente caseId={data.id} />,
     },
   ];
 

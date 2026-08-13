@@ -6,6 +6,7 @@ import {
   Calendar,
   FilePlus2,
   FileCheck2,
+  Wallet,
   Sparkles,
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -31,6 +32,7 @@ const ICONOS_DOCK: Record<DockIconKey, ReactNode> = {
   audiencias: <Calendar size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
   radicar: <FilePlus2 size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
   'actas-firmeza': <FileCheck2 size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
+  'pronto-pago': <Wallet size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
   // El acento "IA": sparkle, no un ícono de robot/candado.
   'chat-ia': <Sparkles size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
 };

@@ -68,6 +68,9 @@ const IntakePage = lazy(() =>
 const ActasFirmezaPage = lazy(() =>
   import('@/features/actas/ActasFirmezaPage').then((m) => ({ default: m.ActasFirmezaPage })),
 );
+const ProntoPagoPage = lazy(() =>
+  import('@/features/pagos/ProntoPagoPage').then((m) => ({ default: m.ProntoPagoPage })),
+);
 const NormasPage = lazy(() =>
   import('@/features/normas/NormasPage').then((m) => ({ default: m.NormasPage })),
 );
@@ -132,6 +135,7 @@ export const router = createBrowserRouter([
       { path: 'nuevo-caso', element: <Cargando><IntakePage /></Cargando> },
       { path: 'fallos', element: <Cargando><FallosPage /></Cargando> },
       { path: 'actas-firmeza', element: <Cargando><ActasFirmezaPage /></Cargando> },
+      { path: 'pronto-pago', element: <Cargando><ProntoPagoPage /></Cargando> },
       { path: 'ajustes', element: <Cargando><AjustesPage /></Cargando> },
       { path: 'ajustes/despacho', element: <Cargando><ConfiguracionDespachoPage /></Cargando> },
       { path: 'medidas-correctivas', element: <Cargando><MultasPage /></Cargando> },

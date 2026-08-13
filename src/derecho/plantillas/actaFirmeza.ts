@@ -6,6 +6,7 @@ import {
   type LiquidacionMulta,
   type TipoMulta,
 } from '../multas';
+import type { DocumentoLegal } from './documentoLegal';
 
 /**
  * Plantilla del acta de firmeza de la multa general (art. 223A, lit. e),
@@ -35,6 +36,8 @@ export interface DatosActaFirmeza {
   hechos: string;
   tipoMulta: TipoMulta;
   causal: CausalIncremento;
+  /** Justificación/evidencia (RNMC, BDME) que motiva la causal marcada — nunca se aplica sola. */
+  causalEvidencia?: string;
 }
 
 export interface SeccionActa {
@@ -57,18 +60,20 @@ export interface ActaFirmeza {
 }
 
 function parrafoRnmc(d: DatosActaFirmeza): string[] {
+  const evidencia = d.causalEvidencia?.trim();
+  const sufijoEvidencia = evidencia ? ` Evidencia aportada al expediente: ${evidencia}.` : '';
   switch (d.causal) {
     case 'reiteracion_dentro_del_anio':
       return [
-        `Revisado el Registro Nacional de Medidas Correctivas (RNMC), se constató que el ciudadano ${d.solicitado} registra una multa general anterior en firme por el mismo comportamiento contrario a la convivencia, cuya firmeza se produjo dentro del año siguiente a la presente orden de comparendo. En consecuencia, se configura el supuesto de reiteración previsto en el literal j) del artículo 223A de la Ley 1801 de 2016, adicionado por la Ley 2197 de 2022, razón por la cual procede el incremento del valor de la multa general en un setenta y cinco por ciento (75%), sobre el valor de la multa general tipo ${d.tipoMulta} señalada en la orden de comparendo Nro. ${d.comparendo}.`,
+        `Revisado el Registro Nacional de Medidas Correctivas (RNMC), se constató que el ciudadano ${d.solicitado} registra una multa general anterior en firme por el mismo comportamiento contrario a la convivencia, cuya firmeza se produjo dentro del año siguiente a la presente orden de comparendo. En consecuencia, se configura el supuesto de reiteración previsto en el literal j) del artículo 223A de la Ley 1801 de 2016, adicionado por la Ley 2197 de 2022, razón por la cual procede el incremento del valor de la multa general en un setenta y cinco por ciento (75%), sobre el valor de la multa general tipo ${d.tipoMulta} señalada en la orden de comparendo Nro. ${d.comparendo}.${sufijoEvidencia}`,
       ];
     case 'reiteracion_despues_del_anio':
       return [
-        `Revisado el Registro Nacional de Medidas Correctivas (RNMC), se constató que el ciudadano ${d.solicitado} registra una multa general anterior en firme por el mismo comportamiento contrario a la convivencia, cuya firmeza se produjo con antelación superior a un año respecto de la presente orden de comparendo. En consecuencia, se configura el supuesto de reiteración previsto en el inciso final del literal j) del artículo 223A de la Ley 1801 de 2016, adicionado por la Ley 2197 de 2022, razón por la cual procede el incremento del valor de la multa general en un cincuenta por ciento (50%), sobre el valor de la multa general tipo ${d.tipoMulta} señalada en la orden de comparendo Nro. ${d.comparendo}.`,
+        `Revisado el Registro Nacional de Medidas Correctivas (RNMC), se constató que el ciudadano ${d.solicitado} registra una multa general anterior en firme por el mismo comportamiento contrario a la convivencia, cuya firmeza se produjo con antelación superior a un año respecto de la presente orden de comparendo. En consecuencia, se configura el supuesto de reiteración previsto en el inciso final del literal j) del artículo 223A de la Ley 1801 de 2016, adicionado por la Ley 2197 de 2022, razón por la cual procede el incremento del valor de la multa general en un cincuenta por ciento (50%), sobre el valor de la multa general tipo ${d.tipoMulta} señalada en la orden de comparendo Nro. ${d.comparendo}.${sufijoEvidencia}`,
       ];
     case 'moroso_bdme':
       return [
-        `Revisado el expediente, se constató que el ciudadano ${d.solicitado} se encuentra reportado en el Boletín de Deudores Morosos del Estado (BDME) de la Contaduría General de la Nación por el incumplimiento en el pago de una multa general anterior por comportamiento contrario a la convivencia, sin que la misma haya sido pagada. En consecuencia, se configura el supuesto previsto en el literal i) del artículo 223A de la Ley 1801 de 2016, adicionado por la Ley 2197 de 2022, razón por la cual procede el incremento del valor de la multa general en un cincuenta por ciento (50%), sobre el valor de la multa general tipo ${d.tipoMulta} señalada en la orden de comparendo Nro. ${d.comparendo}.`,
+        `Revisado el expediente, se constató que el ciudadano ${d.solicitado} se encuentra reportado en el Boletín de Deudores Morosos del Estado (BDME) de la Contaduría General de la Nación por el incumplimiento en el pago de una multa general anterior por comportamiento contrario a la convivencia, sin que la misma haya sido pagada. En consecuencia, se configura el supuesto previsto en el literal i) del artículo 223A de la Ley 1801 de 2016, adicionado por la Ley 2197 de 2022, razón por la cual procede el incremento del valor de la multa general en un cincuenta por ciento (50%), sobre el valor de la multa general tipo ${d.tipoMulta} señalada en la orden de comparendo Nro. ${d.comparendo}.${sufijoEvidencia}`,
       ];
     case 'ninguna':
     default:
@@ -172,5 +177,27 @@ export function generarActaFirmeza(d: DatosActaFirmeza): ActaFirmeza {
     cierre: `${d.municipio}, ${fResolucion}.`,
     firma: { nombre: d.inspectorNombre, cargo: d.inspectorCargo },
     liquidacion: liq,
+  };
+}
+
+/**
+ * Adapta un `ActaFirmeza` (dispone singular, firma única) a la forma
+ * compartida `DocumentoLegal` (resuelve, firma en lista) — usada únicamente
+ * para componer el expediente previo (expedientePrevio.ts), que anexa
+ * cualquiera de las tres actas del desenlace sin conocer sus tipos concretos.
+ * No reemplaza `actaPdf.ts`, que sigue renderizando `ActaFirmeza` tal cual.
+ */
+export function actaFirmezaComoDocumento(acta: ActaFirmeza): DocumentoLegal {
+  return {
+    entidad: acta.entidad,
+    tituloDocumento: acta.tituloDocumento,
+    proceso: acta.proceso,
+    fechaResolucionLetras: acta.fechaResolucionLetras,
+    epigrafe: acta.epigrafe,
+    tablaDatos: acta.tablaDatos,
+    secciones: acta.secciones,
+    resuelve: acta.dispone,
+    cierre: acta.cierre,
+    firma: [{ nombre: acta.firma.nombre, rol: acta.firma.cargo }],
   };
 }

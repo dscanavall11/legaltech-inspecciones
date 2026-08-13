@@ -10,6 +10,7 @@ export type DockIconKey =
   | 'audiencias'
   | 'radicar'
   | 'actas-firmeza'
+  | 'pronto-pago'
   | 'chat-ia';
 
 export interface DockItem {
@@ -65,6 +66,7 @@ export const DOCK_SECTIONS: DockSection[] = [
         destacado: true,
       },
       { key: 'actas-firmeza', label: 'Actas de firmeza', iconKey: 'actas-firmeza', ruta: '/panel/actas-firmeza', color: VERDE },
+      { key: 'pronto-pago', label: 'Pronto pago y conmutación', iconKey: 'pronto-pago', ruta: '/panel/pronto-pago', color: VERDE },
     ],
   },
   {

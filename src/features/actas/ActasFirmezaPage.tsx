@@ -15,6 +15,7 @@ import {
 import {
   DownloadOutlined,
   FilePdfOutlined,
+  FileWordOutlined,
   PrinterOutlined,
   UploadOutlined,
   SearchOutlined,
@@ -26,6 +27,7 @@ import dayjs from 'dayjs';
 import { Link } from 'react-router-dom';
 import {
   generarActaFirmeza,
+  actaFirmezaComoDocumento,
   liquidarMulta,
   INCREMENTO_LABEL,
   MULTA_GENERAL,
@@ -38,6 +40,9 @@ import { calcularTermino } from '@/shared/terminos/diasHabiles';
 import { COMPARENDOS_DEMO, parsearBdComparendos, type Comparendo, type ReporteImportacion } from './comparendos';
 import { extraerComparendoPdf } from './extraerComparendoPdf';
 import { descargarActaPdf } from '@/shared/documentos/actaPdf';
+import { descargarDocumentoLegalDocx } from '@/shared/documentos/documentoLegalDocx';
+import { ExpedientePrevioButton } from '@/shared/documentos/ExpedientePrevioButton';
+import { ReincidenciaCausalField } from '@/shared/components/ReincidenciaCausalField';
 import { PdfViewer } from '@/shared/documentos/PdfViewer';
 import { ELEVACION, PALETA } from '@/theme/theme';
 import { useInspeccionStore } from '@/store/inspeccionStore';
@@ -66,11 +71,8 @@ const DATOS_INICIALES: DatosActaFirmeza = {
   hechos: '',
   tipoMulta: 1,
   causal: 'ninguna',
+  causalEvidencia: '',
 };
-
-const CAUSAL_OPCIONES = (Object.entries(INCREMENTO_LABEL) as [CausalIncremento, string][]).map(
-  ([value, label]) => ({ value, label }),
-);
 
 const TIPO_MULTA_OPCIONES = ([1, 2, 3, 4] as TipoMulta[]).map((t) => ({
   value: t,
@@ -591,14 +593,14 @@ export function ActasFirmezaPage() {
               </CampoActa>
             </div>
 
-            <CampoActa label="Reincidencia (RNMC / BDME, art. 223A lits. i, j)">
-              <Select
-                style={{ width: '100%' }}
-                value={datos.causal}
-                onChange={(v) => set('causal', v)}
-                options={CAUSAL_OPCIONES}
+            <div style={{ marginBottom: 16 }}>
+              <ReincidenciaCausalField
+                causal={datos.causal}
+                evidencia={datos.causalEvidencia ?? ''}
+                onCausalChange={(v) => set('causal', v)}
+                onEvidenciaChange={(v) => set('causalEvidencia', v)}
               />
-            </CampoActa>
+            </div>
 
             {/* Liquidación */}
             <div style={{ background: '#eef4fa', borderRadius: 16, padding: '12px 16px' }}>
@@ -763,11 +765,10 @@ export function ActasFirmezaPage() {
               </div>
             </CampoActa>
 
-            <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
+            <div style={{ display: 'flex', gap: 10, marginTop: 6, flexWrap: 'wrap' }}>
               <Button
                 type="primary"
                 size="large"
-                block
                 icon={<DownloadOutlined />}
                 disabled={!acta || apelo}
                 onClick={() => acta && descargarActaPdf(acta, inspeccion.membreteDataUrl)}
@@ -777,12 +778,40 @@ export function ActasFirmezaPage() {
               </Button>
               <Button
                 size="large"
+                icon={<FileWordOutlined />}
+                disabled={!acta || apelo}
+                onClick={() => acta && void descargarDocumentoLegalDocx(actaFirmezaComoDocumento(acta), inspeccion.membreteDataUrl)}
+              >
+                Descargar .docx
+              </Button>
+              <Button
+                size="large"
                 icon={<PrinterOutlined />}
                 disabled={!acta || apelo}
                 onClick={() => window.print()}
               >
                 Imprimir
               </Button>
+              <ExpedientePrevioButton
+                acta={acta ? actaFirmezaComoDocumento(acta) : null}
+                tipoActaFinal="acta_firmeza"
+                membreteDataUrl={inspeccion.membreteDataUrl}
+                datosBase={{
+                  municipio: datos.municipio,
+                  inspeccion: datos.inspeccion,
+                  proceso: datos.proceso,
+                  comparendo: datos.comparendo,
+                  articuloNumeral: datos.articuloNumeral,
+                  solicitante: datos.solicitante,
+                  solicitado: datos.solicitado,
+                  cedulaSolicitado: datos.cedula,
+                  direccionSolicitado: datos.direccion,
+                  telefonoSolicitado: datos.telefono,
+                  fechaComparendo: datos.fechaComparendo,
+                  hechos: datos.hechos,
+                  tipoMulta: datos.tipoMulta,
+                }}
+              />
             </div>
           </Tarjeta>
         </div>

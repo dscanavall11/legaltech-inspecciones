@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { fechaALetras, numeroALetras, pesosALetras } from './letras';
-import { liquidarMulta } from './multas';
+import { liquidarMulta, liquidarProntoPago, rutasDisponibles } from './multas';
 import { generarActaFirmeza, type DatosActaFirmeza } from './plantillas/actaFirmeza';
 
 describe('letras — cifras y fechas como en las actas del despacho', () => {
@@ -49,6 +49,59 @@ describe('liquidarMulta — art. 180 y art. 223A lits. i) y j)', () => {
   it('moroso BDME y reiteración después del año incrementan 50%', () => {
     expect(liquidarMulta(2, 'moroso_bdme').valorTotal).toBe(350_181);
     expect(liquidarMulta(2, 'reiteracion_despues_del_anio').porcentajeIncremento).toBe(50);
+  });
+});
+
+describe('liquidarProntoPago — art. 180 par. (descuento 50% sobre el valor incrementado)', () => {
+  it('sin causal: descuenta el 50% del valor base', () => {
+    const liq = liquidarProntoPago(4);
+    expect(liq.valorTotal).toBe(933_816);
+    expect(liq.descuento).toBe(466_908);
+    expect(liq.valorAPagar).toBe(466_908);
+  });
+
+  it('con reiteración: descuenta el 50% sobre el valor YA incrementado', () => {
+    const liq = liquidarProntoPago(4, 'reiteracion_dentro_del_anio');
+    expect(liq.valorTotal).toBe(1_634_178);
+    expect(liq.descuento).toBe(817_089);
+    expect(liq.valorAPagar).toBe(817_089);
+  });
+});
+
+describe('rutasDisponibles — plazos del art. 180 par. y art. 223A', () => {
+  // comparendo: lunes 2026-02-02, semana sin festivos.
+  // día hábil 3 = jue 2026-02-05 (vence objeción); día hábil 5 = lun 2026-02-09 (vence pronto pago/conmutación).
+  const comparendo = new Date(2026, 1, 2);
+
+  it('día 3 exacto: objeción sigue disponible junto con pronto pago y conmutación', () => {
+    const { rutas } = rutasDisponibles(1, comparendo, new Date(2026, 1, 5), false);
+    expect(rutas).toEqual(['objecion', 'pronto_pago', 'conmutacion']);
+  });
+
+  it('día 4: objeción ya venció, pronto pago y conmutación siguen', () => {
+    const { rutas } = rutasDisponibles(1, comparendo, new Date(2026, 1, 6), false);
+    expect(rutas).toEqual(['pronto_pago', 'conmutacion']);
+  });
+
+  it('día 5 exacto: pronto pago y conmutación disponibles, aún no en firme', () => {
+    const { rutas } = rutasDisponibles(1, comparendo, new Date(2026, 1, 9), false);
+    expect(rutas).toEqual(['pronto_pago', 'conmutacion']);
+  });
+
+  it('día 6: pronto pago y conmutación vencidos, queda en firme', () => {
+    const { rutas } = rutasDisponibles(1, comparendo, new Date(2026, 1, 10), false);
+    expect(rutas).toEqual(['firmeza']);
+  });
+
+  it('conmutación solo aplica a tipos 1 y 2 (art. 180 par.)', () => {
+    const { rutas } = rutasDisponibles(3, comparendo, new Date(2026, 1, 9), false);
+    expect(rutas).toEqual(['pronto_pago']);
+  });
+
+  it('multas pendientes: no bloquean ninguna ruta, se devuelven como advertencia', () => {
+    const { rutas, advertencia } = rutasDisponibles(1, comparendo, new Date(2026, 1, 5), true);
+    expect(rutas).toContain('pronto_pago');
+    expect(advertencia).toMatch(/no bloquea/i);
   });
 });
 

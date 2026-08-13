@@ -12,6 +12,7 @@ export * from './flujoComparendo';
 export * from './flujoNavegableEstado';
 export * from './etapas';
 export * from './letras';
+export * from './diasHabiles';
 export * from './multas';
 export * from './catalogoComportamientos';
 export * from './plantillas/actaFirmeza';

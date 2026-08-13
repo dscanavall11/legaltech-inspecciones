@@ -1,4 +1,5 @@
 import { pesosALetras } from './letras';
+import { diasHabilesDesde } from './diasHabiles';
 
 /**
  * Multas generales (art. 180, Ley 1801 de 2016) y régimen de firmeza de la
@@ -25,13 +26,20 @@ export const MULTA_GENERAL: Record<TipoMulta, { smdlv: number; smdlvLetras: stri
   4: { smdlv: 16, smdlvLetras: 'dieciséis (16)' },
 };
 
-/** Términos del art. 223A (días hábiles). */
+/** Términos del art. 223A y art. 180 par. (días hábiles). */
 export const TERMINOS_COMPARENDO = {
   /** Lit. b): término para objetar la orden de comparendo. */
   objecionDias: 3,
   /** Lit. e): vencidos, sin objeción ni beneficios del art. 180, la multa queda en firme. */
   firmezaDias: 5,
+  /** Art. 180 par.: término para acogerse al pronto pago (descuento del 50%). */
+  prontoPagoDias: 5,
+  /** Art. 180 par.: término para acogerse a la conmutación (solo tipos 1 y 2). */
+  conmutacionDias: 5,
 } as const;
+
+/** Tipos de multa a los que aplica la conmutación (art. 180 par.). */
+export const TIPOS_CONMUTACION_PERMITIDOS: readonly TipoMulta[] = [1, 2];
 
 // Nota de alcance: el módulo expide únicamente el ACTA DE FIRMEZA. El pronto
 // pago y la conmutación (art. 180) no generan acta alguna: solo explican el
@@ -90,5 +98,70 @@ export function liquidarMulta(tipo: TipoMulta, causal: CausalIncremento = 'ningu
     valorIncremento,
     valorTotal,
     valorTotalLetras: pesosALetras(valorTotal),
+  };
+}
+
+export interface LiquidacionProntoPago extends LiquidacionMulta {
+  /** Descuento del 50% (art. 180 par.), aplicado sobre el valor ya incrementado. */
+  descuento: number;
+  descuentoLetras: string;
+  /** Total a pagar tras el descuento de pronto pago. */
+  valorAPagar: number;
+  valorAPagarLetras: string;
+}
+
+/** Liquida el valor a pagar con el descuento de pronto pago del 50% (art. 180 par.). */
+export function liquidarProntoPago(tipo: TipoMulta, causal: CausalIncremento = 'ninguna'): LiquidacionProntoPago {
+  const liquidacion = liquidarMulta(tipo, causal);
+  const descuento = Math.round(liquidacion.valorTotal * 0.5);
+  const valorAPagar = liquidacion.valorTotal - descuento;
+  return {
+    ...liquidacion,
+    descuento,
+    descuentoLetras: pesosALetras(descuento),
+    valorAPagar,
+    valorAPagarLetras: pesosALetras(valorAPagar),
+  };
+}
+
+export type RutaComparendo = 'pronto_pago' | 'conmutacion' | 'objecion' | 'firmeza';
+
+export interface RutasDisponibles {
+  rutas: RutaComparendo[];
+  /** Advertencia informativa: multas pendientes NO bloquean la ruta, el inspector decide. */
+  advertencia?: string;
+}
+
+/**
+ * Rutas disponibles para un comparendo según tipo, fecha del comparendo,
+ * fecha actual y si el infractor tiene multas pendientes.
+ *
+ * Objeción vence a los 3 días hábiles; pronto pago y conmutación a los 5
+ * (art. 180 par.; art. 223A). Conmutación solo aplica a tipos 1 y 2 (par.
+ * art. 180). Multas pendientes se devuelven como advertencia, no bloqueo.
+ */
+export function rutasDisponibles(
+  tipo: TipoMulta,
+  fechaComparendo: Date,
+  fechaActual: Date,
+  tieneMultasPendientes: boolean,
+): RutasDisponibles {
+  const soloFecha = (f: Date) => new Date(f.getFullYear(), f.getMonth(), f.getDate()).getTime();
+  const dentroDe = (dias: number) =>
+    soloFecha(fechaActual) <= soloFecha(diasHabilesDesde(fechaComparendo, dias));
+
+  const rutas: RutaComparendo[] = [];
+  if (dentroDe(TERMINOS_COMPARENDO.objecionDias)) rutas.push('objecion');
+  if (dentroDe(TERMINOS_COMPARENDO.prontoPagoDias)) rutas.push('pronto_pago');
+  if (dentroDe(TERMINOS_COMPARENDO.conmutacionDias) && TIPOS_CONMUTACION_PERMITIDOS.includes(tipo)) {
+    rutas.push('conmutacion');
+  }
+  if (!dentroDe(TERMINOS_COMPARENDO.firmezaDias)) rutas.push('firmeza');
+
+  return {
+    rutas,
+    advertencia: tieneMultasPendientes
+      ? 'El infractor registra multas pendientes: no bloquea la ruta, queda a criterio del inspector.'
+      : undefined,
   };
 }

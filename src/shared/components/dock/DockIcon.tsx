@@ -1,6 +1,5 @@
 import { useState, type ReactNode } from 'react';
 import { Tooltip } from 'antd';
-import { PALETA } from '@/theme/palette';
 
 interface DockIconProps {
   icon: ReactNode;
@@ -13,9 +12,9 @@ interface DockIconProps {
 
 /**
  * Item del riel de navegación. Un solo énfasis por estado: activo = fondo
- * tintado + glifo en el color de su sección; Radicar (destacado) = relleno
- * sólido azul, mismo tamaño que los demás. Nada de gradientes, labels bajo
- * el icono ni puntos indicadores.
+ * tintado + glifo en el color de su sección; el destacado = relleno sólido en
+ * el color de su sección, mismo tamaño que los demás. Nada de gradientes,
+ * labels bajo el icono ni puntos indicadores.
  */
 export function DockIcon({ icon, label, color, destacado, activo, onClick }: DockIconProps) {
   const [hover, setHover] = useState(false);
@@ -43,7 +42,7 @@ export function DockIcon({ icon, label, color, destacado, activo, onClick }: Doc
           flexShrink: 0,
           position: 'relative',
           background: destacado
-            ? PALETA.azul
+            ? color
             : activo
               ? 'var(--accent-light)'
               : hover

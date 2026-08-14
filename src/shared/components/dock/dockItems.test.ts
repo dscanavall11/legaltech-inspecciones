@@ -2,11 +2,12 @@ import { describe, it, expect } from 'vitest';
 import { DOCK_ITEMS, DOCK_RUTAS, DOCK_SECTIONS } from './dockItems';
 
 describe('DOCK_ITEMS', () => {
-  it('Radicar sigue existiendo y sigue destacado (regresion del reporte "desaparecio Radicar")', () => {
-    const radicar = DOCK_ITEMS.find((item) => item.key === 'radicador');
-    expect(radicar).toBeDefined();
-    expect(radicar?.destacado).toBe(true);
-    expect(radicar?.ruta).toBe('/panel/radicador');
+  it('los tramites del comparendo tienen entrada propia (regresion: quedaron enterrados en el subnav de Quejas)', () => {
+    const actas = DOCK_ITEMS.find((item) => item.key === 'actas');
+    expect(actas?.ruta).toBe('/panel/actas-firmeza');
+    // Es el flujo mas usado del despacho: determinista, por lote y sin IA.
+    expect(actas?.destacado).toBe(true);
+    expect(DOCK_ITEMS.find((item) => item.key === 'pronto-pago')?.ruta).toBe('/panel/pronto-pago');
   });
 
   it('cada seccion tiene un unico color, compartido por todos sus items (fiel a resguardo-saas)', () => {
@@ -18,31 +19,32 @@ describe('DOCK_ITEMS', () => {
   });
 });
 
-// El menú se redujo a siete secciones + el CTA de Radicar (8 rutas en total)
-// por decisión de producto (navaja de Ockham sobre la interfaz). Este test
-// congela ese conjunto: agregar una novena ruta tiene que ser deliberado, no
-// un descuido.
+// Este conjunto está congelado: agregar una entrada tiene que ser deliberado,
+// no un descuido. /panel/asistente y /panel/chat conviven mientras se evalúa
+// la demo del asistente con skills; cuando se decida, una de las dos sale.
 const ENTRADAS_DEL_MENU = [
   '/panel',
   '/panel/quejas',
   '/panel/querellas',
   '/panel/apelaciones',
   '/panel/procesos',
-  '/panel/radicador',
+  '/panel/actas-firmeza',
+  '/panel/pronto-pago',
   '/panel/chat',
+  '/panel/asistente',
   '/panel/ajustes',
 ];
 
-describe('menu principal: siete secciones + Radicar', () => {
-  it('el dock expone exactamente las entradas acordadas (Radicar es el CTA, no una categoria)', () => {
+describe('menu principal', () => {
+  it('el dock expone exactamente las entradas acordadas', () => {
     expect([...DOCK_RUTAS].sort()).toEqual([...ENTRADAS_DEL_MENU].sort());
   });
 
-  it('los tramites del comparendo NO son entradas del menu: viven dentro de Quejas', () => {
-    const dentroDeQuejas = ['/panel/comparendos', '/panel/actas-firmeza', '/panel/pronto-pago'];
-    for (const ruta of dentroDeQuejas) {
-      expect(DOCK_RUTAS).not.toContain(ruta);
-    }
+  // Radicar sale del menú: la radicación pasa a la conversación con el
+  // asistente. La ruta sigue montada y sigue enlazada desde las bandejas de
+  // Querellas y Quejas (app/router.tsx, `accion` de BandejaProcesos).
+  it('Radicar ya no es una entrada del menu', () => {
+    expect(DOCK_RUTAS).not.toContain('/panel/radicador');
   });
 
   // Audiencias, Normas y Medidas correctivas siguen montadas en el router

@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react';
-import { FileText, MessageSquare, Scale, Archive, FilePlus2, Sparkles, Settings } from 'lucide-react';
+import { FileText, MessageSquare, Scale, Archive, Stamp, Wallet, Sparkles, SquareSlash, Settings } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { DOCK_SECTIONS, type DockIconKey } from './dockItems';
 import { DockIcon } from './DockIcon';
@@ -21,9 +21,12 @@ const ICONOS_DOCK: Record<DockIconKey, ReactNode> = {
   querellas: <FileText size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
   apelaciones: <Scale size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
   'mis-procesos': <Archive size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
-  radicar: <FilePlus2 size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
+  actas: <Stamp size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
+  'pronto-pago': <Wallet size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
   // El acento "IA": sparkle, no un ícono de robot/candado.
   'chat-ia': <Sparkles size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
+  // La demo del asistente con skills: el slash del comando, no otro sparkle.
+  asistente: <SquareSlash size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
   configuracion: <Settings size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
 };
 

@@ -11,7 +11,8 @@ import {
 import { FilePlus2, FileText, FileCheck2, BookOpen, ChevronRight } from 'lucide-react';
 import dayjs from 'dayjs';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useConversaciones, type Conversacion } from '@/shared/ai/useConversaciones';
+import { useConversaciones } from '@/shared/ai/useConversaciones';
+import { agrupar, GRUPOS_CONVERSACION } from '@/shared/ai/agruparConversaciones';
 import { useQuerellas } from '@/features/querellas/api';
 import { NormaMark } from '@/shared/ai/NormaMark';
 import { NORMA } from '@/shared/ai/identity';
@@ -53,19 +54,6 @@ const HERRAMIENTAS = [
     fondo: PALETA.moradoBg,
   },
 ] as const;
-
-function grupoDe(fecha: string): 'Hoy' | 'Ayer' | 'Anteriores' {
-  const d = dayjs(fecha);
-  if (d.isSame(dayjs(), 'day')) return 'Hoy';
-  if (d.isSame(dayjs().subtract(1, 'day'), 'day')) return 'Ayer';
-  return 'Anteriores';
-}
-
-function agrupar(conversaciones: Conversacion[]) {
-  const grupos: Record<'Hoy' | 'Ayer' | 'Anteriores', Conversacion[]> = { Hoy: [], Ayer: [], Anteriores: [] };
-  for (const c of conversaciones) grupos[grupoDe(c.actualizadoEn)].push(c);
-  return grupos;
-}
 
 /**
  * Workspace de Legal: un solo chat de IA para todo el despacho, con el mismo
@@ -253,7 +241,7 @@ export function ChatGeneralPage() {
             {conversaciones.length === 0 ? (
               <div style={styles.sinHistorial}>Tus conversaciones con {NORMA.nombre} aparecerán acá.</div>
             ) : (
-              (['Hoy', 'Ayer', 'Anteriores'] as const).map(
+              GRUPOS_CONVERSACION.map(
                 (grupo) =>
                   grupos[grupo].length > 0 && (
                     <div key={grupo} style={{ marginBottom: 12 }}>

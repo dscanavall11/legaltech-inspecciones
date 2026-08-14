@@ -64,8 +64,10 @@ export function useConversaciones() {
 
   const seleccionar = useCallback((id: string) => setActivaId(id), []);
 
+  // `promptEfectivo`: el hilo muestra lo que escribió el inspector, pero la
+  // skill del asistente manda al modelo su propio encuadre (features/asistente).
   const enviar = useCallback(
-    async (texto: string, archivos?: File[]) => {
+    async (texto: string, archivos?: File[], promptEfectivo?: string) => {
       if (!texto.trim() || enviando) return;
 
       let id = activaId;
@@ -103,7 +105,7 @@ export function useConversaciones() {
       abortRef.current = controller;
 
       try {
-        const respuesta = await enviarMensajeIA(texto, archivos, controller.signal);
+        const respuesta = await enviarMensajeIA(promptEfectivo ?? texto, archivos, controller.signal);
         setConversaciones((prev) =>
           prev.map((c) =>
             c.id === conversacionId

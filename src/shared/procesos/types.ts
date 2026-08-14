@@ -205,6 +205,8 @@ export interface FilaProceso {
   asunto: string;
   estado: string;
   fechaRadicacion: string;
+  /** Último cambio de estado registrado; sin historia, la fecha de creación. */
+  fechaUltimoMovimiento: string;
   /** Metadata o, si falta, el default del tipo (ver diasTerminoPresuntivo). */
   diasTermino?: number;
   /** true cuando diasTermino no vino en la metadata y se usó el default del tipo. */
@@ -242,6 +244,7 @@ export function legalCaseAFila(caso: LegalCase): FilaProceso {
   const definicion = definicionDe(caso.caseType);
   const [rolesA, rolesB] = definicion?.roles ?? [[], []];
   const diasTermino = meta.diasTermino ?? definicion?.diasTerminoPorDefecto;
+  const historia = caso.stateHistory ?? [];
 
   return {
     id: caso.id,
@@ -255,7 +258,8 @@ export function legalCaseAFila(caso: LegalCase): FilaProceso {
       caso.background?.allegedFacts ??
       'Sin asunto registrado',
     estado: caso.currentStateCode,
-    fechaRadicacion: caso.stateHistory?.[0]?.changedAt ?? caso.createdAt ?? '',
+    fechaRadicacion: historia[0]?.changedAt ?? caso.createdAt ?? '',
+    fechaUltimoMovimiento: historia[historia.length - 1]?.changedAt ?? caso.createdAt ?? '',
     diasTermino,
     diasTerminoPresuntivo: meta.diasTermino === undefined && diasTermino !== undefined,
     tieneFallo: ESTADOS_POST_FALLO.includes(caso.currentStateCode) && Boolean(caso.legalReasoning),

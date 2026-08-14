@@ -65,6 +65,9 @@ const ProntoPagoPage = lazy(() =>
 const NormasPage = lazy(() =>
   import('@/features/normas/NormasPage').then((m) => ({ default: m.NormasPage })),
 );
+const AsistentePage = lazy(() =>
+  import('@/features/asistente/AsistentePage').then((m) => ({ default: m.AsistentePage })),
+);
 const ChatGeneralPage = lazy(() =>
   import('@/features/chat/ChatGeneralPage').then((m) => ({ default: m.ChatGeneralPage })),
 );
@@ -187,6 +190,8 @@ export const router = createBrowserRouter([
       { path: 'radicador', element: <Cargando><RadicadorPage /></Cargando> },
       { path: 'radicar/:tipo', element: <Cargando><RadicarDocumentoPage /></Cargando> },
       { path: 'chat', element: <Cargando><ChatGeneralPage /></Cargando> },
+      // Demo del asistente con skills. Convive con /panel/chat mientras se evalúa.
+      { path: 'asistente', element: <Cargando><AsistentePage /></Cargando> },
       // La cola de trabajo y los fallos proferidos son la misma bandeja con
       // otro filtro; se redirigen para no romper enlaces guardados.
       { path: 'cola', element: <Navigate to="/panel/procesos" replace /> },

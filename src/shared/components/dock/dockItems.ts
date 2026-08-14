@@ -8,8 +8,10 @@ export type DockIconKey =
   | 'querellas'
   | 'apelaciones'
   | 'mis-procesos'
-  | 'radicar'
+  | 'actas'
+  | 'pronto-pago'
   | 'chat-ia'
+  | 'asistente'
   | 'configuracion';
 
 export interface DockItem {
@@ -28,14 +30,21 @@ export interface DockSection {
 }
 
 // ─── Nav sections ───────────────────────────────────────────────────────────
-// Siete entradas, ni una más. Los trámites del comparendo (actas de firmeza,
-// pronto pago, conmutación) no son entradas del menú: son actuaciones DENTRO
-// de una queja, y se alcanzan desde el subnav de esa sección. Audiencias,
-// Normas y Medidas correctivas quedan montadas en el router pero fuera del
-// menú hasta la V2 (ver app/router.tsx).
+// Los trámites del comparendo (actas de firmeza, pronto pago y conmutación)
+// vuelven al menú: es el flujo por lote más usado del despacho, es
+// determinístico y no pasa por la IA. Enterrarlo en el subnav de Quejas fue
+// una regresión — ese subnav se conserva igual (app/router.tsx), tener entrada
+// propia no le quita el acceso contextual.
 //
-// El color es una propiedad de la SECCION, no de cada item. Radicar es la
-// unica excepcion: lleva tratamiento de CTA destacado (ver DockIcon.tsx) por
+// Radicar sale del menú: la radicación pasa a ser parte de la conversación con
+// el asistente. La ruta /panel/radicador sigue montada en el router y sigue
+// enlazada desde las bandejas de Querellas y Quejas.
+//
+// Audiencias, Normas y Medidas correctivas quedan montadas en el router pero
+// fuera del menú hasta la V2 (ver app/router.tsx).
+//
+// El color es una propiedad de la SECCION, no de cada item. Actas y multas es
+// la unica excepcion en tratamiento: lleva el destacado (ver DockIcon.tsx) por
 // ser la accion mas usada del despacho.
 
 const AZUL = '#2b4c7e'; // Casos — azul tinta, nav primaria
@@ -59,12 +68,19 @@ export const DOCK_SECTIONS: DockSection[] = [
     color: VERDE,
     items: [
       {
-        key: 'radicador',
-        label: 'Radicar',
-        iconKey: 'radicar',
-        ruta: '/panel/radicador',
+        key: 'actas',
+        label: 'Actas y multas · cargue de PDF y base mensual',
+        iconKey: 'actas',
+        ruta: '/panel/actas-firmeza',
         color: VERDE,
         destacado: true,
+      },
+      {
+        key: 'pronto-pago',
+        label: 'Pronto pago y conmutación',
+        iconKey: 'pronto-pago',
+        ruta: '/panel/pronto-pago',
+        color: VERDE,
       },
     ],
   },
@@ -73,6 +89,9 @@ export const DOCK_SECTIONS: DockSection[] = [
     color: MORADO,
     items: [
       { key: 'chat-ia', label: `Asistente jurídico · ${NORMA.nombre}`, iconKey: 'chat-ia', ruta: '/panel/chat', color: MORADO },
+      // Demo a evaluar: el asistente con skills jurídicas. No reemplaza al chat
+      // todavía — los dos conviven mientras el dueño decide.
+      { key: 'asistente', label: `${NORMA.nombre} con skills (demo)`, iconKey: 'asistente', ruta: '/panel/asistente', color: MORADO },
       { key: 'ajustes', label: 'Configuración', iconKey: 'configuracion', ruta: '/panel/ajustes', color: MORADO },
     ],
   },

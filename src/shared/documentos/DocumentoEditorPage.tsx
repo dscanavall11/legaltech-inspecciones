@@ -21,6 +21,8 @@ import {
   type AcapitesEditados,
 } from './acapitesEdicion';
 import { descargarBlob } from './descargarBlob';
+import { acapitesComoDocumentoLegal } from './documentoLegalAcapites';
+import { descargarDocumentoLegalDocx } from './documentoLegalDocx';
 import { VisorLateral } from './VisorLateral';
 import { ResumenLateral } from './ResumenLateral';
 import { useUploadCaseDocument } from './api';
@@ -58,6 +60,14 @@ export interface DocumentoEditorPageProps {
   volverLabel?: string;
   /** Genera el PDF real (pdfmake) a partir de los acápites ya con las ediciones aplicadas. */
   generarBlob: (acapitesEfectivos: Acapite[]) => Promise<Blob>;
+  /**
+   * Espejo de `generarBlob` para el .docx — solo lo pasan las features que ya
+   * tienen un `DocumentoLegal` completo (tablaDatos, resuelve, cierre, firma,
+   * membrete), como comparendos. Si se omite, el .docx sale del wrapper por
+   * acápites (acapitesComoDocumentoLegal), que es más pobre que el PDF: sin
+   * tabla de datos, resuelve, cierre, firma ni membrete.
+   */
+  generarDocx?: (acapitesEfectivos: Acapite[]) => Promise<Blob>;
   nombreArchivo: (acapitesEfectivos: Acapite[]) => string;
   /** Si se omite, el documento no cierra ninguna etapa (p. ej. piezas de comparendo que sólo se archivan). */
   aprobarYFirmar?: AprobarYFirmarConfig;
@@ -83,6 +93,7 @@ export function DocumentoEditorPage({
   volverA,
   volverLabel = 'Volver al expediente',
   generarBlob,
+  generarDocx,
   nombreArchivo,
   aprobarYFirmar,
   generarResumen,
@@ -104,6 +115,7 @@ export function DocumentoEditorPage({
   const [activo, setActivo] = useState<string | null>(null);
   const [editando, setEditando] = useState<string | null>(null);
   const [exportando, setExportando] = useState(false);
+  const [exportandoDocx, setExportandoDocx] = useState(false);
   const [firmando, setFirmando] = useState(false);
   const [guardandoCambios, setGuardandoCambios] = useState(false);
   const [regenerando, setRegenerando] = useState(false);
@@ -153,6 +165,32 @@ export function DocumentoEditorPage({
       message.error('No se pudo generar el PDF.');
     } finally {
       setExportando(false);
+    }
+  }
+
+  // Con generarDocx: mismo contenido que el PDF (tabla de datos, resuelve,
+  // cierre, firma, membrete). Sin él (querella/queja, que no tienen un
+  // DocumentoLegal completo detrás): wrapper por acápites, más pobre que el PDF.
+  async function descargarDocx() {
+    setExportandoDocx(true);
+    try {
+      if (generarDocx) {
+        const blob = await generarDocx(acapitesEfectivos);
+        descargarBlob(blob, nombreArchivo(acapitesEfectivos).replace(/\.pdf$/i, '.docx'));
+      } else {
+        await descargarDocumentoLegalDocx(
+          acapitesComoDocumentoLegal({
+            titulo,
+            entidad: encabezado,
+            radicado,
+            acapites: acapitesEfectivos,
+          }),
+        );
+      }
+    } catch {
+      message.error('No se pudo generar el documento de Word.');
+    } finally {
+      setExportandoDocx(false);
     }
   }
 
@@ -249,6 +287,9 @@ export function DocumentoEditorPage({
           </Space>
         </div>
         <Space wrap>
+          <Button icon={<DownloadOutlined />} loading={exportandoDocx} onClick={descargarDocx}>
+            Descargar .docx
+          </Button>
           <Button icon={<DownloadOutlined />} loading={exportando} onClick={descargarPdf}>
             Descargar PDF
           </Button>

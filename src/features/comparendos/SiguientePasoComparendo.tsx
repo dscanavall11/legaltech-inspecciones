@@ -44,6 +44,7 @@ import type { ReactNode } from 'react';
 import {
   siguientePasoComparendo,
   generarActaFirmeza,
+  actaFirmezaComoDocumento,
   generarAutoAvocaCitaAudiencia,
   generarAutoDecretaPruebasSuspende,
   generarAutoInasistencia,
@@ -61,7 +62,7 @@ import {
 } from '@/derecho';
 import { useChangeCaseState, useUpdateCaseFields } from '@/shared/legalCases/api';
 import { parseCaseMetadata, buildCaseMetadata } from '@/shared/legalCases/types';
-import { descargarActaPdf } from '@/shared/documentos/actaPdf';
+import { descargarDocumentoLegalPdf } from '@/shared/documentos/documentoLegalPdf';
 import { generarDocumentoLegalBlob } from '@/shared/documentos/documentoLegalPdf';
 import { PdfViewer } from '@/shared/documentos/PdfViewer';
 import { useUploadCaseDocument } from '@/shared/documentos/api';
@@ -466,7 +467,9 @@ export function SiguientePasoComparendo({
     };
     const acta = generarActaFirmeza(datos);
     // Advisory: la descarga del PDF nunca bloquea la actuación procesal ya registrada.
-    void descargarActaPdf(acta, inspeccion.membreteDataUrl).catch(() => undefined);
+    void descargarDocumentoLegalPdf(actaFirmezaComoDocumento(acta), inspeccion.membreteDataUrl).catch(
+      () => undefined,
+    );
   }
 
   function darTramiteActaFirmeza() {

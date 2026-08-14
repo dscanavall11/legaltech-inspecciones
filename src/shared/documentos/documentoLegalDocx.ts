@@ -12,7 +12,11 @@ import {
   WidthType,
   type ITableBordersOptions,
 } from 'docx';
-import type { DocumentoLegal } from '@/derecho';
+import {
+  ROTULO_PROCESO_POR_DEFECTO,
+  ROTULO_RESOLUTIVA_POR_DEFECTO,
+  type DocumentoLegal,
+} from '@/derecho';
 import { descargarBlob } from './descargarBlob';
 
 /**
@@ -102,7 +106,7 @@ function construirParrafos(doc: DocumentoLegal, membreteDataUrl?: string | null)
   contenido.push(
     centrado(doc.entidad, { bold: true }),
     centrado(doc.tituloDocumento, { bold: true, size: 26 }),
-    centrado(`QUEJA ${doc.proceso}`),
+    centrado(`${doc.rotuloProceso ?? ROTULO_PROCESO_POR_DEFECTO} ${doc.proceso}`),
     centrado(doc.fechaResolucionLetras),
   );
   if (doc.epigrafe) contenido.push(centrado(doc.epigrafe, { bold: true, size: 18 }));
@@ -135,7 +139,7 @@ function construirCuerpo(doc: DocumentoLegal, membreteDataUrl?: string | null): 
   }
 
   if (doc.resuelve.length > 0) {
-    cuerpo.push(centrado('RESUELVE:', { bold: true, size: 22 }));
+    cuerpo.push(centrado(doc.rotuloResolutiva ?? ROTULO_RESOLUTIVA_POR_DEFECTO, { bold: true, size: 22 }));
     for (const ordinal of doc.resuelve) cuerpo.push(parrafo(ordinal));
   }
 

@@ -4,14 +4,13 @@ import { NORMA } from '@/shared/ai/identity';
 
 export type DockIconKey =
   | 'inicio'
-  | 'querellas'
   | 'quejas'
-  | 'comparendos'
-  | 'audiencias'
+  | 'querellas'
+  | 'apelaciones'
+  | 'mis-procesos'
   | 'radicar'
-  | 'actas-firmeza'
-  | 'pronto-pago'
-  | 'chat-ia';
+  | 'chat-ia'
+  | 'configuracion';
 
 export interface DockItem {
   key: string;
@@ -20,7 +19,6 @@ export interface DockItem {
   ruta: string;
   color: string;
   destacado?: boolean;
-  enConstruccion?: boolean;
 }
 
 export interface DockSection {
@@ -30,12 +28,15 @@ export interface DockSection {
 }
 
 // ─── Nav sections ───────────────────────────────────────────────────────────
-// Fiel al patron real de resguardo-saas (Sidebar.tsx): el color es una
-// propiedad de la SECCION, no de cada item individual (antes era "arcoiris"
-// por item, sin relacion con el codigo real de resguardo-saas). Radicar es
-// la unica excepcion pedida explicitamente: lleva tratamiento de CTA
-// destacado (ver DockIcon.tsx), algo que resguardo-saas no tiene pero que
-// aca se justifica por ser la accion mas usada del despacho.
+// Siete entradas, ni una más. Los trámites del comparendo (actas de firmeza,
+// pronto pago, conmutación) no son entradas del menú: son actuaciones DENTRO
+// de una queja, y se alcanzan desde el subnav de esa sección. Audiencias,
+// Normas y Medidas correctivas quedan montadas en el router pero fuera del
+// menú hasta la V2 (ver app/router.tsx).
+//
+// El color es una propiedad de la SECCION, no de cada item. Radicar es la
+// unica excepcion: lleva tratamiento de CTA destacado (ver DockIcon.tsx) por
+// ser la accion mas usada del despacho.
 
 const AZUL = '#2b4c7e'; // Casos — azul tinta, nav primaria
 const VERDE = '#137333'; // Gestión — acciones operativas
@@ -47,10 +48,10 @@ export const DOCK_SECTIONS: DockSection[] = [
     color: AZUL,
     items: [
       { key: 'inicio', label: 'Inicio', iconKey: 'inicio', ruta: '/panel', color: AZUL },
-      { key: 'querellas', label: 'Querellas', iconKey: 'querellas', ruta: '/panel/querellas', color: AZUL },
       { key: 'quejas', label: 'Quejas', iconKey: 'quejas', ruta: '/panel/quejas', color: AZUL },
-      { key: 'comparendos', label: 'Comparendos', iconKey: 'comparendos', ruta: '/panel/comparendos', color: AZUL },
-      { key: 'audiencias', label: 'Audiencias', iconKey: 'audiencias', ruta: '/panel/audiencias', color: AZUL },
+      { key: 'querellas', label: 'Querellas', iconKey: 'querellas', ruta: '/panel/querellas', color: AZUL },
+      { key: 'apelaciones', label: 'Apelaciones', iconKey: 'apelaciones', ruta: '/panel/apelaciones', color: AZUL },
+      { key: 'procesos', label: 'Mis procesos', iconKey: 'mis-procesos', ruta: '/panel/procesos', color: AZUL },
     ],
   },
   {
@@ -65,23 +66,20 @@ export const DOCK_SECTIONS: DockSection[] = [
         color: VERDE,
         destacado: true,
       },
-      { key: 'actas-firmeza', label: 'Actas de firmeza', iconKey: 'actas-firmeza', ruta: '/panel/actas-firmeza', color: VERDE },
-      { key: 'pronto-pago', label: 'Pronto pago y conmutación', iconKey: 'pronto-pago', ruta: '/panel/pronto-pago', color: VERDE },
     ],
   },
   {
     titulo: 'Asistente',
     color: MORADO,
     items: [
-      { key: 'chat-ia', label: NORMA.nombre, iconKey: 'chat-ia', ruta: '/panel/chat', color: MORADO },
+      { key: 'chat-ia', label: `Asistente jurídico · ${NORMA.nombre}`, iconKey: 'chat-ia', ruta: '/panel/chat', color: MORADO },
+      { key: 'ajustes', label: 'Configuración', iconKey: 'configuracion', ruta: '/panel/ajustes', color: MORADO },
     ],
   },
 ];
 
 /** Todas las rutas del dock (para cobertura de tests). */
-export const DOCK_RUTAS: string[] = DOCK_SECTIONS.flatMap((s) =>
-  s.items.filter((i) => !i.enConstruccion).map((i) => i.ruta),
-);
+export const DOCK_RUTAS: string[] = DOCK_SECTIONS.flatMap((s) => s.items.map((i) => i.ruta));
 
 /** Flat list de items (para el rendering del dock). */
 export const DOCK_ITEMS = DOCK_SECTIONS.flatMap((s) => s.items);

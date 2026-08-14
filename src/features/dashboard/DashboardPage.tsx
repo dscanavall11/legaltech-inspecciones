@@ -4,11 +4,9 @@ import { ShieldCheck, Scale, BookOpen, Landmark, ScrollText, ExternalLink } from
 import type { ReactNode } from 'react';
 import dayjs from 'dayjs';
 import { Link, useNavigate } from 'react-router-dom';
-import { useQuerellas } from '@/features/querellas/api';
-import { useQuejas } from '@/features/quejas/api';
-import { useFallos } from '@/features/fallos/api';
+import { useProcesos } from '@/shared/procesos/api';
+import { definicionDe, etiquetaEstado } from '@/shared/procesos/types';
 import { calcularTermino } from '@/shared/terminos/diasHabiles';
-import { ESTADO_LABEL } from '@/features/querellas/types';
 import { useAuth } from '@/shared/auth/auth';
 import { fechaLarga, saludoPorHora } from '@/shared/util/fechas';
 import { PALETA, ELEVACION } from '@/theme/theme';
@@ -220,38 +218,32 @@ function LegalHero() {
 }
 
 export function DashboardPage() {
-  const { data: querellasData, isLoading } = useQuerellas();
-  const { data: quejasData } = useQuejas();
-  const { data: fallosData } = useFallos();
+  // Una sola consulta a /legal-cases alimenta los cuatro indicadores; antes
+  // eran tres hooks (querellas + quejas + fallos) sobre la misma tabla.
+  const { data, isLoading } = useProcesos();
   const usuario = useAuth((s) => s.usuario);
   const navigate = useNavigate();
 
-  const querellas = querellasData ?? [];
-  const quejas = quejasData ?? [];
-  const fallos = fallosData ?? [];
+  const procesos = data ?? [];
+  const porTipo = (tipo: string) => procesos.filter((p) => p.tipo === tipo);
 
-  const querellasEnTramite = querellas.filter(
-    (q) => q.estado === 'en_tramite' || q.estado === 'radicada',
+  const querellasEnTramite = porTipo('querella').filter((q) =>
+    ['en_tramite', 'radicada'].includes(q.estado),
   ).length;
-  const quejasActivas = quejas.filter((q) => q.estado !== 'archivada').length;
+  const quejasActivas = porTipo('queja').filter((q) => q.estado !== 'archivada').length;
+  const fallosProferidos = procesos.filter((p) => p.tieneFallo).length;
 
-  // Términos por vencer: querellas y quejas en un mismo tablero de atención.
-  const porVencer = [
-    ...querellas.map((q) => ({
-      id: q.id,
-      radicado: q.radicado,
-      to: `/panel/querellas/${q.id}`,
-      secundario: `${q.asunto} · ${ESTADO_LABEL[q.estado]}`,
-      termino: calcularTermino(dayjs(q.fechaRadicacion), q.diasTermino),
-    })),
-    ...quejas.map((q) => ({
-      id: q.id,
-      radicado: q.radicado,
-      to: `/panel/quejas/${q.id}`,
-      secundario: `${q.asunto} · Queja`,
-      termino: calcularTermino(dayjs(q.fechaRadicacion), q.diasTermino),
-    })),
-  ]
+  // Términos por vencer: cualquier expediente que registre término, sin
+  // importar el tipo.
+  const porVencer = procesos
+    .filter((p) => p.diasTermino !== undefined && p.fechaRadicacion !== '')
+    .map((p) => ({
+      id: p.id,
+      radicado: p.radicado,
+      to: definicionDe(p.tipo)?.ruta?.(p.id) ?? '/panel/procesos',
+      secundario: `${p.asunto} · ${etiquetaEstado(p.estado)}`,
+      termino: calcularTermino(dayjs(p.fechaRadicacion), p.diasTermino as number),
+    }))
     .filter((q) => !q.termino.vencido && q.termino.diasRestantes <= 5)
     .sort((a, b) => a.termino.diasRestantes - b.termino.diasRestantes);
 
@@ -311,12 +303,17 @@ export function DashboardPage() {
             destino="/panel/querellas"
           />
           <PulsoCelda label="Quejas activas" valor={quejasActivas} color={PALETA.verde} destino="/panel/quejas" />
-          <PulsoCelda label="Fallos proferidos" valor={fallos.length} color={PALETA.morado} destino="/panel/fallos" />
+          <PulsoCelda
+            label="Fallos proferidos"
+            valor={fallosProferidos}
+            color={PALETA.morado}
+            destino="/panel/procesos?fallo=1"
+          />
           <PulsoCelda
             label="Términos por vencer"
             valor={porVencer.length}
             color={PALETA.rojo}
-            destino="/panel/querellas"
+            destino="/panel/procesos"
           />
         </div>
       </Card>

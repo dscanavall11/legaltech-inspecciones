@@ -62,3 +62,31 @@ export function aplicarAcapitesADocumentoLegal(doc: DocumentoLegal, acapites: Ac
   const resuelve = resuelveAcapite ? resuelveAcapite.parrafos : doc.resuelve;
   return { ...doc, secciones, resuelve };
 }
+
+/**
+ * Envuelve unos acápites sueltos en un `DocumentoLegal` mínimo. Es lo que
+ * permite exportar a .docx cualquier pieza del editor —incluidas las de
+ * querella y queja, que no nacen de un DocumentoLegal— sin escribir un
+ * segundo generador de Word. El encabezado y la firma van vacíos a
+ * propósito: en esas piezas los pone la plantilla del despacho, no el
+ * sistema, y rellenarlos sería inventar datos.
+ */
+export function acapitesComoDocumentoLegal(opts: {
+  titulo: string;
+  entidad: string;
+  radicado: string;
+  acapites: Acapite[];
+}): DocumentoLegal {
+  return {
+    entidad: opts.entidad,
+    tituloDocumento: opts.titulo.toUpperCase(),
+    proceso: opts.radicado,
+    rotuloProceso: 'RADICADO N.º',
+    fechaResolucionLetras: '',
+    tablaDatos: [],
+    secciones: opts.acapites.map((a) => ({ titulo: a.titulo, parrafos: a.parrafos })),
+    resuelve: [],
+    cierre: '',
+    firma: [{ nombre: '', rol: 'Inspector(a) de Convivencia y Paz' }],
+  };
+}

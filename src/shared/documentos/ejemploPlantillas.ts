@@ -8,11 +8,10 @@ import {
   generarConstanciaIncumplimientoProntoPago,
   generarConstanciaIncumplimientoActividadPedagogica,
   generarActaFirmeza,
+  actaFirmezaComoDocumento,
   type DocumentoLegal,
-  type ActaFirmeza,
 } from '@/derecho';
 import { generarDocumentoLegalBlob } from '@/shared/documentos/documentoLegalPdf';
-import { generarActaFirmezaBlob } from './actaPdf';
 
 /**
  * Datos de ejemplo (sintéticos, sin PII real) para previsualizar cada una de
@@ -201,9 +200,9 @@ function constanciaActividadPedagogica(config: ConfigInspeccion): DocumentoLegal
   });
 }
 
-function actaFirmeza(config: ConfigInspeccion): ActaFirmeza {
+function actaFirmeza(config: ConfigInspeccion): DocumentoLegal {
   const despacho = datosDespachoEjemplo(config);
-  return generarActaFirmeza({
+  return actaFirmezaComoDocumento(generarActaFirmeza({
     municipio: despacho.municipio,
     inspeccion: despacho.inspeccion,
     inspectorNombre: despacho.inspectorNombre,
@@ -222,7 +221,7 @@ function actaFirmeza(config: ConfigInspeccion): ActaFirmeza {
     hechos: EJEMPLO_BASE.hechos,
     tipoMulta: EJEMPLO_BASE.tipoMulta,
     causal: 'ninguna',
-  });
+  }));
 }
 
 /** Nombre de archivo legible para cada documentKey del checklist plantillas-personalizadas. */
@@ -237,7 +236,7 @@ export const NOMBRE_PLANTILLA: Record<string, string> = {
   'acta-firmeza': 'Acta de firmeza',
 };
 
-const GENERADORES: Record<string, (config: ConfigInspeccion) => DocumentoLegal | ActaFirmeza> = {
+const GENERADORES: Record<string, (config: ConfigInspeccion) => DocumentoLegal> = {
   'auto-avoca-cita-audiencia': autoAvoca,
   'auto-decreta-pruebas-suspende': autoDecretaPruebas,
   'auto-inasistencia': autoInasistencia,
@@ -248,10 +247,6 @@ const GENERADORES: Record<string, (config: ConfigInspeccion) => DocumentoLegal |
   'acta-firmeza': actaFirmeza,
 };
 
-function esActaFirmeza(doc: DocumentoLegal | ActaFirmeza): doc is ActaFirmeza {
-  return 'dispone' in doc;
-}
-
 /** Genera el PDF de ejemplo (Blob) para un documentKey del checklist — null si no hay generador conocido. */
 export async function generarBlobEjemploPlantilla(
   documentKey: string,
@@ -259,8 +254,5 @@ export async function generarBlobEjemploPlantilla(
 ): Promise<Blob | null> {
   const generador = GENERADORES[documentKey];
   if (!generador) return null;
-  const documento = generador(config);
-  return esActaFirmeza(documento)
-    ? generarActaFirmezaBlob(documento, config.membreteDataUrl)
-    : generarDocumentoLegalBlob(documento, config.membreteDataUrl);
+  return generarDocumentoLegalBlob(generador(config), config.membreteDataUrl);
 }

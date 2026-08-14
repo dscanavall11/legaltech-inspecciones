@@ -182,10 +182,10 @@ export function generarActaFirmeza(d: DatosActaFirmeza): ActaFirmeza {
 
 /**
  * Adapta un `ActaFirmeza` (dispone singular, firma única) a la forma
- * compartida `DocumentoLegal` (resuelve, firma en lista) — usada únicamente
- * para componer el expediente previo (expedientePrevio.ts), que anexa
- * cualquiera de las tres actas del desenlace sin conocer sus tipos concretos.
- * No reemplaza `actaPdf.ts`, que sigue renderizando `ActaFirmeza` tal cual.
+ * compartida `DocumentoLegal` (resuelve, firma en lista). Es el único camino
+ * de salida del acta: PDF, .docx y el expediente previo la renderizan a
+ * través de este adaptador, con `rotuloResolutiva` preservando el encabezado
+ * DISPONE que exige el formato del despacho.
  */
 export function actaFirmezaComoDocumento(acta: ActaFirmeza): DocumentoLegal {
   return {
@@ -199,5 +199,6 @@ export function actaFirmezaComoDocumento(acta: ActaFirmeza): DocumentoLegal {
     resuelve: acta.dispone,
     cierre: acta.cierre,
     firma: [{ nombre: acta.firma.nombre, rol: acta.firma.cargo }],
+    rotuloResolutiva: 'DISPONE:',
   };
 }

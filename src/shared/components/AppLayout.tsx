@@ -1,8 +1,6 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import { TopBar } from './TopBar';
 import { Dock } from './dock/Dock';
-import { CommandPalette } from './CommandPalette';
-import { AgendaFloatingPanel } from './AgendaFloatingPanel';
 
 export function AppLayout() {
   const location = useLocation();
@@ -46,9 +44,6 @@ export function AppLayout() {
           </div>
         </main>
       </div>
-
-      <AgendaFloatingPanel />
-      <CommandPalette />
     </div>
   );
 }

@@ -1,14 +1,5 @@
 import { type ReactNode } from 'react';
-import {
-  FileText,
-  MessageSquare,
-  Siren,
-  Calendar,
-  FilePlus2,
-  FileCheck2,
-  Wallet,
-  Sparkles,
-} from 'lucide-react';
+import { FileText, MessageSquare, Scale, Archive, FilePlus2, Sparkles, Settings } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { DOCK_SECTIONS, type DockIconKey } from './dockItems';
 import { DockIcon } from './DockIcon';
@@ -26,15 +17,14 @@ const ICONO_TRAZO = 1.75;
 
 const ICONOS_DOCK: Record<DockIconKey, ReactNode> = {
   inicio: LOGO_LEGALTECH,
-  querellas: <FileText size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
   quejas: <MessageSquare size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
-  comparendos: <Siren size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
-  audiencias: <Calendar size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
+  querellas: <FileText size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
+  apelaciones: <Scale size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
+  'mis-procesos': <Archive size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
   radicar: <FilePlus2 size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
-  'actas-firmeza': <FileCheck2 size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
-  'pronto-pago': <Wallet size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
   // El acento "IA": sparkle, no un ícono de robot/candado.
   'chat-ia': <Sparkles size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
+  configuracion: <Settings size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
 };
 
 /**
@@ -85,12 +75,8 @@ export function Dock() {
                   label={item.label}
                   color={item.color}
                   destacado={item.destacado}
-                  enConstruccion={item.enConstruccion}
                   activo={activo}
-                  onClick={() => {
-                    if (item.enConstruccion) return;
-                    navigate(item.ruta);
-                  }}
+                  onClick={() => navigate(item.ruta)}
                 />
               );
             })}

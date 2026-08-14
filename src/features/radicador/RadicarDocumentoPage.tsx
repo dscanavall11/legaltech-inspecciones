@@ -19,6 +19,8 @@ import {
 import { NormaMark } from '@/shared/ai/NormaMark';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { apiFetch } from '@/shared/api/client';
+import { buildCaseMetadata, type CreateLegalCaseInput, type LegalCase } from '@/shared/legalCases/types';
+import { useInspeccionStore } from '@/store/inspeccionStore';
 import { PALETA, ELEVACION } from '@/theme/theme';
 import type { ReactNode } from 'react';
 import { useRadicacionIA, type RadicacionDraft } from './useRadicacionIA';
@@ -186,20 +188,46 @@ export function RadicarDocumentoPage({
     if (!completoMinimo) return;
     setRadicando(true);
     try {
-      const formData = new FormData();
-      formData.append('tipo', tipo);
-      formData.append('radicadoOrigen', draft.radicadoOrigen);
-      formData.append('partes', draft.partes);
-      formData.append('fechaDecision', draft.fechaDecision);
-      formData.append('sustento', draft.sustento);
-      anexos.forEach((a) => formData.append('documentos', a.file));
+      // No existe /radicaciones en el backend real: se crea con el mismo
+      // recurso genérico que comparendos/intake, POST /legal-cases
+      // (agnóstico a caseType). "partes" llega como texto libre del chat, no
+      // separado por rol/documento, así que no se mapea a CaseParty[]
+      // estructurado — se pierde esa estructura, solo queda el texto en
+      // caseMetadata.partes.
+      const { municipio, inspeccion } = useInspeccionStore.getState().config;
+      const input: CreateLegalCaseInput = {
+        caseType: tipo,
+        // class_name y judicial_office_id son NOT NULL en el backend.
+        className: `${titulo} — ${draft.radicadoOrigen}`.trim(),
+        judicialOfficeId: inspeccion || 'Inspección de Convivencia y Paz',
+        venueCity: municipio || 'Manizales',
+        caseMetadata: buildCaseMetadata({
+          radicadoOrigen: draft.radicadoOrigen,
+          partes: draft.partes,
+          fechaDecision: draft.fechaDecision,
+          fundamentos: draft.fundamentos,
+        }),
+        background: {
+          allegedFacts: draft.sustento || null,
+          reliefSought: null,
+          defensesAndObjections: null,
+        },
+      };
 
-      const res = await apiFetch<{ id: string; radicado: string; fechaRadicacion: string; estado: string }>(
-        '/radicaciones',
-        { method: 'POST', body: formData },
-      );
-      msg.success(`${titulo} radicada exitosamente: ${res.radicado}`);
-      setTimeout(() => navigate('/panel/cola'), 650);
+      const caso = await apiFetch<LegalCase>('/legal-cases', {
+        method: 'POST',
+        body: JSON.stringify(input),
+      });
+
+      // Anexos: mismo endpoint de subida que usa la ficha de documentos del expediente.
+      for (const a of anexos) {
+        const body = new FormData();
+        body.append('file', a.file, a.nombre);
+        await apiFetch(`/tools/expedientes/${caso.id}/documents`, { method: 'POST', body });
+      }
+
+      msg.success(`${titulo} radicada exitosamente: ${caso.filingNumber}`);
+      setTimeout(() => navigate('/panel/procesos'), 650);
     } catch {
       msg.error('No se pudo radicar el documento. Intente de nuevo.');
       setRadicando(false);

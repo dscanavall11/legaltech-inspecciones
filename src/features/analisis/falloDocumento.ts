@@ -1,4 +1,4 @@
-import { fechaALetras } from '@/derecho';
+import { fechaALetras, type DocumentoLegal } from '@/derecho';
 import type { LegalCase } from './api';
 
 /** Campos redactados por la IA (ComplaintResponse) - editables por el inspector antes de firmar. */
@@ -18,21 +18,6 @@ export interface DespachoFallo {
   inspectorCargo: string;
 }
 
-export interface SeccionFallo {
-  titulo: string;
-  contenido: string;
-}
-
-export interface DocumentoFallo {
-  entidad: string;
-  tituloDocumento: string;
-  radicado: string;
-  fechaLetras: string;
-  tablaDatos: { etiqueta: string; valor: string }[];
-  secciones: SeccionFallo[];
-  cierre: string;
-  firma: { nombre: string; cargo: string };
-}
 
 function nombrePorRol(caso: LegalCase, rol: string): string {
   return (
@@ -40,12 +25,17 @@ function nombrePorRol(caso: LegalCase, rol: string): string {
   );
 }
 
-/** Arma la vista estructurada del fallo a partir del caso, el borrador de IA y el despacho. */
+/**
+ * Arma la vista estructurada del fallo a partir del caso, el borrador de IA y
+ * el despacho. Devuelve un `DocumentoLegal` — la forma única que renderizan
+ * documentoLegalPdf.ts y documentoLegalDocx.ts — en vez de una forma propia
+ * con su propio renderer.
+ */
 export function construirDocumentoFallo(
   caso: LegalCase,
   borrador: BorradorFallo,
   despacho: DespachoFallo,
-): DocumentoFallo {
+): DocumentoLegal {
   const querellante = nombrePorRol(caso, 'QUERELLANTE') !== 'No identificado'
     ? nombrePorRol(caso, 'QUERELLANTE')
     : nombrePorRol(caso, 'PLAINTIFF');
@@ -56,8 +46,9 @@ export function construirDocumentoFallo(
   return {
     entidad: (despacho.inspeccion || despacho.municipio || 'DESPACHO').toUpperCase(),
     tituloDocumento: caso.caseType ? `FALLO — ${caso.caseType.toUpperCase()}` : 'FALLO',
-    radicado: caso.filingNumber ?? '',
-    fechaLetras: fechaALetras(new Date().toISOString().slice(0, 10)),
+    proceso: caso.filingNumber ?? '',
+    fechaResolucionLetras: fechaALetras(new Date().toISOString().slice(0, 10)),
+    rotuloProceso: 'RADICADO',
     tablaDatos: [
       { etiqueta: 'RADICADO', valor: caso.filingNumber ?? '' },
       { etiqueta: 'QUERELLANTE', valor: querellante },
@@ -66,14 +57,15 @@ export function construirDocumentoFallo(
       { etiqueta: 'JUZGADO / INSPECCIÓN', valor: caso.judicialOfficeId || despacho.inspeccion || '' },
     ],
     secciones: [
-      { titulo: 'ANTECEDENTES', contenido: borrador.antecedents },
-      { titulo: 'PROBLEMA JURÍDICO', contenido: borrador.juridicProblem },
-      { titulo: 'PRUEBAS VALORADAS', contenido: borrador.evidences },
-      { titulo: 'FUNDAMENTOS JURÍDICOS', contenido: borrador.juridicFundamentals },
-      { titulo: 'CONSIDERACIONES DEL DESPACHO', contenido: borrador.juridicResponse },
-      { titulo: 'PARTE RESOLUTIVA', contenido: borrador.parteResolutiva },
-    ].filter((s) => s.contenido && s.contenido.trim().length > 0),
+      { titulo: 'ANTECEDENTES', parrafos: [borrador.antecedents] },
+      { titulo: 'PROBLEMA JURÍDICO', parrafos: [borrador.juridicProblem] },
+      { titulo: 'PRUEBAS VALORADAS', parrafos: [borrador.evidences] },
+      { titulo: 'FUNDAMENTOS JURÍDICOS', parrafos: [borrador.juridicFundamentals] },
+      { titulo: 'CONSIDERACIONES DEL DESPACHO', parrafos: [borrador.juridicResponse] },
+      { titulo: 'PARTE RESOLUTIVA', parrafos: [borrador.parteResolutiva] },
+    ].filter((s) => s.parrafos[0] && s.parrafos[0].trim().length > 0),
+    resuelve: [],
     cierre: `${despacho.municipio || caso.venueCity || ''}, ${fechaALetras(new Date().toISOString().slice(0, 10))}.`,
-    firma: { nombre: despacho.inspectorNombre, cargo: despacho.inspectorCargo },
+    firma: [{ nombre: despacho.inspectorNombre, rol: despacho.inspectorCargo }],
   };
 }

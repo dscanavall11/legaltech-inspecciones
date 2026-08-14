@@ -32,7 +32,21 @@ export interface DocumentoLegal {
   resuelve: string[];
   cierre: string;
   firma: FirmaLinea[];
+  /**
+   * Rótulo del número de proceso en el encabezado. Las piezas del comparendo
+   * lo numeran como QUEJA (por defecto); el fallo del verbal abreviado usa
+   * RADICADO. Es la única diferencia que tenían los renderers separados.
+   */
+  rotuloProceso?: string;
+  /**
+   * Encabezado de la parte resolutiva. Las actas de firmeza dicen DISPONE;
+   * autos y fallos, RESUELVE (por defecto).
+   */
+  rotuloResolutiva?: string;
 }
+
+export const ROTULO_PROCESO_POR_DEFECTO = 'QUEJA';
+export const ROTULO_RESOLUTIVA_POR_DEFECTO = 'RESUELVE:';
 
 /**
  * Incluye `valor` en el arreglo únicamente si `condicion` se cumple.

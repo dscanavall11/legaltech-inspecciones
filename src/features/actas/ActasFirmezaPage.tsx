@@ -39,7 +39,7 @@ import {
 import { calcularTermino } from '@/shared/terminos/diasHabiles';
 import { COMPARENDOS_DEMO, parsearBdComparendos, type Comparendo, type ReporteImportacion } from './comparendos';
 import { extraerComparendoPdf } from './extraerComparendoPdf';
-import { descargarActaPdf } from '@/shared/documentos/actaPdf';
+import { descargarDocumentoLegalPdf } from '@/shared/documentos/documentoLegalPdf';
 import { descargarDocumentoLegalDocx } from '@/shared/documentos/documentoLegalDocx';
 import { ExpedientePrevioButton } from '@/shared/documentos/ExpedientePrevioButton';
 import { ReincidenciaCausalField } from '@/shared/components/ReincidenciaCausalField';
@@ -321,9 +321,9 @@ export function ActasFirmezaPage() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <Text strong>Cola de trabajo — actas de firmeza ({bd.length})</Text>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Link to="/panel/cola">
+            <Link to="/panel/procesos">
               <Button size="small" icon={<UnorderedListOutlined />}>
-                Ver cola general
+                Ver todos los procesos
               </Button>
             </Link>
             <Tag color={origenBd === 'archivo' ? 'green' : 'blue'}>
@@ -771,7 +771,7 @@ export function ActasFirmezaPage() {
                 size="large"
                 icon={<DownloadOutlined />}
                 disabled={!acta || apelo}
-                onClick={() => acta && descargarActaPdf(acta, inspeccion.membreteDataUrl)}
+                onClick={() => acta && void descargarDocumentoLegalPdf(actaFirmezaComoDocumento(acta), inspeccion.membreteDataUrl)}
                 style={{ fontWeight: 600 }}
               >
                 Descargar PDF

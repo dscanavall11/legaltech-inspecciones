@@ -12,30 +12,10 @@ export type EstadoQuerella =
   | 'en_firmeza'
   | 'archivada';
 
-export const ESTADO_LABEL: Record<EstadoQuerella, string> = {
-  radicada: 'Radicada',
-  en_tramite: 'En trámite',
-  audiencia_programada: 'Audiencia programada',
-  fallo_emitido: 'Fallo emitido',
-  apelado: 'Apelada — en alzada',
-  confirmado: 'Confirmada en 2ª instancia',
-  revocado: 'Revocada en 2ª instancia',
-  en_firmeza: 'En firmeza',
-  archivada: 'Archivada',
-};
-
-// Colores de Tag (AntD) por estado — compartido entre listado y detalle.
-export const ESTADO_COLOR: Record<EstadoQuerella, string> = {
-  radicada: 'blue',
-  en_tramite: 'gold',
-  audiencia_programada: 'purple',
-  fallo_emitido: 'cyan',
-  apelado: 'orange',
-  confirmado: 'green',
-  revocado: 'red',
-  en_firmeza: 'green',
-  archivada: 'default',
-};
+// Fuente única de etiquetas/colores de estado: shared/procesos/types.ts
+// (antes eran mapas propios de esta feature, hoy solo re-exportados para no
+// romper los imports existentes — ver hallazgo Important 6 del fix-round-1).
+export { ESTADO_LABEL, ESTADO_COLOR } from '@/shared/procesos/types';
 
 export interface Querella {
   id: string;

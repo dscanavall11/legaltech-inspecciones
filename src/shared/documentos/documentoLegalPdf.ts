@@ -1,5 +1,9 @@
 import type { Content, TDocumentDefinitions } from 'pdfmake/interfaces';
-import type { DocumentoLegal } from '@/derecho';
+import {
+  ROTULO_PROCESO_POR_DEFECTO,
+  ROTULO_RESOLUTIVA_POR_DEFECTO,
+  type DocumentoLegal,
+} from '@/derecho';
 import { cargarPdfMake } from './pdfMake';
 
 /**
@@ -42,7 +46,11 @@ function construirContenido(doc: DocumentoLegal, membreteDataUrl?: string | null
   contenido.push(
     { text: doc.entidad, alignment: 'center', bold: true, fontSize: 10.5, margin: [0, 0, 0, 2] },
     { text: doc.tituloDocumento, alignment: 'center', bold: true, fontSize: 13, margin: [0, 6, 0, 2] },
-    { text: `QUEJA ${doc.proceso}`, alignment: 'center', fontSize: 10 },
+    {
+      text: `${doc.rotuloProceso ?? ROTULO_PROCESO_POR_DEFECTO} ${doc.proceso}`,
+      alignment: 'center',
+      fontSize: 10,
+    },
     { text: doc.fechaResolucionLetras, alignment: 'center', fontSize: 10, margin: [0, 0, 0, 10] },
   );
 
@@ -85,7 +93,7 @@ function construirContenido(doc: DocumentoLegal, membreteDataUrl?: string | null
 
   if (doc.resuelve.length > 0) {
     contenido.push({
-      text: 'RESUELVE:',
+      text: doc.rotuloResolutiva ?? ROTULO_RESOLUTIVA_POR_DEFECTO,
       alignment: 'center',
       bold: true,
       fontSize: 10,

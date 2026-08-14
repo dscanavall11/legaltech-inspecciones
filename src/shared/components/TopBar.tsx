@@ -1,63 +1,19 @@
-import { Typography, Avatar, Tooltip, Dropdown } from 'antd';
-import {
-  UserOutlined,
-  CalendarOutlined,
-  AppstoreOutlined,
-  SettingOutlined,
-  LogoutOutlined,
-  AuditOutlined,
-  InboxOutlined,
-  BookOutlined,
-  CalculatorOutlined,
-} from '@ant-design/icons';
+import { Typography, Avatar, Dropdown } from 'antd';
+import { UserOutlined, SettingOutlined, LogoutOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
-import type { ReactNode } from 'react';
-import { NotificationCenter } from './NotificationCenter';
-import { LAUNCHPAD_ITEMS, type LaunchpadIconKey } from './launchpad/launchpadItems';
 import { useAuth } from '@/shared/auth/auth';
-import { useOverlayStore } from '@/store/overlayStore';
 import { PALETA } from '@/theme/theme';
 import { glassChrome } from '@/theme/glass';
 import { usePrefersReducedTransparency } from '@/shared/hooks/usePrefersReducedTransparency';
 
 const { Text } = Typography;
 
-const ICONOS_MODULO: Partial<Record<LaunchpadIconKey, ReactNode>> = {
-  'fallos-proferidos': <AuditOutlined />,
-  'cola-trabajo': <InboxOutlined />,
-  'consulta-normas': <BookOutlined />,
-  'medidas-correctivas': <CalculatorOutlined />,
-};
-
-/** Módulos secundarios (registro único en launchpadItems): menú discreto. */
-const MODULOS = LAUNCHPAD_ITEMS.flatMap((item) =>
-  item.area === 'modulos' && item.accion.tipo === 'ruta'
-    ? [{ key: item.key, icon: ICONOS_MODULO[item.iconKey], label: item.label, ruta: item.accion.ruta }]
-    : [],
-);
-
 export function TopBar() {
   const navigate = useNavigate();
   const usuario = useAuth((s) => s.usuario);
   const cerrarSesion = useAuth((s) => s.cerrarSesion);
-  const agendaAbierta = useOverlayStore((s) => s.agendaAbierta);
-  const abrirAgenda = useOverlayStore((s) => s.abrirAgenda);
-  const cerrarAgenda = useOverlayStore((s) => s.cerrarAgenda);
   const reducirTransparencia = usePrefersReducedTransparency();
 
-  const botonIcono: React.CSSProperties = {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    border: 'none',
-    background: 'transparent',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: PALETA.textoSuave,
-    fontSize: 16,
-    cursor: 'pointer',
-  };
 
   return (
     <header
@@ -105,33 +61,6 @@ export function TopBar() {
       </Link>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-        <Dropdown
-          menu={{
-            items: MODULOS.map((m) => ({ key: m.key, icon: m.icon, label: m.label })),
-            onClick: ({ key }) => {
-              const modulo = MODULOS.find((m) => m.key === key);
-              if (modulo) navigate(modulo.ruta);
-            },
-          }}
-          placement="bottomRight"
-        >
-          <button aria-label="Módulos" style={botonIcono}>
-            <AppstoreOutlined />
-          </button>
-        </Dropdown>
-
-        <Tooltip title="Agenda de audiencias">
-          <button
-            onClick={() => (agendaAbierta ? cerrarAgenda() : abrirAgenda())}
-            aria-label="Agenda de audiencias"
-            style={botonIcono}
-          >
-            <CalendarOutlined />
-          </button>
-        </Tooltip>
-
-        <NotificationCenter />
-
         <Dropdown
           menu={{
             items: [

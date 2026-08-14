@@ -15,7 +15,11 @@ import {
   type LegalCase,
 } from './api';
 import { construirDocumentoFallo, type BorradorFallo } from './falloDocumento';
-import { descargarFalloPdf, falloPdfBlob, nombreArchivoFallo } from './falloPdf';
+import {
+  descargarDocumentoLegalPdf,
+  generarDocumentoLegalBlob,
+} from '@/shared/documentos/documentoLegalPdf';
+import { descargarDocumentoLegalDocx } from '@/shared/documentos/documentoLegalDocx';
 import { useUploadCaseDocument } from '@/shared/documentos/api';
 
 // legalReasoning/evidenceAssessment ya existen como columnas genéricas en
@@ -101,8 +105,14 @@ export function AnalisisPage() {
   // un fallo del PDF nunca debe tumbar el guardado del fallo ya proferido).
   const archivarFalloEnExpediente = () => {
     if (!documento) return;
-    falloPdfBlob(documento, inspeccion.membreteDataUrl)
-      .then((blob) => subir.mutate(new File([blob], nombreArchivoFallo(documento), { type: 'application/pdf' })))
+    generarDocumentoLegalBlob(documento, inspeccion.membreteDataUrl)
+      .then((blob) =>
+        subir.mutate(
+          new File([blob], `${documento.tituloDocumento} ${documento.proceso || 'borrador'}.pdf`, {
+            type: 'application/pdf',
+          }),
+        ),
+      )
       .catch(() => undefined);
   };
 
@@ -181,7 +191,7 @@ export function AnalisisPage() {
               onSuccess: () => {
                 archivarFalloEnExpediente();
                 message.success('Fallo guardado y proferido. Archivado en el expediente.');
-                navigate(`/panel/fallos`);
+                navigate('/panel/procesos');
               },
               onError: () => message.error('El fallo se guardó, pero no se pudo actualizar el estado del caso.'),
             },
@@ -443,9 +453,17 @@ export function AnalisisPage() {
                 block
                 icon={<DownloadOutlined />}
                 disabled={!documento}
-                onClick={() => documento && descargarFalloPdf(documento, inspeccion.membreteDataUrl)}
+                onClick={() => documento && void descargarDocumentoLegalPdf(documento, inspeccion.membreteDataUrl)}
               >
                 Descargar PDF
+              </Button>
+              <Button
+                block
+                icon={<DownloadOutlined />}
+                disabled={!documento}
+                onClick={() => documento && void descargarDocumentoLegalDocx(documento, inspeccion.membreteDataUrl)}
+              >
+                Descargar .docx
               </Button>
               <Button icon={<PrinterOutlined />} disabled={!documento} onClick={() => window.print()}>
                 Imprimir
@@ -501,8 +519,8 @@ export function AnalisisPage() {
               <div style={{ textAlign: 'center', marginBottom: 18 }}>
                 <div style={{ fontWeight: 600, letterSpacing: '0.04em' }}>{documento.entidad}</div>
                 <div style={{ fontWeight: 700, fontSize: 17, marginTop: 10 }}>{documento.tituloDocumento}</div>
-                <div style={{ marginTop: 2 }}>RADICADO {documento.radicado}</div>
-                <div style={{ marginTop: 2 }}>{documento.fechaLetras}</div>
+                <div style={{ marginTop: 2 }}>RADICADO {documento.proceso}</div>
+                <div style={{ marginTop: 2 }}>{documento.fechaResolucionLetras}</div>
               </div>
 
               <table style={{ width: '100%', margin: '16px 0', borderCollapse: 'collapse' }}>
@@ -529,7 +547,11 @@ export function AnalisisPage() {
               {documento.secciones.map((s) => (
                 <div key={s.titulo}>
                   <p style={{ textAlign: 'center', fontWeight: 700, marginTop: 18 }}>{s.titulo}</p>
-                  <p style={{ textAlign: 'justify', whiteSpace: 'pre-wrap' }}>{s.contenido}</p>
+                  {s.parrafos.map((parrafo, i) => (
+                    <p key={i} style={{ textAlign: 'justify', whiteSpace: 'pre-wrap' }}>
+                      {parrafo}
+                    </p>
+                  ))}
                 </div>
               ))}
 
@@ -537,8 +559,10 @@ export function AnalisisPage() {
               <p style={{ fontWeight: 600 }}>CÚMPLASE,</p>
 
               <div style={{ marginTop: 44 }}>
-                <div style={{ fontWeight: 700 }}>{documento.firma.nombre || '________________________'}</div>
-                <div>{documento.firma.cargo}</div>
+                <div style={{ fontWeight: 700 }}>
+                  {documento.firma[0]?.nombre || '________________________'}
+                </div>
+                <div>{documento.firma[0]?.rol}</div>
               </div>
             </div>
           )}

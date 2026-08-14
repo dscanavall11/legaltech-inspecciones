@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { DOCK_ITEMS, DOCK_RUTAS, DOCK_SECTIONS } from './dockItems';
-import { LAUNCHPAD_RUTAS } from '../launchpad/launchpadItems';
 
 describe('DOCK_ITEMS', () => {
   it('Radicar sigue existiendo y sigue destacado (regresion del reporte "desaparecio Radicar")', () => {
@@ -19,29 +18,43 @@ describe('DOCK_ITEMS', () => {
   });
 });
 
-// Rutas que exponia el sidebar viejo (AppLayout.tsx, NAV_RUTAS_COMPLETO, antes del rediseno).
-// Congelado a proposito: si Dock/Launchpad dejan de cubrir alguna, este test falla.
-const RUTAS_QUE_DEBEN_SEGUIR_ACCESIBLES = [
-  '/panel/querellas',
+// El menú se redujo a siete secciones + el CTA de Radicar (8 rutas en total)
+// por decisión de producto (navaja de Ockham sobre la interfaz). Este test
+// congela ese conjunto: agregar una novena ruta tiene que ser deliberado, no
+// un descuido.
+const ENTRADAS_DEL_MENU = [
+  '/panel',
   '/panel/quejas',
-  '/panel/audiencias',
+  '/panel/querellas',
+  '/panel/apelaciones',
+  '/panel/procesos',
   '/panel/radicador',
-  '/panel/cola',
-  '/panel/actas-firmeza',
-  '/panel/medidas-correctivas',
-  '/panel/normas',
+  '/panel/chat',
+  '/panel/ajustes',
 ];
 
-describe('cobertura de rutas: Dock + Launchpad', () => {
-  it('todas las rutas que exponia el sidebar viejo siguen accesibles', () => {
-    const rutasCubiertas = new Set([...DOCK_RUTAS, ...LAUNCHPAD_RUTAS]);
-    for (const ruta of RUTAS_QUE_DEBEN_SEGUIR_ACCESIBLES) {
-      expect(rutasCubiertas.has(ruta)).toBe(true);
+describe('menu principal: siete secciones + Radicar', () => {
+  it('el dock expone exactamente las entradas acordadas (Radicar es el CTA, no una categoria)', () => {
+    expect([...DOCK_RUTAS].sort()).toEqual([...ENTRADAS_DEL_MENU].sort());
+  });
+
+  it('los tramites del comparendo NO son entradas del menu: viven dentro de Quejas', () => {
+    const dentroDeQuejas = ['/panel/comparendos', '/panel/actas-firmeza', '/panel/pronto-pago'];
+    for (const ruta of dentroDeQuejas) {
+      expect(DOCK_RUTAS).not.toContain(ruta);
     }
   });
 
-  it('no hay rutas duplicadas entre Dock y Launchpad', () => {
-    const interseccion = DOCK_RUTAS.filter((r) => LAUNCHPAD_RUTAS.includes(r));
-    expect(interseccion).toEqual([]);
+  // Audiencias, Normas y Medidas correctivas siguen montadas en el router
+  // (app/router.tsx, bloque "Diferidos a la V2") pero fuera del menú.
+  it('los modulos diferidos a la V2 no aparecen en el menu', () => {
+    const diferidos = ['/panel/audiencias', '/panel/normas', '/panel/medidas-correctivas'];
+    for (const ruta of diferidos) {
+      expect(DOCK_RUTAS).not.toContain(ruta);
+    }
+  });
+
+  it('el dock es la unica superficie de navegacion: no hay rutas repetidas', () => {
+    expect(new Set(DOCK_RUTAS).size).toBe(DOCK_RUTAS.length);
   });
 });

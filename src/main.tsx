@@ -6,56 +6,27 @@ import { resolveWorkspaceContext } from '@/shared/api/workspaceContext';
 import { useWorkspaceContextStore } from '@/store/workspaceContextStore';
 
 /**
- * Arranca la app. Si los mocks están activos, inicia MSW antes de renderizar
- * para que ninguna petición se escape al backend real.
- *
- * VITE_USE_MSW es el flag que apaga MSW por entorno (fase B: backend real del
- * Radicador). Si no está definido, se respeta el flag existente VITE_ENABLE_MOCKS
- * (default: mocks activos en dev, apagados en build de producción — ver
- * .env.example / .env.production).
+ * La capa de mocks (MSW) se eliminó: el backend real atiende todos los
+ * entornos. Esto solo desregistra el service worker que quedó instalado en
+ * los navegadores que sí llegaron a correr con mocks — sin esto seguiría
+ * interceptando peticiones y sirviendo datos inventados para siempre.
  */
-async function enableMocking() {
-  const useMsw =
-    import.meta.env.VITE_USE_MSW !== undefined
-      ? import.meta.env.VITE_USE_MSW === 'true'
-      : import.meta.env.VITE_ENABLE_MOCKS === 'true';
-  if (!useMsw) {
-    if ('serviceWorker' in navigator) {
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      for (const reg of registrations) {
-        if (reg.active?.scriptURL?.includes('mockServiceWorker')) {
-          await reg.unregister();
-        }
-      }
-    }
+async function unregisterLegacyMockWorker() {
+  if (!('serviceWorker' in navigator)) {
     return;
   }
-  const { worker } = await import('./mocks/browser');
-  await worker.start({
-    onUnhandledRequest: 'bypass', // deja pasar lo que no esté mockeado (assets, etc.)
-  });
-
-  // Tras un hard-refresh (Ctrl+Shift+R) el navegador ignora el service worker
-  // durante esa carga: las peticiones se escaparían al proxy aunque MSW esté
-  // "activo". Un reload normal (una sola vez) devuelve el control al worker.
-  if (!navigator.serviceWorker.controller) {
-    if (!sessionStorage.getItem('msw-reload')) {
-      sessionStorage.setItem('msw-reload', '1');
-      window.location.reload();
-      return new Promise(() => {}); // la página se recarga; no renderizar
-    }
-    console.error(
-      '[MSW] El service worker no controla la página; los mocks no interceptarán peticiones.',
-    );
-  }
-  sessionStorage.removeItem('msw-reload');
-  console.info('[MSW] Mocks activos: la app funciona sin backend.');
+  const registrations = await navigator.serviceWorker.getRegistrations();
+  await Promise.all(
+    registrations
+      .filter((reg) => reg.active?.scriptURL?.includes('mockServiceWorker'))
+      .map((reg) => reg.unregister()),
+  );
 }
 
 // Microsite bootstrap: resuelve el workspace del subdominio actual antes de
-// renderizar, en paralelo con MSW. apiFetch adjunta X-Workspace-Context a
-// partir de aca (ver src/shared/api/client.ts).
-Promise.all([enableMocking(), resolveWorkspaceContext()]).then(([, context]) => {
+// renderizar. apiFetch adjunta X-Workspace-Context a partir de aca (ver
+// src/shared/api/client.ts).
+Promise.all([unregisterLegacyMockWorker(), resolveWorkspaceContext()]).then(([, context]) => {
   useWorkspaceContextStore.getState().setContext(context);
 
   ReactDOM.createRoot(document.getElementById('root')!).render(

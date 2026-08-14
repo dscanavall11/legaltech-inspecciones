@@ -1,6 +1,5 @@
 import { useState, type ReactNode } from 'react';
 import { Tooltip } from 'antd';
-import { LockOutlined } from '@ant-design/icons';
 import { PALETA } from '@/theme/palette';
 
 interface DockIconProps {
@@ -8,7 +7,6 @@ interface DockIconProps {
   label: string;
   color: string;
   destacado?: boolean;
-  enConstruccion?: boolean;
   activo?: boolean;
   onClick: () => void;
 }
@@ -19,14 +17,13 @@ interface DockIconProps {
  * sólido azul, mismo tamaño que los demás. Nada de gradientes, labels bajo
  * el icono ni puntos indicadores.
  */
-export function DockIcon({ icon, label, color, destacado, enConstruccion, activo, onClick }: DockIconProps) {
+export function DockIcon({ icon, label, color, destacado, activo, onClick }: DockIconProps) {
   const [hover, setHover] = useState(false);
 
   return (
-    <Tooltip title={enConstruccion ? `${label} (en construcción)` : label} placement="right">
+    <Tooltip title={label} placement="right">
       <button
         onClick={onClick}
-        disabled={enConstruccion}
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
         onFocus={() => setHover(true)}
@@ -38,14 +35,13 @@ export function DockIcon({ icon, label, color, destacado, enConstruccion, activo
           height: 42,
           borderRadius: 12,
           border: 'none',
-          cursor: enConstruccion ? 'not-allowed' : 'pointer',
+          cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           fontSize: 18,
           flexShrink: 0,
           position: 'relative',
-          opacity: enConstruccion ? 0.5 : 1,
           background: destacado
             ? PALETA.azul
             : activo
@@ -57,22 +53,7 @@ export function DockIcon({ icon, label, color, destacado, enConstruccion, activo
           transition: 'background 150ms ease, color 150ms ease',
         }}
       >
-        <span style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {icon}
-          {enConstruccion && (
-            <span
-              style={{
-                position: 'absolute',
-                bottom: -2,
-                right: -4,
-                fontSize: 8,
-                color: 'var(--text-disabled)',
-              }}
-            >
-              <LockOutlined />
-            </span>
-          )}
-        </span>
+        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</span>
       </button>
     </Tooltip>
   );

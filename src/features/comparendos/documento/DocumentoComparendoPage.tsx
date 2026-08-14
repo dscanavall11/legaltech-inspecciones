@@ -6,6 +6,7 @@ import type { ComparendoMetadata } from '../types';
 import { generarDocumentoComparendo, tipoDocumentoComparendoDesdeParam } from './documentoComparendo';
 import { documentoLegalAAcapites, aplicarAcapitesADocumentoLegal } from '@/shared/documentos/documentoLegalAcapites';
 import { generarDocumentoLegalBlob } from '@/shared/documentos/documentoLegalPdf';
+import { generarDocumentoLegalDocxBlob } from '@/shared/documentos/documentoLegalDocx';
 import { NOMBRE_PLANTILLA } from '@/shared/documentos/ejemploPlantillas';
 import { DocumentoEditorPage } from '@/shared/documentos/DocumentoEditorPage';
 import { useInspeccionStore } from '@/store/inspeccionStore';
@@ -77,6 +78,9 @@ export function DocumentoComparendoPage() {
       volverLabel="Volver al expediente"
       generarBlob={(acapitesEfectivos) =>
         generarDocumentoLegalBlob(aplicarAcapitesADocumentoLegal(doc, acapitesEfectivos), membreteDataUrl)
+      }
+      generarDocx={(acapitesEfectivos) =>
+        generarDocumentoLegalDocxBlob(aplicarAcapitesADocumentoLegal(doc, acapitesEfectivos), membreteDataUrl)
       }
       nombreArchivo={() => `${titulo} ${data.radicado}.pdf`}
       generarResumen={resumirDocumento}

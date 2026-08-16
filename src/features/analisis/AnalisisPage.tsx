@@ -54,6 +54,7 @@ function guardarBorradorEnCampos(
       ...metaActual,
       numeroFallo: datosFallo.numeroFallo.trim(),
       fechaFallo: datosFallo.fechaFallo,
+      medidaCorrectiva: datosFallo.medidaCorrectiva.trim(),
       antecedents: borrador.antecedents,
       juridicProblem: borrador.juridicProblem,
       juridicFundamentals: borrador.juridicFundamentals,
@@ -537,6 +538,21 @@ export function AnalisisPage({ caseId, embebido = false }: AnalisisPageProps = {
                   }
                 />
               </div>
+            </div>
+            <div style={{ marginTop: 12 }}>
+              <div style={{ fontSize: 12, color: PALETA.textoSuave, marginBottom: 6 }}>
+                Medida correctiva que se impone — dejar vacío si absuelve
+              </div>
+              <Input
+                value={datosFallo.medidaCorrectiva}
+                onChange={(e) =>
+                  setDatosFallo((d) => ({ ...d, medidaCorrectiva: e.target.value }))
+                }
+                placeholder="Multa General Tipo 2, o la medida pedagógica que corresponda"
+              />
+              <Text type="secondary" style={{ fontSize: 11.5 }}>
+                Va literal en la parte resolutiva. Es lo único del fallo que se ejecuta.
+              </Text>
             </div>
             {!falloIdentificado(datosFallo) && (
               <Alert

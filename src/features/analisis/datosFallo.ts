@@ -16,11 +16,18 @@ export interface DatosFallo {
   numeroFallo: string;
   /** Fecha en que se profiere, ISO (YYYY-MM-DD). */
   fechaFallo: string;
+  /**
+   * Medida correctiva que se impone, redactada como va en la orden. Vacía
+   * cuando el fallo absuelve. La escribe el inspector: es lo único que se
+   * ejecuta del fallo y no puede salir como un genérico.
+   */
+  medidaCorrectiva: string;
 }
 
 interface MetadataConFallo {
   numeroFallo?: string;
   fechaFallo?: string;
+  medidaCorrectiva?: string;
 }
 
 export function leerDatosFallo(caseMetadataRaw: string | null | undefined): DatosFallo {
@@ -28,6 +35,7 @@ export function leerDatosFallo(caseMetadataRaw: string | null | undefined): Dato
   return {
     numeroFallo: meta.numeroFallo ?? '',
     fechaFallo: meta.fechaFallo ?? dayjs().format('YYYY-MM-DD'),
+    medidaCorrectiva: meta.medidaCorrectiva ?? '',
   };
 }
 

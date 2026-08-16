@@ -8,6 +8,7 @@ import {
   VARIANTES,
   type DecisionQuerella,
 } from '@/features/querellas/decisionQuerella';
+import { construirResuelve, firmasFallo } from './resuelveFallo';
 
 /**
  * Los nueve apartes mínimos del artículo 2.2.8.18.7.1 del Decreto 768 de 2025
@@ -191,8 +192,17 @@ export function construirDocumentoFallo(
       titulo,
       parrafos: [borrador[campo]],
     })).filter((s) => s.parrafos[0] && s.parrafos[0].trim().length > 0),
-    resuelve: [],
+    // Las órdenes numeradas. Los nueve apartes del decreto son la MOTIVACIÓN;
+    // sin resuelve nadie queda notificado en estrados, nada queda en firme y
+    // nada es ejecutable. Ver resuelveFallo.ts.
+    resuelve: construirResuelve({
+      sentido: decision.sentido,
+      partes,
+      comportamiento: caso.background?.allegedFacts ?? '',
+      medidaCorrectiva: datosFallo.medidaCorrectiva,
+      radicado: caso.filingNumber ?? numero,
+    }),
     cierre: `${despacho.municipio || caso.venueCity || ''}, ${fechaLetras}.`,
-    firma: [{ nombre: despacho.inspectorNombre, rol: despacho.inspectorCargo }],
+    firma: firmasFallo(partes, despacho.inspectorNombre, despacho.inspectorCargo),
   };
 }

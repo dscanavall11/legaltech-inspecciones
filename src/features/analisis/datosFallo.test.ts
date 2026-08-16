@@ -55,7 +55,11 @@ function caso(over: Partial<LegalCase> = {}): LegalCase {
 describe('leerDatosFallo', () => {
   it('lee número y fecha guardados en caseMetadata', () => {
     const raw = JSON.stringify({ numeroFallo: '017', fechaFallo: '2026-05-02', asunto: 'Ruido' });
-    expect(leerDatosFallo(raw)).toEqual({ numeroFallo: '017', fechaFallo: '2026-05-02' });
+    expect(leerDatosFallo(raw)).toEqual({
+      numeroFallo: '017',
+      fechaFallo: '2026-05-02',
+      medidaCorrectiva: '',
+    });
   });
 
   it('sin número guardado no lo inventa; la fecha arranca hoy', () => {
@@ -67,9 +71,9 @@ describe('leerDatosFallo', () => {
 
 describe('falloIdentificado', () => {
   it('exige un número no vacío', () => {
-    expect(falloIdentificado({ numeroFallo: '', fechaFallo: '2026-05-02' })).toBe(false);
-    expect(falloIdentificado({ numeroFallo: '   ', fechaFallo: '2026-05-02' })).toBe(false);
-    expect(falloIdentificado({ numeroFallo: '017', fechaFallo: '2026-05-02' })).toBe(true);
+    expect(falloIdentificado({ numeroFallo: '', fechaFallo: '2026-05-02', medidaCorrectiva: '' })).toBe(false);
+    expect(falloIdentificado({ numeroFallo: '   ', fechaFallo: '2026-05-02', medidaCorrectiva: '' })).toBe(false);
+    expect(falloIdentificado({ numeroFallo: '017', fechaFallo: '2026-05-02', medidaCorrectiva: '' })).toBe(true);
   });
 });
 
@@ -78,6 +82,7 @@ describe('construirDocumentoFallo', () => {
     const doc = construirDocumentoFallo(caso(), BORRADOR, DESPACHO, {
       numeroFallo: '017',
       fechaFallo: '2026-05-02',
+      medidaCorrectiva: '',
     });
     expect(doc.proceso).toBe('017');
     expect(doc.rotuloProceso).toBe('FALLO No.');
@@ -90,6 +95,7 @@ describe('construirDocumentoFallo', () => {
     const doc = construirDocumentoFallo(caso(), BORRADOR, DESPACHO, {
       numeroFallo: '',
       fechaFallo: '2026-05-02',
+      medidaCorrectiva: '',
     });
     expect(doc.proceso).toBe('2026-RAD-001');
   });
@@ -98,6 +104,7 @@ describe('construirDocumentoFallo', () => {
     const doc = construirDocumentoFallo(caso(), BORRADOR, DESPACHO, {
       numeroFallo: '017',
       fechaFallo: '2026-05-02',
+      medidaCorrectiva: '',
     });
     expect(doc.tablaDatos.find((f) => f.etiqueta === 'RADICADO')?.valor).toBe('2026-RAD-001');
   });
@@ -106,6 +113,7 @@ describe('construirDocumentoFallo', () => {
     const doc = construirDocumentoFallo(caso(), BORRADOR, DESPACHO, {
       numeroFallo: '017',
       fechaFallo: '2026-05-02',
+      medidaCorrectiva: '',
     });
     expect(doc.secciones.map((s) => s.titulo)).toEqual(['HECHOS']);
   });
@@ -147,6 +155,7 @@ describe('apartes del art. 2.2.8.18.7.1 (Decreto 768)', () => {
     const doc = construirDocumentoFallo(caso(), completo, DESPACHO, {
       numeroFallo: '017',
       fechaFallo: '2026-05-02',
+      medidaCorrectiva: '',
     });
     expect(doc.secciones.map((s) => s.titulo)).toEqual(APARTES_FALLO.map((a) => a.titulo));
   });
@@ -165,7 +174,7 @@ describe('apartes del art. 2.2.8.18.7.1 (Decreto 768)', () => {
 
 describe('el documento se ramifica según lo que dispuso el inspector', () => {
   const completo = () => borradorCompleto();
-  const datos = { numeroFallo: '017', fechaFallo: '2026-05-02' };
+  const datos = { numeroFallo: '017', fechaFallo: '2026-05-02', medidaCorrectiva: '' };
 
   it('distingue audiencia única de continuación en el título', () => {
     const unica = construirDocumentoFallo(caso(), completo(), DESPACHO, datos, {

@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Alert, Button, Descriptions, Input, Skeleton, Spin, Tag, Typography, App } from 'antd';
-import { DownloadOutlined, PrinterOutlined, SafetyCertificateOutlined, WarningOutlined } from '@ant-design/icons';
+import { Alert, Button, DatePicker, Descriptions, Input, Skeleton, Spin, Tag, Typography, App } from 'antd';
+import dayjs from 'dayjs';
+import {
+  CheckOutlined,
+  DownloadOutlined,
+  PrinterOutlined,
+  SafetyCertificateOutlined,
+  WarningOutlined,
+} from '@ant-design/icons';
 import { NormaMark } from '@/shared/ai/NormaMark';
 import { ELEVACION, PALETA } from '@/theme/theme';
 import { useInspeccionStore } from '@/store/inspeccionStore';
@@ -14,7 +21,15 @@ import {
   type Discrepancy,
   type LegalCase,
 } from './api';
-import { construirDocumentoFallo, type BorradorFallo } from './falloDocumento';
+import {
+  APARTES_FALLO,
+  apartesFaltantes,
+  construirDocumentoFallo,
+  type BorradorFallo,
+} from './falloDocumento';
+import { falloIdentificado, leerDatosFallo, type DatosFallo } from './datosFallo';
+import { ProgresoFallo } from './ProgresoFallo';
+import { GUIA_SENTIDO, guiaTramite, leerDecision } from '@/features/querellas/decisionQuerella';
 import {
   descargarDocumentoLegalPdf,
   generarDocumentoLegalBlob,
@@ -29,6 +44,7 @@ import { useUploadCaseDocument } from '@/shared/documentos/api';
 function guardarBorradorEnCampos(
   borrador: BorradorFallo,
   metaActual: Record<string, unknown>,
+  datosFallo: DatosFallo,
   resolucionInspector?: string,
 ) {
   return {
@@ -36,6 +52,8 @@ function guardarBorradorEnCampos(
     evidenceAssessment: borrador.evidences,
     caseMetadata: buildCaseMetadata({
       ...metaActual,
+      numeroFallo: datosFallo.numeroFallo.trim(),
+      fechaFallo: datosFallo.fechaFallo,
       antecedents: borrador.antecedents,
       juridicProblem: borrador.juridicProblem,
       juridicFundamentals: borrador.juridicFundamentals,
@@ -49,22 +67,34 @@ function guardarBorradorEnCampos(
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
 
-const CAMPO_LABEL: Record<keyof BorradorFallo, string> = {
-  antecedents: 'Antecedentes',
-  juridicProblem: 'Problema jurídico',
-  evidences: 'Pruebas valoradas',
-  juridicFundamentals: 'Fundamentos jurídicos',
-  juridicResponse: 'Consideraciones del despacho',
-  parteResolutiva: 'Parte resolutiva (solo si la etapa procesal ya admite decisión)',
+// Ayuda por aparte: qué exige el decreto de cada uno. Las dos primeras son
+// literales del art. 2.2.8.18.7.1 y por eso van tal cual.
+const AYUDA_APARTE: Record<keyof BorradorFallo, string> = {
+  competencia: 'Autoridad competente y norma que le atribuye la competencia.',
+  antecedents:
+    'Solo hechos concretos e indiscutibles, en orden cronológico. Sin argumentaciones, presunciones ni apreciaciones subjetivas.',
+  tramite: 'Actuación inicial, citaciones, notificaciones, audiencias y pruebas practicadas.',
+  juridicProblem: 'El motivo de policía formulado como pregunta asertiva.',
+  evidences: 'Valoración de la prueba de ambas partes: querellante y querellado.',
+  necesidadProporcionalidad:
+    'Por qué la medida correctiva es —o no es— necesaria, razonable y proporcional (Decreto 768, arts. 2.2.8.18.2.1 y 2.2.8.18.2.2: la multa es la última opción).',
+  juridicResponse: 'El sentido de la decisión, respondiendo la pregunta anterior.',
+  juridicFundamentals: 'Constitución, Ley 1801 de 2016, Decreto 768 y jurisprudencia aplicable.',
+  parteResolutiva: 'La decisión. Solo si la etapa procesal ya admite decidir de fondo.',
+  recursos: 'Recursos que proceden y oportunidad para interponerlos.',
 };
 
 const BORRADOR_VACIO: BorradorFallo = {
+  competencia: '',
   antecedents: '',
+  tramite: '',
   juridicProblem: '',
-  juridicFundamentals: '',
-  juridicResponse: '',
   evidences: '',
+  necesidadProporcionalidad: '',
+  juridicResponse: '',
+  juridicFundamentals: '',
   parteResolutiva: '',
+  recursos: '',
 };
 
 function Tarjeta({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
@@ -91,11 +121,22 @@ function Tarjeta({ children, style }: { children: React.ReactNode; style?: React
  * de dos columnas (formulario editable + vista previa con membrete) que
  * ActasFirmezaPage.
  */
-export function AnalisisPage() {
+export interface AnalisisPageProps {
+  /**
+   * Caso sobre el que se redacta. Cuando el editor va embebido en el área de
+   * trabajo del expediente llega por prop; la ruta suelta /panel/analisis?caso=
+   * sigue funcionando para enlaces guardados.
+   */
+  caseId?: string;
+  /** Embebido en una pestaña: sin título propio y sin salir al terminar. */
+  embebido?: boolean;
+}
+
+export function AnalisisPage({ caseId, embebido = false }: AnalisisPageProps = {}) {
   const { message } = App.useApp();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const casoId = searchParams.get('caso');
+  const casoId = caseId ?? searchParams.get('caso');
   const inspeccion = useInspeccionStore((s) => s.config);
   const cambiarEstado = useChangeCaseState();
   const actualizarCampos = useUpdateCaseFields();
@@ -120,6 +161,10 @@ export function AnalisisPage() {
   const [cargandoCaso, setCargandoCaso] = useState(false);
   const [errorCaso, setErrorCaso] = useState<string | null>(null);
 
+  const [datosFallo, setDatosFallo] = useState<DatosFallo>(() => leerDatosFallo(null));
+  // La variante de audiencia y el sentido los dispone el inspector en la
+  // pestaña Audiencia; aquí solo se leen para redactar en consecuencia.
+  const decision = useMemo(() => leerDecision(caso?.caseMetadata), [caso]);
   const [borrador, setBorrador] = useState<BorradorFallo>(BORRADOR_VACIO);
   const [generando, setGenerando] = useState(false);
   const [errorGeneracion, setErrorGeneracion] = useState<string | null>(null);
@@ -134,7 +179,10 @@ export function AnalisisPage() {
     setCargandoCaso(true);
     setErrorCaso(null);
     getLegalCase(casoId)
-      .then(setCaso)
+      .then((c) => {
+        setCaso(c);
+        setDatosFallo(leerDatosFallo(c.caseMetadata));
+      })
       .catch(() => setErrorCaso('No se pudo cargar el caso. Verifica el radicado o intenta de nuevo.'))
       .finally(() => setCargandoCaso(false));
   }, [casoId]);
@@ -149,12 +197,16 @@ export function AnalisisPage() {
     try {
       const campos: ComplaintResponseFields = await analizarEstructurado(casoId ?? '', caso?.currentStateCode);
       setBorrador({
+        competencia: campos.competencia ?? '',
         antecedents: campos.antecedents ?? '',
+        tramite: campos.tramite ?? '',
         juridicProblem: campos.juridicProblem ?? '',
-        juridicFundamentals: campos.juridicFundamentals ?? '',
-        juridicResponse: campos.juridicResponse ?? '',
         evidences: campos.evidences ?? '',
+        necesidadProporcionalidad: campos.necesidadProporcionalidad ?? '',
+        juridicResponse: campos.juridicResponse ?? '',
+        juridicFundamentals: campos.juridicFundamentals ?? '',
         parteResolutiva: campos.parteResolutiva ?? '',
+        recursos: campos.recursos ?? '',
       });
       const huboConsenso = campos.consensusReached !== false;
       setSinConsenso(
@@ -182,7 +234,7 @@ export function AnalisisPage() {
     if (!casoId) return;
     const metaActual = parseCaseMetadata<Record<string, unknown>>(caso?.caseMetadata ?? null);
     actualizarCampos.mutate(
-      { id: casoId, fields: guardarBorradorEnCampos(borrador, metaActual, resolucionInspector) },
+      { id: casoId, fields: guardarBorradorEnCampos(borrador, metaActual, datosFallo, resolucionInspector) },
       {
         onSuccess: () => {
           cambiarEstado.mutate(
@@ -191,7 +243,7 @@ export function AnalisisPage() {
               onSuccess: () => {
                 archivarFalloEnExpediente();
                 message.success('Fallo guardado y proferido. Archivado en el expediente.');
-                navigate('/panel/procesos');
+                if (!embebido) navigate('/panel/procesos');
               },
               onError: () => message.error('El fallo se guardó, pero no se pudo actualizar el estado del caso.'),
             },
@@ -203,16 +255,26 @@ export function AnalisisPage() {
   }
 
   const hayBorrador = Object.values(borrador).some((v) => v.trim().length > 0);
+  // Control jurídico previo: el art. 2.2.8.18.7.1 fija nueve apartes mínimos.
+  // Faltar uno no bloquea (el inspector manda), pero se advierte antes, no después.
+  const faltantes = apartesFaltantes(borrador);
+  const puedeProferir = hayBorrador && falloIdentificado(datosFallo);
 
   const documento = useMemo(() => {
     if (!caso || !hayBorrador) return null;
-    return construirDocumentoFallo(caso, borrador, {
-      municipio: inspeccion.municipio,
-      inspeccion: inspeccion.inspeccion,
-      inspectorNombre: inspeccion.inspectorNombre,
-      inspectorCargo: inspeccion.inspectorNombre ? 'Inspector de Convivencia y Paz' : '',
-    });
-  }, [caso, borrador, hayBorrador, inspeccion]);
+    return construirDocumentoFallo(
+      caso,
+      borrador,
+      {
+        municipio: inspeccion.municipio,
+        inspeccion: inspeccion.inspeccion,
+        inspectorNombre: inspeccion.inspectorNombre,
+        inspectorCargo: inspeccion.inspectorNombre ? 'Inspector de Convivencia y Paz' : '',
+      },
+      datosFallo,
+      decision,
+    );
+  }, [caso, borrador, hayBorrador, inspeccion, datosFallo, decision]);
 
   if (!casoId) {
     return (
@@ -227,13 +289,17 @@ export function AnalisisPage() {
 
   return (
     <div>
-      <Title level={2} style={{ marginBottom: 4 }}>
-        Fallo
-      </Title>
-      <Paragraph type="secondary" style={{ marginBottom: 22 }}>
-        Redacción asistida por IA del fallo — la IA propone el borrador, usted lo revisa y ajusta
-        antes de exportarlo.
-      </Paragraph>
+      {!embebido && (
+        <>
+          <Title level={2} style={{ marginBottom: 4 }}>
+            Fallo
+          </Title>
+          <Paragraph type="secondary" style={{ marginBottom: 22 }}>
+            Redacción asistida por IA del fallo — la IA propone el borrador, usted lo revisa y
+            ajusta antes de exportarlo.
+          </Paragraph>
+        </>
+      )}
 
       {errorCaso && <Alert type="error" showIcon message={errorCaso} style={{ marginBottom: 18 }} />}
 
@@ -347,6 +413,49 @@ export function AnalisisPage() {
         </div>
       )}
 
+      <ProgresoFallo
+        pasos={[
+          {
+            titulo: 'Datos del fallo',
+            detalle: falloIdentificado(datosFallo) ? `No. ${datosFallo.numeroFallo}` : 'Asigne número y fecha',
+            listo: falloIdentificado(datosFallo),
+          },
+          {
+            titulo: 'Borrador',
+            detalle: hayBorrador ? 'Generado' : 'Genérelo con IA o escríbalo',
+            listo: hayBorrador,
+          },
+          {
+            titulo: 'Apartes del Decreto 768',
+            detalle: `${APARTES_FALLO.length - faltantes.length} de ${APARTES_FALLO.length} diligenciados`,
+            listo: faltantes.length === 0,
+          },
+          {
+            titulo: 'Proferir',
+            detalle: puedeProferir ? 'Listo para firmar' : 'Complete los pasos anteriores',
+            listo: false,
+          },
+        ]}
+      />
+
+      {caso && (
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: 18 }}
+          message={`Se redacta para ${
+            decision.variante === 'continuacion' ? 'una continuación de audiencia' : 'una audiencia única'
+          }, con sentido «${
+            decision.sentido === 'absuelve'
+              ? 'absuelve'
+              : decision.sentido === 'sanciona'
+                ? 'sanciona'
+                : 'responsable, sin multa'
+          }»`}
+          description="Ambos los dispone usted en la pestaña Audiencia. La IA los motiva con la prueba del expediente; no los decide."
+        />
+      )}
+
       <div style={{ display: 'flex', gap: 22, alignItems: 'flex-start', flexWrap: 'wrap' }}>
         {/* ── Columna izquierda ─────────────────────────────────── */}
         <div style={{ flex: '1 1 380px', maxWidth: 480, minWidth: 340 }}>
@@ -394,6 +503,52 @@ export function AnalisisPage() {
             </Button>
           </Tarjeta>
 
+          {/* Datos que determina el inspector, no la IA ni el expediente. */}
+          <Tarjeta>
+            <Text strong style={{ display: 'block', marginBottom: 4 }}>
+              Datos del fallo
+            </Text>
+            <Text type="secondary" style={{ display: 'block', fontSize: 12.5, marginBottom: 14 }}>
+              El número y la fecha los asigna el despacho: encabezan el documento y no se deducen
+              del expediente.
+            </Text>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div>
+                <div style={{ fontSize: 12, color: PALETA.textoSuave, marginBottom: 6 }}>
+                  Número del fallo
+                </div>
+                <Input
+                  value={datosFallo.numeroFallo}
+                  onChange={(e) => setDatosFallo((d) => ({ ...d, numeroFallo: e.target.value }))}
+                  placeholder="2026-0000"
+                />
+              </div>
+              <div>
+                <div style={{ fontSize: 12, color: PALETA.textoSuave, marginBottom: 6 }}>
+                  Fecha del fallo
+                </div>
+                <DatePicker
+                  style={{ width: '100%' }}
+                  format="DD/MM/YYYY"
+                  allowClear={false}
+                  value={dayjs(datosFallo.fechaFallo)}
+                  onChange={(d) =>
+                    d && setDatosFallo((prev) => ({ ...prev, fechaFallo: d.format('YYYY-MM-DD') }))
+                  }
+                />
+              </div>
+            </div>
+            {!falloIdentificado(datosFallo) && (
+              <Alert
+                type="warning"
+                showIcon
+                style={{ marginTop: 12, borderRadius: 14 }}
+                message="Falta el número del fallo"
+                description="Mientras no lo asigne, el documento sale encabezado con el radicado del caso y no se puede proferir."
+              />
+            )}
+          </Tarjeta>
+
           <Tarjeta>
             <Text strong style={{ display: 'block', marginBottom: 14 }}>
               Borrador del fallo
@@ -403,28 +558,58 @@ export function AnalisisPage() {
                 Genere el borrador con IA o escriba cada sección manualmente.
               </Text>
             ) : null}
-            {(Object.keys(CAMPO_LABEL) as (keyof BorradorFallo)[]).map((campo) => (
-              <div key={campo} style={{ marginBottom: 14 }}>
-                <div
-                  style={{
-                    fontSize: 10.5,
-                    fontWeight: 600,
-                    letterSpacing: '0.08em',
-                    textTransform: 'uppercase',
-                    color: PALETA.textoTenue,
-                    marginBottom: 4,
-                  }}
-                >
-                  {CAMPO_LABEL[campo]}
+            {APARTES_FALLO.map(({ campo, titulo }, i) => {
+              const diligenciado = borrador[campo].trim().length > 0;
+              return (
+              <div key={campo} style={{ marginBottom: 18 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <span
+                    aria-hidden
+                    style={{
+                      width: 20,
+                      height: 20,
+                      borderRadius: '50%',
+                      flexShrink: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: diligenciado ? '#fff' : PALETA.textoTenue,
+                      background: diligenciado ? PALETA.verde : 'transparent',
+                      border: diligenciado ? 'none' : `1.5px solid ${PALETA.borde}`,
+                    }}
+                  >
+                    {diligenciado ? <CheckOutlined style={{ fontSize: 10 }} /> : i + 1}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: '0.06em',
+                      textTransform: 'uppercase',
+                      color: diligenciado ? PALETA.texto : PALETA.textoSuave,
+                    }}
+                  >
+                    {titulo}
+                  </span>
+                </div>
+                <div style={{ fontSize: 11.5, color: PALETA.textoTenue, marginBottom: 6, paddingLeft: 28 }}>
+                  {campo === 'tramite'
+                    ? guiaTramite(decision)
+                    : campo === 'parteResolutiva'
+                      ? GUIA_SENTIDO[decision.sentido]
+                      : AYUDA_APARTE[campo]}
                 </div>
                 <TextArea
                   autoSize={{ minRows: 3, maxRows: 10 }}
                   value={borrador[campo]}
                   onChange={(e) => set(campo, e.target.value)}
-                  placeholder="La IA redacta esta sección; usted la revisa y ajusta."
+                  placeholder="La IA redacta este aparte; usted lo revisa y ajusta."
                 />
               </div>
-            ))}
+              );
+            })}
           </Tarjeta>
 
           <Tarjeta>
@@ -436,12 +621,21 @@ export function AnalisisPage() {
                 ? `${inspeccion.inspectorNombre} — ${inspeccion.inspeccion || inspeccion.municipio}`
                 : 'Configure el despacho (botón flotante "Configurar inspección") para que aparezca en la firma.'}
             </Text>
+            {hayBorrador && faltantes.length > 0 && (
+              <Alert
+                type="warning"
+                showIcon
+                style={{ marginTop: 12, borderRadius: 14 }}
+                message={`Faltan ${faltantes.length} de los nueve apartes que exige el Decreto 768`}
+                description={`Sin diligenciar: ${faltantes.join(', ')}. El artículo 2.2.8.18.7.1 los fija como contenido mínimo de la decisión.`}
+              />
+            )}
             <Button
               type="primary"
               size="large"
               block
               icon={<SafetyCertificateOutlined />}
-              disabled={!hayBorrador}
+              disabled={!puedeProferir}
               loading={cambiarEstado.isPending || actualizarCampos.isPending}
               onClick={guardarYProferir}
               style={{ fontWeight: 600, marginTop: 14 }}
@@ -473,7 +667,7 @@ export function AnalisisPage() {
         </div>
 
         {/* ── Columna derecha: vista previa ──────────────────────── */}
-        <div style={{ flex: '1 1 520px', minWidth: 380 }}>
+        <div style={{ flex: '1 1 520px', minWidth: 380, position: 'sticky', top: 72 }}>
           {!documento ? (
             <div
               style={{

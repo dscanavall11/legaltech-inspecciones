@@ -104,14 +104,19 @@ export interface Discrepancy {
 }
 
 /** ComplaintResponse crudo (campos separados, no el string ya renderizado). */
+/** Los nueve apartes del art. 2.2.8.18.7.1 del Decreto 768 de 2025, en su orden. */
 export interface ComplaintResponseFields {
+  competencia: string;
   antecedents: string;
+  tramite: string;
   juridicProblem: string;
+  evidences: string;
+  necesidadProporcionalidad: string;
   juridicResponse: string;
   juridicFundamentals: string;
-  evidences: string;
-  audiosTranscriptions: string;
   parteResolutiva: string;
+  recursos: string;
+  audiosTranscriptions: string;
   /** false si Analista y Auditor no convergieron: requiere resolución del inspector. */
   consensusReached?: boolean;
   /** Argumentos en conflicto cuando no hubo consenso. */

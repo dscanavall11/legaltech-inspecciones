@@ -25,6 +25,10 @@ import { SiguientePaso } from './SiguientePaso';
 import { LineaTiempoEstados } from './LineaTiempoEstados';
 import { DocumentosExpediente } from '@/shared/documentos/DocumentosExpediente';
 import { PruebasExpediente } from '@/shared/pruebas/PruebasExpediente';
+import { OrientacionesInspector } from '@/shared/orientaciones/OrientacionesInspector';
+import { PartesQuerellaForm } from './PartesQuerellaForm';
+import { AudienciaQuerella } from './AudienciaQuerella';
+import { AnalisisPage } from '@/features/analisis/AnalisisPage';
 import { EtapaProcesal } from '@/shared/components/EtapaProcesal';
 import { FlujoNavegable } from '@/shared/components/FlujoNavegable';
 import {
@@ -165,10 +169,27 @@ export function QuerellaDetailPage() {
       ),
     },
     {
+      key: 'partes',
+      label: 'Partes',
+      children: <PartesQuerellaForm caseId={data.id} caseMetadataRaw={data.caseMetadataRaw} />,
+    },
+    {
       key: 'actuaciones',
       label: `Actuaciones (${data.actuaciones.length})`,
       children: (
         <LineaTiempoEstados caseId={data.id} actuaciones={data.actuaciones} estadoActual={data.estado} />
+      ),
+    },
+    {
+      key: 'audiencia',
+      label: 'Audiencia',
+      children: (
+        <AudienciaQuerella
+          caseId={data.id}
+          radicado={data.radicado}
+          comportamiento={data.asunto}
+          caseMetadataRaw={data.caseMetadataRaw}
+        />
       ),
     },
     {
@@ -180,6 +201,16 @@ export function QuerellaDetailPage() {
       key: 'pruebas',
       label: 'Pruebas',
       children: <PruebasExpediente caseId={data.id} />,
+    },
+    {
+      key: 'orientaciones',
+      label: 'Orientaciones',
+      children: <OrientacionesInspector caseId={data.id} caseMetadataRaw={data.caseMetadataRaw} />,
+    },
+    {
+      key: 'fallo',
+      label: 'Proyecto de fallo',
+      children: <AnalisisPage caseId={data.id} embebido />,
     },
   ];
 

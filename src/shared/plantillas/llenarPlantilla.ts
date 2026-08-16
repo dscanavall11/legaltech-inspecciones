@@ -5,7 +5,7 @@ export type Slots = Record<string, string>;
 
 /** `{clave}` y `{clave | MAYÚSCULAS}`. Un slot sin valor se deja tal cual: se ve el hueco. */
 function sustituir(texto: string, slots: Slots): string {
-  return texto.replace(/\{(\w+)(\s*\|\s*MAYÚSCULAS)?\}/g, (original, clave: string, mayusculas?: string) => {
+  return texto.replace(/\{(\w+)(\s*\|\s*MAYÚSCULAS\s*)?\}/g, (original, clave: string, mayusculas?: string) => {
     const valor = slots[clave];
     if (valor === undefined || valor.trim().length === 0) return original;
     return mayusculas ? valor.toUpperCase() : valor;

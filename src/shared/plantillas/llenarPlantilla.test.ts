@@ -23,6 +23,15 @@ describe('llenarPlantilla', () => {
     expect(doc.entidad).toBe('INSPECCIÓN UNO');
   });
 
+  it('tolera el espacio final antes del cierre en {campo | MAYÚSCULAS }', () => {
+    const conEspacioFinal: StructuredTemplate = {
+      ...PLANTILLA,
+      header: { ...PLANTILLA.header, entity: '{inspeccion | MAYÚSCULAS }' },
+    };
+    const doc = llenarPlantilla(conEspacioFinal, { inspeccion: 'Inspección Uno' });
+    expect(doc.entidad).toBe('INSPECCIÓN UNO');
+  });
+
   it('un slot sin valor se deja visible, nunca se borra en silencio', () => {
     const doc = llenarPlantilla(PLANTILLA, { municipio: 'Manizales' });
     expect(doc.secciones[0].parrafos[0]).toContain('{radicado}');

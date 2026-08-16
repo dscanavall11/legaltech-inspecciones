@@ -81,6 +81,7 @@ export const TIPOS_PROCESO: Record<TipoProceso, DefinicionTipoProceso> = {
     rotulos: ['Recurrente', 'Recurrido'],
     // art. 223 num. 4, Ley 1801/2016 (mismo valor citado en RadicarDocumentoPage).
     diasTerminoPorDefecto: 3,
+    ruta: (id) => `/panel/apelaciones/${id}`,
   },
   fallo: {
     label: 'Fallo (2.ª inst.)',

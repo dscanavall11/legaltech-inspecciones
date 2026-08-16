@@ -23,6 +23,11 @@ const AudienciasPage = lazy(() =>
 const MultasPage = lazy(() =>
   import('@/features/multas/MultasPage').then((m) => ({ default: m.MultasPage })),
 );
+const ApelacionDetailPage = lazy(() =>
+  import('@/features/apelaciones/ApelacionDetailPage').then((m) => ({
+    default: m.ApelacionDetailPage,
+  })),
+);
 const QuejaDetailPage = lazy(() =>
   import('@/features/quejas/QuejaDetailPage').then((m) => ({ default: m.QuejaDetailPage })),
 );
@@ -151,13 +156,13 @@ export const router = createBrowserRouter([
             <BandejaProcesos
               tipo="apelacion"
               titulo="Apelaciones"
-              descripcion="Recursos de alzada que corresponde resolver a este despacho en segunda instancia."
+              descripcion="Recursos contra las medidas correctivas de este despacho. Aquí se concede la alzada y se remite; quien la resuelve es el superior jerárquico."
               accion={{ label: 'Radicar apelación', ruta: '/panel/radicar/apelacion' }}
-              aviso="La apelación se radica y queda en el expediente, pero todavía no tiene pantalla de trámite propia: el análisis y la decisión se hacen desde el asistente jurídico."
             />
           </Cargando>
         ),
       },
+      { path: 'apelaciones/:id', element: <Cargando><ApelacionDetailPage /></Cargando> },
       { path: 'comparendos', element: <Cargando><ComparendosPage /></Cargando> },
       { path: 'comparendos/:id', element: <Cargando><ComparendoDetailPage /></Cargando> },
       {

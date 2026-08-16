@@ -62,6 +62,9 @@ const ActasFirmezaPage = lazy(() =>
 const ProntoPagoPage = lazy(() =>
   import('@/features/pagos/ProntoPagoPage').then((m) => ({ default: m.ProntoPagoPage })),
 );
+const ConmutacionPage = lazy(() =>
+  import('@/features/pagos/ConmutacionPage').then((m) => ({ default: m.ConmutacionPage })),
+);
 const NormasPage = lazy(() =>
   import('@/features/normas/NormasPage').then((m) => ({ default: m.NormasPage })),
 );
@@ -136,24 +139,10 @@ export const router = createBrowserRouter([
         path: 'querellas/:id/documento/:tipo',
         element: <Cargando><DocumentoPage /></Cargando>,
       },
-      {
-        path: 'quejas',
-        element: (
-          <Cargando>
-            <BandejaProcesos
-              tipo="queja"
-              titulo="Quejas"
-              descripcion="Quejas ciudadanas y asuntos que llegan por orden de comparendo."
-              accion={{ label: 'Radicar queja', ruta: '/panel/radicador' }}
-              subnav={[
-                { label: 'Comparendos', ruta: '/panel/comparendos' },
-                { label: 'Actas de firmeza', ruta: '/panel/actas-firmeza' },
-                { label: 'Pronto pago y conmutación', ruta: '/panel/pronto-pago' },
-              ]}
-            />
-          </Cargando>
-        ),
-      },
+      // Quejas ya no es una sección: sus trámites subieron al riel como
+      // entradas propias. El expediente de una queja se abre desde Mis
+      // procesos, y el listado redirige allí para no romper enlaces guardados.
+      { path: 'quejas', element: <Navigate to="/panel/procesos" replace /> },
       { path: 'quejas/:id', element: <Cargando><QuejaDetailPage /></Cargando> },
       {
         path: 'apelaciones',
@@ -178,6 +167,7 @@ export const router = createBrowserRouter([
       { path: 'nuevo-caso', element: <Cargando><IntakePage /></Cargando> },
       { path: 'actas-firmeza', element: <Cargando><ActasFirmezaPage /></Cargando> },
       { path: 'pronto-pago', element: <Cargando><ProntoPagoPage /></Cargando> },
+      { path: 'conmutacion', element: <Cargando><ConmutacionPage /></Cargando> },
       { path: 'ajustes', element: <Cargando><AjustesPage /></Cargando> },
       { path: 'ajustes/despacho', element: <Cargando><ConfiguracionDespachoPage /></Cargando> },
       // Diferidos a la V2: siguen montados (los enlaces guardados no se

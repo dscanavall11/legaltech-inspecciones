@@ -29,6 +29,8 @@ import {
 import { calcularTermino } from '@/shared/terminos/diasHabiles';
 import { SiguientePasoQueja } from './SiguientePasoQueja';
 import { DocumentosExpediente } from '@/shared/documentos/DocumentosExpediente';
+import { PruebasExpediente } from '@/shared/pruebas/PruebasExpediente';
+import { OrientacionesInspector } from '@/shared/orientaciones/OrientacionesInspector';
 import { EtapaProcesal } from '@/shared/components/EtapaProcesal';
 import { ETAPAS_QUEJA, ETAPA_QUEJA_ACTIVA } from '@/derecho';
 import { ELEVACION, PALETA } from '@/theme/theme';
@@ -136,8 +138,8 @@ export function QuejaDetailPage() {
         title="Queja no encontrada"
         subTitle="El expediente que buscas no existe o fue archivado."
         extra={
-          <Button type="primary" onClick={() => navigate('/panel/quejas')}>
-            Volver a quejas
+          <Button type="primary" onClick={() => navigate('/panel/procesos')}>
+            Volver a mis procesos
           </Button>
         }
       />
@@ -212,6 +214,16 @@ export function QuejaDetailPage() {
       label: 'Documentos',
       children: <DocumentosExpediente caseId={data.id} />,
     },
+    {
+      key: 'pruebas',
+      label: 'Pruebas',
+      children: <PruebasExpediente caseId={data.id} />,
+    },
+    {
+      key: 'orientaciones',
+      label: 'Orientaciones',
+      children: <OrientacionesInspector caseId={data.id} caseMetadataRaw={data.caseMetadataRaw} />,
+    },
   ];
 
   return (
@@ -220,10 +232,10 @@ export function QuejaDetailPage() {
         <Button
           type="text"
           icon={<ArrowLeftOutlined />}
-          onClick={() => navigate('/panel/quejas')}
+          onClick={() => navigate('/panel/procesos')}
           style={{ marginBottom: 10, paddingLeft: 0 }}
         >
-          Volver a quejas
+          Volver a mis procesos
         </Button>
         <Button
           icon={<NormaMark size={17} />}

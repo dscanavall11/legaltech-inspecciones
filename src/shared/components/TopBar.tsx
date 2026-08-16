@@ -1,6 +1,7 @@
 import { Typography, Avatar, Dropdown } from 'antd';
 import { UserOutlined, SettingOutlined, LogoutOutlined } from '@ant-design/icons';
-import { Link, useNavigate } from 'react-router-dom';
+import { Archive } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/shared/auth/auth';
 import { PALETA } from '@/theme/theme';
 import { glassChrome } from '@/theme/glass';
@@ -8,11 +9,18 @@ import { usePrefersReducedTransparency } from '@/shared/hooks/usePrefersReducedT
 
 const { Text } = Typography;
 
+const RUTA_MIS_PROCESOS = '/panel/procesos';
+
 export function TopBar() {
   const navigate = useNavigate();
+  const location = useLocation();
   const usuario = useAuth((s) => s.usuario);
   const cerrarSesion = useAuth((s) => s.cerrarSesion);
   const reducirTransparencia = usePrefersReducedTransparency();
+
+  // Mis procesos no es un trámite: es el archivo del despacho, el sitio al que
+  // se vuelve. Por eso vive arriba a la derecha y no en el riel de trabajo.
+  const enMisProcesos = location.pathname.startsWith(RUTA_MIS_PROCESOS);
 
 
   return (
@@ -61,6 +69,31 @@ export function TopBar() {
       </Link>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <button
+          onClick={() => navigate(RUTA_MIS_PROCESOS)}
+          aria-current={enMisProcesos ? 'page' : undefined}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            height: 34,
+            padding: '0 12px',
+            borderRadius: 10,
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: 13.5,
+            fontWeight: 500,
+            background: enMisProcesos ? 'var(--accent-light)' : 'transparent',
+            color: enMisProcesos ? PALETA.azul : PALETA.textoSuave,
+            transition: 'background 150ms ease, color 150ms ease',
+          }}
+        >
+          <Archive size={16} strokeWidth={1.75} />
+          Mis procesos
+        </button>
+
+        <div style={{ width: 1, height: 22, background: PALETA.borde }} />
+
         <Dropdown
           menu={{
             items: [

@@ -1,39 +1,54 @@
 import { type ReactNode } from 'react';
-import { FileText, MessageSquare, Scale, Archive, Stamp, Wallet, Sparkles, SquareSlash, Settings } from 'lucide-react';
+import {
+  Home,
+  FileText,
+  Gavel,
+  Stamp,
+  HeartHandshake,
+  Wallet,
+  Scale,
+  Sparkles,
+  SquareSlash,
+  Settings,
+} from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { DOCK_SECTIONS, type DockIconKey } from './dockItems';
-import { DockIcon } from './DockIcon';
+import { DockItemBoton } from './DockItemBoton';
 import { PALETA } from '@/theme/palette';
 import { glassChrome } from '@/theme/glass';
 import { usePrefersReducedTransparency } from '@/shared/hooks/usePrefersReducedTransparency';
 
-// El item "Inicio" lleva la marca LegalTech en vez de un icono de casa —
-// mismo glifo "L" que el badge del logo en TopBar.tsx.
-const LOGO_LEGALTECH = <span style={{ fontWeight: 800 }}>L</span>;
+/** Ancho del riel. AppLayout compensa este mismo valor con su paddingLeft. */
+export const ANCHO_RIEL = 228;
 
-// Trazo fino y monocromo, sin relleno — lenguaje minimalista uniforme.
+// Trazo fino y monocromo, sin relleno — lenguaje uniforme.
 const ICONO_TAMANO = 18;
 const ICONO_TRAZO = 1.75;
 
 const ICONOS_DOCK: Record<DockIconKey, ReactNode> = {
-  inicio: LOGO_LEGALTECH,
-  quejas: <MessageSquare size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
+  inicio: <Home size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
   querellas: <FileText size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
-  apelaciones: <Scale size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
-  'mis-procesos': <Archive size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
-  actas: <Stamp size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
+  quejas: <Gavel size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
+  firmeza: <Stamp size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
+  conmutacion: <HeartHandshake size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
   'pronto-pago': <Wallet size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
-  // El acento "IA": sparkle, no un ícono de robot/candado.
+  apelaciones: <Scale size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
+  // El acento "IA": sparkle, no un ícono de robot.
   'chat-ia': <Sparkles size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
-  // La demo del asistente con skills: el slash del comando, no otro sparkle.
   asistente: <SquareSlash size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
   configuracion: <Settings size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
 };
 
+/** Inicio solo está activo en su ruta exacta; el resto, por prefijo. */
+function esActiva(ruta: string, pathname: string): boolean {
+  return ruta === '/panel' ? pathname === '/panel' : pathname.startsWith(ruta);
+}
+
 /**
- * Riel de navegación integrado: una franja de vidrio pegada al borde
- * izquierdo, de alto completo, continua con el TopBar. Íconos uniformes con
- * tooltip — sin flotar, sin magnificación, sin labels ni dobles acentos.
+ * Riel de navegación: una columna de vidrio pegada al borde izquierdo, de alto
+ * completo, continua con el TopBar. Cada entrada muestra su nombre y para qué
+ * sirve; los grupos llevan encabezado para que el trámite se entienda de una
+ * lectura, sin tooltips ni menús desplegables.
  */
 export function Dock() {
   const reducirTransparencia = usePrefersReducedTransparency();
@@ -48,44 +63,49 @@ export function Dock() {
         left: 0,
         top: 0,
         bottom: 0,
-        width: 68,
+        width: ANCHO_RIEL,
         zIndex: 20,
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'center',
-        padding: '10px 0 16px',
+        padding: '14px 10px 18px',
+        overflowY: 'auto',
         ...glassChrome(reducirTransparencia),
         borderRight: `1px solid ${PALETA.borde}`,
         userSelect: 'none',
       }}
     >
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-        {DOCK_SECTIONS.map((section, i) => (
-          <div
-            key={section.titulo}
-            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}
-          >
-            {i > 0 && <div style={{ width: 26, height: 1, background: 'var(--border)', margin: '7px 0' }} />}
-            {section.items.map((item) => {
-              const activo =
-                item.ruta === '/panel'
-                  ? location.pathname === '/panel'
-                  : location.pathname.startsWith(item.ruta);
-              return (
-                <DockIcon
-                  key={item.key}
-                  icon={ICONOS_DOCK[item.iconKey]}
-                  label={item.label}
-                  color={item.color}
-                  destacado={item.destacado}
-                  activo={activo}
-                  onClick={() => navigate(item.ruta)}
-                />
-              );
-            })}
+      {DOCK_SECTIONS.map((section, i) => (
+        <div key={section.titulo || `grupo-${i}`} style={{ marginBottom: 10 }}>
+          {section.titulo && (
+            <div
+              style={{
+                fontSize: 10.5,
+                fontWeight: 700,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                color: PALETA.textoTenue,
+                padding: '10px 14px 6px',
+              }}
+            >
+              {section.titulo}
+            </div>
+          )}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {section.items.map((item) => (
+              <DockItemBoton
+                key={item.key}
+                icon={ICONOS_DOCK[item.iconKey]}
+                label={item.label}
+                ayuda={item.ayuda}
+                color={item.color}
+                destacado={item.destacado}
+                activo={esActiva(item.ruta, location.pathname)}
+                onClick={() => navigate(item.ruta)}
+              />
+            ))}
           </div>
-        ))}
-      </div>
+        </div>
+      ))}
     </nav>
   );
 }

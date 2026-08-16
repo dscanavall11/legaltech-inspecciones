@@ -1,6 +1,6 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import { TopBar } from './TopBar';
-import { Dock } from './dock/Dock';
+import { ANCHO_RIEL, Dock } from './dock/Dock';
 
 export function AppLayout() {
   const location = useLocation();
@@ -24,7 +24,7 @@ export function AppLayout() {
           display: 'flex',
           flexDirection: 'column',
           minWidth: 0,
-          paddingLeft: 68,
+          paddingLeft: ANCHO_RIEL,
         }}
       >
         <TopBar />

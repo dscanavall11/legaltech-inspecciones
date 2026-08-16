@@ -40,6 +40,7 @@ import { calcularTermino } from '@/shared/terminos/diasHabiles';
 import { COMPARENDOS_DEMO, parsearBdComparendos, type Comparendo, type ReporteImportacion } from './comparendos';
 import { extraerComparendoPdf } from './extraerComparendoPdf';
 import { descargarDocumentoLegalPdf } from '@/shared/documentos/documentoLegalPdf';
+import { VistaPreviaActa } from '@/shared/documentos/VistaPreviaActa';
 import { descargarDocumentoLegalDocx } from '@/shared/documentos/documentoLegalDocx';
 import { ExpedientePrevioButton } from '@/shared/documentos/ExpedientePrevioButton';
 import { ReincidenciaCausalField } from '@/shared/components/ReincidenciaCausalField';
@@ -835,87 +836,11 @@ export function ActasFirmezaPage() {
               </div>
             </div>
           ) : (
-            <div
-              id="acta-imprimible"
-              style={{
-                background: PALETA.superficie,
-                borderRadius: 24,
-                boxShadow: ELEVACION.media,
-                padding: '46px 52px',
-                fontFamily: "'Newsreader', Georgia, serif",
-                fontSize: 13.5,
-                lineHeight: 1.65,
-                color: '#1b1b1f',
-              }}
-            >
-              {inspeccion.membreteDataUrl && (
-                <div style={{ textAlign: 'center', marginBottom: 16 }}>
-                  <img
-                    src={inspeccion.membreteDataUrl}
-                    alt="Membrete de la alcaldía"
-                    style={{ maxWidth: '100%', maxHeight: 96, objectFit: 'contain' }}
-                  />
-                </div>
-              )}
-              <div style={{ textAlign: 'center', marginBottom: 18 }}>
-                <div style={{ fontWeight: 600, letterSpacing: '0.04em' }}>{acta.entidad}</div>
-                <div style={{ fontWeight: 700, fontSize: 17, marginTop: 10 }}>
-                  {acta.tituloDocumento}
-                </div>
-                <div style={{ marginTop: 2 }}>QUEJA {acta.proceso}</div>
-                <div style={{ marginTop: 2 }}>{acta.fechaResolucionLetras}</div>
-              </div>
-
-              <p style={{ textAlign: 'center', fontWeight: 600, fontSize: 12.5 }}>{acta.epigrafe}</p>
-
-              <table style={{ width: '100%', margin: '16px 0', borderCollapse: 'collapse' }}>
-                <tbody>
-                  {acta.tablaDatos.map((f) => (
-                    <tr key={f.etiqueta}>
-                      <td
-                        style={{
-                          padding: '3px 10px 3px 0',
-                          fontWeight: 600,
-                          whiteSpace: 'nowrap',
-                          verticalAlign: 'top',
-                          fontSize: 12,
-                        }}
-                      >
-                        {f.etiqueta}:
-                      </td>
-                      <td style={{ padding: '3px 0', fontSize: 12.5 }}>{f.valor}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              {acta.secciones.map((s, i) => (
-                <div key={i}>
-                  {s.titulo && (
-                    <p style={{ textAlign: 'center', fontWeight: 700, marginTop: 18 }}>{s.titulo}</p>
-                  )}
-                  {s.parrafos.map((p, j) => (
-                    <p key={j} style={{ textAlign: 'justify' }}>
-                      {p}
-                    </p>
-                  ))}
-                </div>
-              ))}
-
-              <p style={{ textAlign: 'center', fontWeight: 700, marginTop: 18 }}>DISPONE:</p>
-              {acta.dispone.map((p, i) => (
-                <p key={i} style={{ textAlign: 'justify' }}>
-                  {p}
-                </p>
-              ))}
-
-              <p style={{ marginTop: 18 }}>{acta.cierre}</p>
-              <p style={{ fontWeight: 600 }}>CÚMPLASE,</p>
-
-              <div style={{ marginTop: 44 }}>
-                <div style={{ fontWeight: 700 }}>{acta.firma.nombre}</div>
-                <div>{acta.firma.cargo}</div>
-              </div>
+            <div id="acta-imprimible">
+              <VistaPreviaActa
+                acta={actaFirmezaComoDocumento(acta)}
+                membreteDataUrl={inspeccion.membreteDataUrl}
+              />
             </div>
           )}
         </div>

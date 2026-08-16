@@ -32,6 +32,7 @@ import { documentosComparendoDisponibles } from './documento/documentoComparendo
 import { FlujoNavegable } from '@/shared/components/FlujoNavegable';
 import { DocumentosExpediente } from '@/shared/documentos/DocumentosExpediente';
 import { PruebasExpediente } from '@/shared/pruebas/PruebasExpediente';
+import { OrientacionesInspector } from '@/shared/orientaciones/OrientacionesInspector';
 import { NOMBRE_PLANTILLA } from '@/shared/documentos/ejemploPlantillas';
 import { EtapaProcesal } from '@/shared/components/EtapaProcesal';
 import { parseCaseMetadata } from '@/shared/legalCases/types';
@@ -293,6 +294,11 @@ export function ComparendoDetailPage() {
       key: 'pruebas',
       label: 'Pruebas',
       children: <PruebasExpediente caseId={data.id} />,
+    },
+    {
+      key: 'orientaciones',
+      label: 'Orientaciones',
+      children: <OrientacionesInspector caseId={data.id} caseMetadataRaw={data.caseMetadataRaw} />,
     },
   ];
 

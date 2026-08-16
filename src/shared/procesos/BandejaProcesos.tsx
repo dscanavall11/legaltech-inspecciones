@@ -32,12 +32,6 @@ export interface BandejaProcesosProps {
   descripcion?: string;
   /** CTA de la esquina superior derecha. */
   accion?: { label: string; ruta: string };
-  /**
-   * Actuaciones internas de la categoría. Quejas las usa para las tres vías
-   * del comparendo (firmeza, pronto pago, conmutación), que son actuaciones
-   * de una queja y no entradas propias del menú principal.
-   */
-  subnav?: { label: string; ruta: string }[];
   /** Aviso cuando el tipo aún no tiene pantalla de detalle (apelaciones). */
   aviso?: string;
 }
@@ -84,7 +78,6 @@ export function BandejaProcesos({
   titulo,
   descripcion,
   accion,
-  subnav,
   aviso,
 }: BandejaProcesosProps) {
   const navigate = useNavigate();
@@ -203,16 +196,6 @@ export function BandejaProcesos({
           </Button>
         )}
       </div>
-
-      {subnav && subnav.length > 0 && (
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {subnav.map((enlace) => (
-            <Button key={enlace.ruta} onClick={() => navigate(enlace.ruta)}>
-              {enlace.label}
-            </Button>
-          ))}
-        </div>
-      )}
 
       {aviso && <Alert type="info" showIcon message={aviso} />}
 

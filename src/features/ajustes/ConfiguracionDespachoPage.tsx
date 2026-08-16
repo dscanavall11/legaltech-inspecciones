@@ -106,7 +106,11 @@ export function ConfiguracionDespachoPage() {
   const config = useInspeccionStore((s) => s.config);
   const guardarConfig = useInspeccionStore((s) => s.guardarConfig);
   const { data: checklist, isLoading: cargandoChecklist, isError: errorChecklist } = useChecklistDespacho();
-  const { data: resolucion, isLoading: cargandoResolucion } = useTemplateResolution();
+  const {
+    data: resolucion,
+    isLoading: cargandoResolucion,
+    isError: errorResolucion,
+  } = useTemplateResolution();
   const subirPlantillaInspector = useUpsertInspectorTemplate();
   const restaurarPlantillaSistema = useDeleteInspectorTemplate();
 
@@ -133,6 +137,11 @@ export function ConfiguracionDespachoPage() {
     [checklist],
   );
 
+  // Cuando la resolución falla esto vale cero, igual que un despacho que no ha
+  // personalizado nada. Los dos estados son indistinguibles en el número, así
+  // que quien avisa de la diferencia es el Alert de errorResolucion — sin él,
+  // el inspector lee "no tienes plantillas propias" cuando la verdad es "no
+  // pude preguntar", y vuelve a subir una que ya tenía.
   const plantillasPersonalizadasCount = useMemo(
     () =>
       (resolucion ?? []).filter((r) => documentosPlantillas.includes(r.documentKey) && r.level !== 'sistema').length,
@@ -437,6 +446,15 @@ export function ConfiguracionDespachoPage() {
                       Nivel resuelto por documento: plantilla del inspector, si existe; si no, la de la oficina; si
                       no, la de sistema.
                     </Paragraph>
+                    {errorResolucion && (
+                      <Alert
+                        type="error"
+                        showIcon
+                        style={{ borderRadius: 14, marginBottom: 10 }}
+                        message="No se pudo consultar qué plantillas tiene el despacho"
+                        description="La tabla de abajo no refleja la configuración real. Un documento puede aparecer sin plantilla propia y tenerla: lo que falló fue la consulta, no la configuración. No suba de nuevo una plantilla por esto — reintente cuando el servicio responda."
+                      />
+                    )}
                     <Table
                       size="small"
                       rowKey="documentKey"

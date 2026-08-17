@@ -136,12 +136,19 @@ export function AreaTrabajoQuerella() {
       const fallidas = subidas.filter((s) => s.status === 'rejected').length;
 
       elegir(nuevo.id);
-      // Después de elegir, porque elegir() lo apaga: este expediente sí nació de
-      // los documentos y su análisis arranca solo.
-      setRecienDeDocumentos(true);
-      // El expediente ya existe aunque falle un archivo: se dice cuántos, no se
-      // finge que todo entró.
-      if (fallidas > 0) {
+
+      // Solo se analiza si entró algo. Analizar un expediente vacío no falla
+      // limpio: el analizador no encuentra nada, los agentes no coinciden y el
+      // inspector recibe un "no hubo consenso" que le hace buscar el problema en
+      // el caso cuando estaba en la subida.
+      const entroAlgo = fallidas < archivos.length;
+      setRecienDeDocumentos(entroAlgo);
+
+      if (fallidas === archivos.length) {
+        message.error(
+          `Expediente ${nuevo.filingNumber} abierto, pero ningún documento se pudo subir. Cárguelos en el paso 1; sin ellos no hay nada que analizar.`,
+        );
+      } else if (fallidas > 0) {
         message.warning(
           `Expediente ${nuevo.filingNumber} abierto, pero ${fallidas} de ${archivos.length} documentos no se pudieron subir. Vuelva a cargarlos en el paso 1.`,
         );

@@ -1,8 +1,10 @@
 import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Alert, Card, Empty, Select, Skeleton, Space, Tag, Typography } from 'antd';
+import { Alert, App, Button, Card, Divider, Empty, Select, Skeleton, Space, Tag, Typography } from 'antd';
+import { FolderPlus } from 'lucide-react';
 import { useProcesos } from '@/shared/procesos/api';
-import { useLegalCase } from '@/shared/legalCases/api';
+import { useCreateLegalCase, useLegalCase } from '@/shared/legalCases/api';
+import { useInspeccionStore } from '@/store/inspeccionStore';
 import { DocumentosExpediente } from '@/shared/documentos/DocumentosExpediente';
 import { PruebasExpediente } from '@/shared/pruebas/PruebasExpediente';
 import { OrientacionesInspector } from '@/shared/orientaciones/OrientacionesInspector';
@@ -76,6 +78,10 @@ export function AreaTrabajoQuerella() {
   const [searchParams, setSearchParams] = useSearchParams();
   const casoId = searchParams.get('caso') ?? '';
 
+  const { message } = App.useApp();
+  const inspeccion = useInspeccionStore((s) => s.config);
+  const crearCaso = useCreateLegalCase();
+
   const { data: querellas, isLoading: cargandoLista } = useProcesos({ caseType: 'querella' });
   const { data: caso, isLoading: cargandoCaso } = useLegalCase(casoId);
 
@@ -90,6 +96,31 @@ export function AreaTrabajoQuerella() {
 
   const elegir = (id: string) => setSearchParams(id ? { caso: id } : {}, { replace: true });
 
+  /**
+   * Abre un expediente vacío para empezar a trabajar desde los documentos.
+   *
+   * Se crea ya, no al aprobar: los documentos y las pruebas se guardan colgados
+   * de un caso, así que sin él no hay dónde ponerlos y el trabajo viviría en la
+   * memoria del navegador hasta el final. El radicado lo asigna legalcase.
+   */
+  const abrirExpedienteNuevo = () => {
+    crearCaso.mutate(
+      {
+        caseType: 'querella',
+        className: 'Querella',
+        judicialOfficeId: inspeccion.inspeccion || 'Inspección de Convivencia y Paz',
+        venueCity: inspeccion.municipio || '',
+      },
+      {
+        onSuccess: (nuevo) => {
+          elegir(nuevo.id);
+          message.success(`Expediente abierto: ${nuevo.filingNumber}. Ya está en Mis procesos.`);
+        },
+        onError: () => message.error('No se pudo abrir el expediente. Intente de nuevo.'),
+      },
+    );
+  };
+
   return (
     <Space direction="vertical" size="middle" style={{ width: '100%' }}>
       <div>
@@ -103,6 +134,30 @@ export function AreaTrabajoQuerella() {
       </div>
 
       <Card variant="borderless" style={{ boxShadow: ELEVACION.base }} styles={{ body: { padding: '16px 20px' } }}>
+        <div style={{ fontSize: 12, color: PALETA.textoSuave, marginBottom: 6 }}>
+          Empezar desde los documentos
+        </div>
+        <Text type="secondary" style={{ display: 'block', fontSize: 12.5, marginBottom: 12 }}>
+          No hace falta radicar antes en otro sitio. Se abre el expediente aquí, se cargan los
+          documentos y el análisis extrae de ellos los hechos y los fundamentos. Queda en Mis
+          procesos desde este momento, no al final: así el trabajo no se pierde si cierra la página.
+        </Text>
+        <Button
+          type="primary"
+          size="large"
+          icon={<FolderPlus size={17} strokeWidth={1.9} />}
+          loading={crearCaso.isPending}
+          onClick={() => abrirExpedienteNuevo()}
+        >
+          Abrir expediente y cargar documentos
+        </Button>
+
+        <Divider style={{ margin: '18px 0 14px' }} plain>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            o trabaje uno ya radicado
+          </Text>
+        </Divider>
+
         <div style={{ fontSize: 12, color: PALETA.textoSuave, marginBottom: 6 }}>
           Expediente sobre el que se trabaja
         </div>
@@ -136,8 +191,8 @@ export function AreaTrabajoQuerella() {
           type="info"
           showIcon
           style={{ borderRadius: 14 }}
-          message="Elija el expediente para empezar"
-          description="El área carga sus documentos, pruebas y orientaciones, y desde aquí se genera y aprueba el fallo. Para radicar una querella nueva use Radicación general, arriba a la derecha."
+          message="Abra un expediente para empezar"
+          description="Empiece desde los documentos si el proceso todavía no existe, o elija uno ya radicado. En los dos casos el área carga sus documentos, pruebas y orientaciones, y desde aquí se genera, se aprueba y se descarga el fallo."
         />
       ) : cargandoCaso ? (
         <Card variant="borderless" style={{ boxShadow: ELEVACION.base }}>

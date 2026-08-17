@@ -57,6 +57,8 @@ export async function resumirDocumento(req: {
 // ── Caso / expediente / fallo ──────────────────────────────────────────
 
 export interface CaseParty {
+  /** Ordena el índice de seudónimos y DEBE coincidir con el del backend — ver rehidratar.ts. */
+  id?: string;
   partyRole: string;
   identificationType: string;
   identificationNumber: string;

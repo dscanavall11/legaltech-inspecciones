@@ -34,6 +34,7 @@ import {
   type BorradorFallo,
 } from './falloDocumento';
 import { falloIdentificado, leerDatosFallo, type DatosFallo } from './datosFallo';
+import { mapaDeSeudonimos, rehidratar, seudonimosSinResolver } from './rehidratar';
 import { ProgresoFallo } from './ProgresoFallo';
 import { GUIA_SENTIDO, guiaTramite, leerDecision } from '@/features/querellas/decisionQuerella';
 import {
@@ -274,18 +275,35 @@ export function AnalisisPage({ caseId, embebido = false, autoGenerar = false }: 
     try {
       const campos: ComplaintResponseFields = await analizarEstructurado(casoId ?? '', caso?.currentStateCode);
       void volcarPartesExtraidas(campos.extractedParties);
+      // El expediente viaja al modelo seudonimizado, así que el borrador vuelve
+      // con [PARTE_1] y [ID_1]. El fallo sí debe nombrar a las partes (art.
+      // 2.2.8.18.7.1), y aquí es donde se devuelven los nombres reales.
+      const seudonimos = mapaDeSeudonimos(caso?.parties);
+      const real = (v?: string) => rehidratar(v ?? '', seudonimos);
+
       setBorrador({
-        competencia: campos.competencia ?? '',
-        antecedents: campos.antecedents ?? '',
-        tramite: campos.tramite ?? '',
-        juridicProblem: campos.juridicProblem ?? '',
-        evidences: campos.evidences ?? '',
-        necesidadProporcionalidad: campos.necesidadProporcionalidad ?? '',
-        juridicResponse: campos.juridicResponse ?? '',
-        juridicFundamentals: campos.juridicFundamentals ?? '',
-        parteResolutiva: campos.parteResolutiva ?? '',
-        recursos: campos.recursos ?? '',
+        competencia: real(campos.competencia),
+        antecedents: real(campos.antecedents),
+        tramite: real(campos.tramite),
+        juridicProblem: real(campos.juridicProblem),
+        evidences: real(campos.evidences),
+        necesidadProporcionalidad: real(campos.necesidadProporcionalidad),
+        juridicResponse: real(campos.juridicResponse),
+        juridicFundamentals: real(campos.juridicFundamentals),
+        parteResolutiva: real(campos.parteResolutiva),
+        recursos: real(campos.recursos),
       });
+
+      // Un marcador que sobrevive es una parte que no está registrada. Se avisa
+      // ahora, no cuando el documento ya salió con un hueco dentro.
+      const sinResolver = seudonimosSinResolver(
+        Object.values(campos).filter((v): v is string => typeof v === 'string').join(' '),
+      ).filter((m) => !seudonimos.has(m));
+      if (sinResolver.length > 0) {
+        message.warning(
+          `El borrador menciona partes que el expediente no tiene registradas (${sinResolver.join(', ')}). Complételas en Datos del proceso antes de proferir.`,
+        );
+      }
       const huboConsenso = campos.consensusReached !== false;
       setSinConsenso(
         huboConsenso

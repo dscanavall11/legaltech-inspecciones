@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { legalCasesKeys } from '@/shared/legalCases/api';
 import { uid } from '@/shared/util/uid';
 import { Button, Input, Tooltip } from 'antd';
 import {
@@ -152,6 +154,15 @@ function CampoLectura({
 export function IntakePage({ selector }: { selector?: ReactNode } = {}) {
   const navigate = useNavigate();
   const { mensajes, draft, cargando, recentFields, enviar, casoRadicado } = useIntakeChat();
+  const queryClient = useQueryClient();
+
+  // Aquí radica el backend, no el frontend: el expediente aparece sin que esta
+  // pantalla lo cree. Si no se invalida, Mis procesos lo muestra solo porque
+  // useLegalCases refetchea al montar — un accidente que se pierde el día que
+  // alguien le declare un staleTime.
+  useEffect(() => {
+    if (casoRadicado) void queryClient.invalidateQueries({ queryKey: legalCasesKeys.all });
+  }, [casoRadicado, queryClient]);
   const [inputText, setInputText] = useState('');
   const [anexos, setAnexos] = useState<Anexo[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);

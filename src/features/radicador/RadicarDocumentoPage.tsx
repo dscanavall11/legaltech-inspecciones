@@ -18,7 +18,9 @@ import {
 } from '@ant-design/icons';
 import { NormaMark } from '@/shared/ai/NormaMark';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/shared/api/client';
+import { legalCasesKeys } from '@/shared/legalCases/api';
 import { buildCaseMetadata, type CreateLegalCaseInput, type LegalCase } from '@/shared/legalCases/types';
 import { useInspeccionStore } from '@/store/inspeccionStore';
 import { PALETA, ELEVACION } from '@/theme/theme';
@@ -126,6 +128,7 @@ export function RadicarDocumentoPage({
 }: { tipo?: TipoRadicar; selector?: ReactNode } = {}) {
   const { message: msg } = App.useApp();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const location = useLocation();
   const tipo = tipoProp ?? ((location.pathname.split('/').pop() ?? 'apelacion') as TipoRadicar);
 
@@ -225,6 +228,12 @@ export function RadicarDocumentoPage({
         body.append('file', a.file, a.nombre);
         await apiFetch(`/tools/expedientes/${caso.id}/documents`, { method: 'POST', body });
       }
+
+      // Sin esto, que el expediente aparezca en Mis procesos depende de que
+      // useLegalCases no declare staleTime: hoy refetchea al montar y funciona,
+      // pero el día que alguien le ponga uno por rendimiento la radicación
+      // dejaría de verse, en silencio. Se declara la invalidación.
+      await queryClient.invalidateQueries({ queryKey: legalCasesKeys.all });
 
       msg.success(`${titulo} radicada exitosamente: ${caso.filingNumber}`);
       setTimeout(() => navigate('/panel/procesos'), 650);

@@ -1,6 +1,6 @@
 import { Typography, Avatar, Dropdown } from 'antd';
 import { UserOutlined, SettingOutlined, LogoutOutlined } from '@ant-design/icons';
-import { Archive } from 'lucide-react';
+import { Archive, FilePlus2 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/shared/auth/auth';
 import { PALETA } from '@/theme/theme';
@@ -10,6 +10,26 @@ import { usePrefersReducedTransparency } from '@/shared/hooks/usePrefersReducedT
 const { Text } = Typography;
 
 const RUTA_MIS_PROCESOS = '/panel/procesos';
+const RUTA_RADICADOR = '/panel/radicador';
+
+/** Las dos entradas de la barra comparten forma: entra y sale del despacho. */
+function estiloEntradaSuperior(activa: boolean): React.CSSProperties {
+  return {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    height: 34,
+    padding: '0 12px',
+    borderRadius: 10,
+    border: 'none',
+    cursor: 'pointer',
+    fontSize: 13.5,
+    fontWeight: 500,
+    background: activa ? 'var(--accent-light)' : 'transparent',
+    color: activa ? PALETA.azul : PALETA.textoSuave,
+    transition: 'background 150ms ease, color 150ms ease',
+  };
+}
 
 export function TopBar() {
   const navigate = useNavigate();
@@ -18,9 +38,11 @@ export function TopBar() {
   const cerrarSesion = useAuth((s) => s.cerrarSesion);
   const reducirTransparencia = usePrefersReducedTransparency();
 
-  // Mis procesos no es un trámite: es el archivo del despacho, el sitio al que
-  // se vuelve. Por eso vive arriba a la derecha y no en el riel de trabajo.
+  // Ninguna de las dos es un trámite: radicar es la entrada al despacho y Mis
+  // procesos su archivo. Por eso viven arriba a la derecha y no en el riel, que
+  // queda libre para las áreas de trabajo.
   const enMisProcesos = location.pathname.startsWith(RUTA_MIS_PROCESOS);
+  const enRadicador = location.pathname.startsWith(RUTA_RADICADOR);
 
 
   return (
@@ -70,23 +92,18 @@ export function TopBar() {
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
         <button
+          onClick={() => navigate(RUTA_RADICADOR)}
+          aria-current={enRadicador ? 'page' : undefined}
+          style={estiloEntradaSuperior(enRadicador)}
+        >
+          <FilePlus2 size={16} strokeWidth={1.75} />
+          Radicar
+        </button>
+
+        <button
           onClick={() => navigate(RUTA_MIS_PROCESOS)}
           aria-current={enMisProcesos ? 'page' : undefined}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            height: 34,
-            padding: '0 12px',
-            borderRadius: 10,
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: 13.5,
-            fontWeight: 500,
-            background: enMisProcesos ? 'var(--accent-light)' : 'transparent',
-            color: enMisProcesos ? PALETA.azul : PALETA.textoSuave,
-            transition: 'background 150ms ease, color 150ms ease',
-          }}
+          style={estiloEntradaSuperior(enMisProcesos)}
         >
           <Archive size={16} strokeWidth={1.75} />
           Mis procesos

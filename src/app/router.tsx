@@ -134,7 +134,6 @@ export const router = createBrowserRouter([
             <BandejaProcesos
               tipo="querella"
               titulo="Querellas"
-              accion={{ label: 'Radicar querella', ruta: '/panel/radicador' }}
             />
           </Cargando>
         ),
@@ -157,7 +156,6 @@ export const router = createBrowserRouter([
               tipo="apelacion"
               titulo="Apelaciones"
               descripcion="Recursos contra las medidas correctivas de este despacho. Aquí se concede la alzada y se remite; quien la resuelve es el superior jerárquico."
-              accion={{ label: 'Radicar apelación', ruta: '/panel/radicar/apelacion' }}
             />
           </Cargando>
         ),

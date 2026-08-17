@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { Typography, Avatar, Dropdown } from 'antd';
 import { UserOutlined, SettingOutlined, LogoutOutlined } from '@ant-design/icons';
-import { Archive, FilePlus2 } from 'lucide-react';
+import { Archive, FilePlus2, ScanLine } from 'lucide-react';
+import { ModalRadicarComparendo } from '@/features/comparendos/ModalRadicarComparendo';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/shared/auth/auth';
 import { PALETA } from '@/theme/theme';
@@ -43,6 +45,10 @@ export function TopBar() {
   // queda libre para las áreas de trabajo.
   const enMisProcesos = location.pathname.startsWith(RUTA_MIS_PROCESOS);
   const enRadicador = location.pathname.startsWith(RUTA_RADICADOR);
+
+  // El comparendo se radica leyendo su PDF, no conversando: es un modal, no una
+  // pantalla. Por eso va aquí y no como una segunda ruta del radicador general.
+  const [radicarComparendo, setRadicarComparendo] = useState(false);
 
 
   return (
@@ -97,7 +103,12 @@ export function TopBar() {
           style={estiloEntradaSuperior(enRadicador)}
         >
           <FilePlus2 size={16} strokeWidth={1.75} />
-          Radicar
+          Radicación general
+        </button>
+
+        <button onClick={() => setRadicarComparendo(true)} style={estiloEntradaSuperior(false)}>
+          <ScanLine size={16} strokeWidth={1.75} />
+          Radicar comparendo
         </button>
 
         <button
@@ -144,6 +155,15 @@ export function TopBar() {
           </div>
         </Dropdown>
       </div>
+
+      <ModalRadicarComparendo
+        abierto={radicarComparendo}
+        onCerrar={() => setRadicarComparendo(false)}
+        onRadicado={(id) => {
+          setRadicarComparendo(false);
+          navigate(`/panel/comparendos/${id}`);
+        }}
+      />
     </header>
   );
 }

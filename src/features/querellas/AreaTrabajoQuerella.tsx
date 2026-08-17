@@ -13,6 +13,7 @@ import { OrientacionesInspector } from '@/shared/orientaciones/OrientacionesInsp
 import { AnalisisPage } from '@/features/analisis/AnalisisPage';
 import { ELEVACION, PALETA } from '@/theme/theme';
 import { PartesQuerellaForm } from './PartesQuerellaForm';
+import { abreElExpediente } from './seleccionDocumentos';
 
 const { Title, Text } = Typography;
 
@@ -182,12 +183,9 @@ export function AreaTrabajoQuerella() {
           disabled={subiendo}
           showUploadList={false}
           accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-          beforeUpload={() => false}
-          onChange={({ fileList }) => {
-            // Ant entrega RcFile, que extiende File; se filtran los que aún no
-            // lo traen para no arrancar con una selección a medias.
-            const archivos = fileList.flatMap((f) => (f.originFileObj ? [f.originFileObj as File] : []));
-            if (archivos.length === fileList.length) void empezarConDocumentos(archivos);
+          beforeUpload={(archivo, seleccion) => {
+            if (abreElExpediente(archivo, seleccion)) void empezarConDocumentos(seleccion as File[]);
+            return false; // la subida la hacemos nosotros, contra el caso recién creado
           }}
           style={{ borderRadius: 14, background: PALETA.superficie }}
         >

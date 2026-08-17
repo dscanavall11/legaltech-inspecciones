@@ -1,4 +1,5 @@
 import { apiFetch, contextHeaders } from '@/shared/api/client';
+import type { PartesExtraidas } from '@/features/querellas/partesExtraidas';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api';
 
@@ -117,6 +118,12 @@ export interface ComplaintResponseFields {
   parteResolutiva: string;
   recursos: string;
   audiosTranscriptions: string;
+  /**
+   * Sujetos procesales leídos de los documentos, para prellenar la ficha. No es
+   * contenido del fallo: es una propuesta que el inspector verifica antes de
+   * firmar. Ver features/querellas/partesExtraidas.ts.
+   */
+  extractedParties?: PartesExtraidas;
   /** false si Analista y Auditor no convergieron: requiere resolución del inspector. */
   consensusReached?: boolean;
   /** Argumentos en conflicto cuando no hubo consenso. */

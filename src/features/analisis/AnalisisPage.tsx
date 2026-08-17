@@ -14,6 +14,12 @@ import { ELEVACION, PALETA } from '@/theme/theme';
 import { useInspeccionStore } from '@/store/inspeccionStore';
 import { useChangeCaseState, useUpdateCaseFields } from '@/shared/legalCases/api';
 import { buildCaseMetadata, parseCaseMetadata } from '@/shared/legalCases/types';
+import { leerPartes } from '@/features/querellas/partes';
+import {
+  camposPorVerificar,
+  fusionarExtraidas,
+  type PartesExtraidas,
+} from '@/features/querellas/partesExtraidas';
 import {
   analizarEstructurado,
   getLegalCase,
@@ -234,11 +240,40 @@ export function AnalisisPage({ caseId, embebido = false, autoGenerar = false }: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoGenerar, caso, generando]);
 
+  /**
+   * Guarda en la ficha los sujetos procesales que el analizador leyó de los
+   * documentos. Rellena huecos y nunca pisa lo que el inspector escribió.
+   *
+   * Se avisa de qué campos vinieron de la máquina: son datos que van a
+   * identificar personas en una decisión firmada, así que se cotejan contra el
+   * documento, no se dan por buenos porque aparecieron solos.
+   */
+  async function volcarPartesExtraidas(extraidas?: PartesExtraidas) {
+    if (!casoId || !extraidas) return;
+    const propuestos = camposPorVerificar(extraidas);
+    if (propuestos.length === 0) return;
+
+    const actuales = leerPartes(caso?.caseMetadata ?? null);
+    const fusionadas = fusionarExtraidas(actuales, extraidas);
+    const metaActual = parseCaseMetadata<Record<string, unknown>>(caso?.caseMetadata ?? null);
+
+    actualizarCampos.mutate(
+      { id: casoId, fields: { caseMetadata: buildCaseMetadata({ ...metaActual, partes: fusionadas }) } },
+      {
+        onSuccess: () =>
+          message.info(
+            `Datos del proceso extraídos de los documentos: ${propuestos.join(', ')}. Verifíquelos en la ficha antes de proferir.`,
+          ),
+      },
+    );
+  }
+
   async function generarBorrador() {
     setGenerando(true);
     setErrorGeneracion(null);
     try {
       const campos: ComplaintResponseFields = await analizarEstructurado(casoId ?? '', caso?.currentStateCode);
+      void volcarPartesExtraidas(campos.extractedParties);
       setBorrador({
         competencia: campos.competencia ?? '',
         antecedents: campos.antecedents ?? '',

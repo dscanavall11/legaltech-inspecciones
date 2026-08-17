@@ -37,7 +37,7 @@ export interface PartesQuerella {
   matriculaInmobiliaria: string;
 }
 
-const PARTE_VACIA: DatosParte = {
+export const PARTE_VACIA: DatosParte = {
   nombre: '',
   tipoIdentificacion: 'CC',
   identificacion: '',

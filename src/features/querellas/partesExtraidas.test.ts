@@ -1,22 +1,37 @@
 import { describe, expect, it } from 'vitest';
 import { PARTES_VACIAS, type PartesQuerella } from './partes';
-import { camposPorVerificar, fusionarExtraidas, type PartesExtraidas } from './partesExtraidas';
+import { camposPorVerificar, fusionarExtraidas, type ParteExtraida } from './partesExtraidas';
 
-const EXTRAIDAS: PartesExtraidas = {
-  querellanteNombre: 'Nombre leído del documento',
-  querellanteIdentificacion: '0000001',
-  calidadQuerellante: 'poseedor',
-  querelladoNombre: 'Otro nombre leído',
-  inmuebleDireccion: 'Calle de prueba 1-2',
-};
+const EXTRAIDAS: ParteExtraida[] = [
+  {
+    role: 'querellante',
+    fullName: 'Nombre leído del documento',
+    identificationNumber: '0000001',
+    capacity: 'poseedor',
+  },
+  { role: 'querellado', fullName: 'Otro nombre leído' },
+];
 
 describe('fusionarExtraidas', () => {
-  it('rellena la ficha vacía con lo que leyó de los documentos', () => {
+  it('reparte las partes por su rol', () => {
     const r = fusionarExtraidas(PARTES_VACIAS, EXTRAIDAS);
     expect(r.querellante.nombre).toBe('Nombre leído del documento');
     expect(r.querellante.identificacion).toBe('0000001');
+    expect(r.querellado.nombre).toBe('Otro nombre leído');
     expect(r.calidadQuerellante).toBe('poseedor');
-    expect(r.inmuebleDireccion).toBe('Calle de prueba 1-2');
+  });
+
+  it('reconoce las grafías que usan los documentos reales', () => {
+    const r = fusionarExtraidas(PARTES_VACIAS, [
+      { role: 'Presunto Infractor', fullName: 'Quien figura como infractor' },
+    ]);
+    expect(r.querellado.nombre).toBe('Quien figura como infractor');
+  });
+
+  it('un rol desconocido no se cuela en ninguna casilla', () => {
+    const r = fusionarExtraidas(PARTES_VACIAS, [{ role: 'testigo', fullName: 'Un testigo' }]);
+    expect(r.querellante.nombre).toBe('');
+    expect(r.querellado.nombre).toBe('');
   });
 
   it('NO pisa lo que el inspector ya escribió', () => {
@@ -28,17 +43,17 @@ describe('fusionarExtraidas', () => {
     const r = fusionarExtraidas(conDatos, EXTRAIDAS);
     expect(r.querellante.nombre).toBe('Lo que puso el inspector');
     expect(r.calidadQuerellante).toBe('propietario');
-    // Los huecos sí se rellenan.
     expect(r.querellado.nombre).toBe('Otro nombre leído');
   });
 
-  it('un campo en blanco del analizador no borra nada ni escribe vacíos', () => {
-    const r = fusionarExtraidas(PARTES_VACIAS, { querellanteNombre: '   ' });
+  it('un campo en blanco del analizador no escribe vacíos', () => {
+    const r = fusionarExtraidas(PARTES_VACIAS, [{ role: 'querellante', fullName: '   ' }]);
     expect(r.querellante.nombre).toBe('');
   });
 
   it('sin extracción devuelve la ficha intacta', () => {
     expect(fusionarExtraidas(PARTES_VACIAS, undefined)).toEqual(PARTES_VACIAS);
+    expect(fusionarExtraidas(PARTES_VACIAS, [])).toEqual(PARTES_VACIAS);
   });
 
   it('conserva los campos que la extracción no cubre', () => {
@@ -51,7 +66,7 @@ describe('camposPorVerificar', () => {
   it('nombra solo lo que la máquina propuso, para que el inspector lo coteje', () => {
     const campos = camposPorVerificar(EXTRAIDAS);
     expect(campos).toContain('nombre del querellante');
-    expect(campos).toContain('dirección del inmueble');
+    expect(campos).toContain('calidad en que actúa');
     // No propuso identificación del querellado: no se pide verificar lo que no dijo.
     expect(campos).not.toContain('identificación del querellado');
   });

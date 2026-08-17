@@ -18,7 +18,7 @@ import { leerPartes } from '@/features/querellas/partes';
 import {
   camposPorVerificar,
   fusionarExtraidas,
-  type PartesExtraidas,
+  type ParteExtraida,
 } from '@/features/querellas/partesExtraidas';
 import {
   analizarEstructurado,
@@ -248,7 +248,7 @@ export function AnalisisPage({ caseId, embebido = false, autoGenerar = false }: 
    * identificar personas en una decisión firmada, así que se cotejan contra el
    * documento, no se dan por buenos porque aparecieron solos.
    */
-  async function volcarPartesExtraidas(extraidas?: PartesExtraidas) {
+  async function volcarPartesExtraidas(extraidas?: ParteExtraida[]) {
     if (!casoId || !extraidas) return;
     const propuestos = camposPorVerificar(extraidas);
     if (propuestos.length === 0) return;

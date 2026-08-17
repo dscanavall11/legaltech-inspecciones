@@ -84,6 +84,9 @@ export function AreaTrabajoQuerella() {
   const inspeccion = useInspeccionStore((s) => s.config);
   const crearCaso = useCreateLegalCase();
   const [subiendo, setSubiendo] = useState(false);
+  // Solo el expediente abierto desde sus documentos se analiza solo. Uno ya
+  // radicado que se abre para revisarlo no dispara una llamada de IA sin pedirla.
+  const [reciendeDocumentos, setRecienDeDocumentos] = useState(false);
 
   const { data: querellas, isLoading: cargandoLista } = useProcesos({ caseType: 'querella' });
   const { data: caso, isLoading: cargandoCaso } = useLegalCase(casoId);
@@ -97,7 +100,10 @@ export function AreaTrabajoQuerella() {
     [querellas],
   );
 
-  const elegir = (id: string) => setSearchParams(id ? { caso: id } : {}, { replace: true });
+  const elegir = (id: string) => {
+    setRecienDeDocumentos(false);
+    setSearchParams(id ? { caso: id } : {}, { replace: true });
+  };
 
   /**
    * Soltar los documentos ES el primer paso: de un tirón abre el expediente y
@@ -129,6 +135,9 @@ export function AreaTrabajoQuerella() {
       const fallidas = subidas.filter((s) => s.status === 'rejected').length;
 
       elegir(nuevo.id);
+      // Después de elegir, porque elegir() lo apaga: este expediente sí nació de
+      // los documentos y su análisis arranca solo.
+      setRecienDeDocumentos(true);
       // El expediente ya existe aunque falle un archivo: se dice cuántos, no se
       // finge que todo entró.
       if (fallidas > 0) {
@@ -269,7 +278,7 @@ export function AreaTrabajoQuerella() {
           </Paso>
 
           <Paso paso={PASOS[4]}>
-            <AnalisisPage caseId={caso.id} embebido />
+            <AnalisisPage caseId={caso.id} embebido autoGenerar={reciendeDocumentos} />
           </Paso>
         </>
       )}

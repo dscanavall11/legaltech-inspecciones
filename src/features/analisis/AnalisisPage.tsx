@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Alert, Button, DatePicker, Descriptions, Input, Skeleton, Spin, Tag, Typography, App } from 'antd';
 import dayjs from 'dayjs';
@@ -134,9 +134,15 @@ export interface AnalisisPageProps {
   caseId?: string;
   /** Embebido en una pestaña: sin título propio y sin salir al terminar. */
   embebido?: boolean;
+  /**
+   * Analiza los documentos en cuanto carga el expediente, sin esperar a que el
+   * inspector pulse "generar". Se usa al abrir un expediente desde sus propios
+   * documentos, donde soltar los archivos ya expresó la intención.
+   */
+  autoGenerar?: boolean;
 }
 
-export function AnalisisPage({ caseId, embebido = false }: AnalisisPageProps = {}) {
+export function AnalisisPage({ caseId, embebido = false, autoGenerar = false }: AnalisisPageProps = {}) {
   const { message } = App.useApp();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -207,6 +213,26 @@ export function AnalisisPage({ caseId, embebido = false }: AnalisisPageProps = {
   function set<K extends keyof BorradorFallo>(k: K, v: string) {
     setBorrador((prev) => ({ ...prev, [k]: v }));
   }
+
+  /**
+   * Análisis automático al abrir un expediente recién creado desde sus
+   * documentos: el inspector ya dijo lo que quería al soltarlos, pedirle además
+   * que baje y pulse "generar" es un paso de más.
+   *
+   * Corre una sola vez y solo si no hay borrador: no se pisa el trabajo de nadie
+   * ni se repite el gasto al volver a la página. La extracción del texto de los
+   * documentos ocurre server-side dentro de esta misma llamada.
+   */
+  const autoGenerado = useRef(false);
+  useEffect(() => {
+    if (!autoGenerar || autoGenerado.current) return;
+    if (!caso || generando) return;
+    if (Object.values(borrador).some((v) => v.trim().length > 0)) return;
+    autoGenerado.current = true;
+    void generarBorrador();
+    // generarBorrador se redefine en cada render; el ref es lo que garantiza una sola pasada.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoGenerar, caso, generando]);
 
   async function generarBorrador() {
     setGenerando(true);

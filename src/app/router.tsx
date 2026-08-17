@@ -23,6 +23,11 @@ const AudienciasPage = lazy(() =>
 const MultasPage = lazy(() =>
   import('@/features/multas/MultasPage').then((m) => ({ default: m.MultasPage })),
 );
+const AreaTrabajoQuerella = lazy(() =>
+  import('@/features/querellas/AreaTrabajoQuerella').then((m) => ({
+    default: m.AreaTrabajoQuerella,
+  })),
+);
 const ApelacionDetailPage = lazy(() =>
   import('@/features/apelaciones/ApelacionDetailPage').then((m) => ({
     default: m.ApelacionDetailPage,
@@ -131,10 +136,7 @@ export const router = createBrowserRouter([
         path: 'querellas',
         element: (
           <Cargando>
-            <BandejaProcesos
-              tipo="querella"
-              titulo="Querellas"
-            />
+            <AreaTrabajoQuerella />
           </Cargando>
         ),
       },

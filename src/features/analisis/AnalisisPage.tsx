@@ -34,7 +34,10 @@ import {
   descargarDocumentoLegalPdf,
   generarDocumentoLegalBlob,
 } from '@/shared/documentos/documentoLegalPdf';
-import { descargarDocumentoLegalDocx } from '@/shared/documentos/documentoLegalDocx';
+import {
+  descargarDocumentoLegalDocx,
+  generarDocumentoLegalDocxBlob,
+} from '@/shared/documentos/documentoLegalDocx';
 import { useUploadCaseDocument } from '@/shared/documentos/api';
 
 // legalReasoning/evidenceAssessment ya existen como columnas genéricas en
@@ -143,19 +146,32 @@ export function AnalisisPage({ caseId, embebido = false }: AnalisisPageProps = {
   const actualizarCampos = useUpdateCaseFields();
   const subir = useUploadCaseDocument(casoId ?? '');
 
-  // Archiva el fallo proferido como versión en el expediente S3 (advisory:
-  // un fallo del PDF nunca debe tumbar el guardado del fallo ya proferido).
+  /**
+   * Archiva el fallo proferido en el expediente, en PDF y en Word.
+   *
+   * El PDF es el que se firma y se notifica; el .docx es el que el despacho
+   * necesita para corregir una errata sin rehacer el trámite. Archivar solo uno
+   * obliga a reconstruir el otro a mano.
+   *
+   * Advisory: que falle la generación de un formato no puede tumbar el guardado
+   * del fallo, que ya quedó proferido.
+   */
   const archivarFalloEnExpediente = () => {
     if (!documento) return;
-    generarDocumentoLegalBlob(documento, inspeccion.membreteDataUrl)
-      .then((blob) =>
-        subir.mutate(
-          new File([blob], `${documento.tituloDocumento} ${documento.proceso || 'borrador'}.pdf`, {
-            type: 'application/pdf',
+    const base = `${documento.tituloDocumento} ${documento.proceso || 'borrador'}`;
+
+    void Promise.allSettled([
+      generarDocumentoLegalBlob(documento, inspeccion.membreteDataUrl).then((blob) =>
+        subir.mutateAsync(new File([blob], `${base}.pdf`, { type: 'application/pdf' })),
+      ),
+      generarDocumentoLegalDocxBlob(documento, inspeccion.membreteDataUrl).then((blob) =>
+        subir.mutateAsync(
+          new File([blob], `${base}.docx`, {
+            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
           }),
         ),
-      )
-      .catch(() => undefined);
+      ),
+    ]);
   };
 
   const [caso, setCaso] = useState<LegalCase | null>(null);

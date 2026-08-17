@@ -1,7 +1,9 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Alert, App, Button, Card, Divider, Empty, Select, Skeleton, Space, Tag, Typography } from 'antd';
+import { Alert, App, Card, Divider, Empty, Select, Skeleton, Space, Tag, Typography, Upload } from 'antd';
+import { LoadingOutlined } from '@ant-design/icons';
 import { FolderPlus } from 'lucide-react';
+import { apiFetch } from '@/shared/api/client';
 import { useProcesos } from '@/shared/procesos/api';
 import { useCreateLegalCase, useLegalCase } from '@/shared/legalCases/api';
 import { useInspeccionStore } from '@/store/inspeccionStore';
@@ -81,6 +83,7 @@ export function AreaTrabajoQuerella() {
   const { message } = App.useApp();
   const inspeccion = useInspeccionStore((s) => s.config);
   const crearCaso = useCreateLegalCase();
+  const [subiendo, setSubiendo] = useState(false);
 
   const { data: querellas, isLoading: cargandoLista } = useProcesos({ caseType: 'querella' });
   const { data: caso, isLoading: cargandoCaso } = useLegalCase(casoId);
@@ -97,28 +100,51 @@ export function AreaTrabajoQuerella() {
   const elegir = (id: string) => setSearchParams(id ? { caso: id } : {}, { replace: true });
 
   /**
-   * Abre un expediente vacío para empezar a trabajar desde los documentos.
+   * Soltar los documentos ES el primer paso: de un tirón abre el expediente y
+   * los sube. Pedir antes un "abrir expediente" era un clic que no significaba
+   * nada para el inspector, que lo que tiene en la mano son los papeles.
    *
-   * Se crea ya, no al aprobar: los documentos y las pruebas se guardan colgados
-   * de un caso, así que sin él no hay dónde ponerlos y el trabajo viviría en la
-   * memoria del navegador hasta el final. El radicado lo asigna legalcase.
+   * El expediente se crea aquí y no al aprobar porque los documentos se guardan
+   * colgados de un caso: sin él no hay dónde ponerlos y el trabajo viviría en la
+   * memoria del navegador. El radicado lo asigna legalcase.
    */
-  const abrirExpedienteNuevo = () => {
-    crearCaso.mutate(
-      {
+  const empezarConDocumentos = async (archivos: File[]) => {
+    if (archivos.length === 0) return;
+    setSubiendo(true);
+    try {
+      const nuevo = await crearCaso.mutateAsync({
         caseType: 'querella',
         className: 'Querella',
         judicialOfficeId: inspeccion.inspeccion || 'Inspección de Convivencia y Paz',
         venueCity: inspeccion.municipio || '',
-      },
-      {
-        onSuccess: (nuevo) => {
-          elegir(nuevo.id);
-          message.success(`Expediente abierto: ${nuevo.filingNumber}. Ya está en Mis procesos.`);
-        },
-        onError: () => message.error('No se pudo abrir el expediente. Intente de nuevo.'),
-      },
-    );
+      });
+
+      const subidas = await Promise.allSettled(
+        archivos.map((archivo) => {
+          const body = new FormData();
+          body.append('file', archivo, archivo.name);
+          return apiFetch(`/tools/expedientes/${nuevo.id}/documents`, { method: 'POST', body });
+        }),
+      );
+      const fallidas = subidas.filter((s) => s.status === 'rejected').length;
+
+      elegir(nuevo.id);
+      // El expediente ya existe aunque falle un archivo: se dice cuántos, no se
+      // finge que todo entró.
+      if (fallidas > 0) {
+        message.warning(
+          `Expediente ${nuevo.filingNumber} abierto, pero ${fallidas} de ${archivos.length} documentos no se pudieron subir. Vuelva a cargarlos en el paso 1.`,
+        );
+      } else {
+        message.success(
+          `Expediente ${nuevo.filingNumber} abierto con ${archivos.length} documento(s). Ya está en Mis procesos.`,
+        );
+      }
+    } catch {
+      message.error('No se pudo abrir el expediente. Intente de nuevo.');
+    } finally {
+      setSubiendo(false);
+    }
   };
 
   return (
@@ -138,19 +164,38 @@ export function AreaTrabajoQuerella() {
           Empezar desde los documentos
         </div>
         <Text type="secondary" style={{ display: 'block', fontSize: 12.5, marginBottom: 12 }}>
-          No hace falta radicar antes en otro sitio. Se abre el expediente aquí, se cargan los
-          documentos y el análisis extrae de ellos los hechos y los fundamentos. Queda en Mis
-          procesos desde este momento, no al final: así el trabajo no se pierde si cierra la página.
+          No hace falta radicar antes en otro sitio. Suelte aquí los documentos: se abre el
+          expediente con ellos dentro y el análisis extrae los hechos y los fundamentos. Queda en Mis
+          procesos desde ese momento, no al final, así el trabajo no se pierde si cierra la página.
         </Text>
-        <Button
-          type="primary"
-          size="large"
-          icon={<FolderPlus size={17} strokeWidth={1.9} />}
-          loading={crearCaso.isPending}
-          onClick={() => abrirExpedienteNuevo()}
+        <Upload.Dragger
+          multiple
+          disabled={subiendo}
+          showUploadList={false}
+          accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+          beforeUpload={() => false}
+          onChange={({ fileList }) => {
+            // Ant entrega RcFile, que extiende File; se filtran los que aún no
+            // lo traen para no arrancar con una selección a medias.
+            const archivos = fileList.flatMap((f) => (f.originFileObj ? [f.originFileObj as File] : []));
+            if (archivos.length === fileList.length) void empezarConDocumentos(archivos);
+          }}
+          style={{ borderRadius: 14, background: PALETA.superficie }}
         >
-          Abrir expediente y cargar documentos
-        </Button>
+          <p style={{ margin: '6px 0 8px' }}>
+            {subiendo ? (
+              <LoadingOutlined style={{ fontSize: 26, color: PALETA.azul }} />
+            ) : (
+              <FolderPlus size={26} strokeWidth={1.6} color={PALETA.azul} />
+            )}
+          </p>
+          <p style={{ margin: 0, fontSize: 14.5, fontWeight: 500 }}>
+            {subiendo ? 'Abriendo el expediente…' : 'Arrastre los documentos del proceso, o haga clic'}
+          </p>
+          <p style={{ margin: '4px 0 6px', fontSize: 12.5, color: PALETA.textoSuave }}>
+            Querella, contestación, actas, pruebas documentales. PDF, Word o imagen.
+          </p>
+        </Upload.Dragger>
 
         <Divider style={{ margin: '18px 0 14px' }} plain>
           <Text type="secondary" style={{ fontSize: 12 }}>

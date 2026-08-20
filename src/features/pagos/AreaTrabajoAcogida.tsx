@@ -268,6 +268,35 @@ export function AreaTrabajoAcogida({ via }: { via: ViaAcogida }) {
               ]}
               style={{ marginBottom: 14 }}
             />
+            {/* Mismo selector compacto que en firmeza — solo en la pestaña
+                PDF: la de Excel ya trae su propio buscador sobre la BD. */}
+            {bd.length > 0 && rutaCarga === 'pdf' && (
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: ESPACIO.md, marginBottom: ESPACIO.sm }}>
+                  <span style={{ flex: 1, height: 1, background: PALETA.borde }} />
+                  <span style={{ fontSize: TEXTO.nota, color: PALETA.textoTenue }}>
+                    o uno de la cola ({bd.length})
+                  </span>
+                  <span style={{ flex: 1, height: 1, background: PALETA.borde }} />
+                </div>
+                <Select
+                  showSearch
+                  allowClear
+                  style={{ width: '100%' }}
+                  placeholder="Comparendo, cédula o nombre…"
+                  suffixIcon={<SearchOutlined />}
+                  value={datos.comparendo || undefined}
+                  onChange={(v) => v && seleccionarComparendo(v)}
+                  filterOption={(input, option) =>
+                    String(option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                  }
+                  options={bd.map((c) => ({
+                    value: c.comparendo,
+                    label: `${c.comparendo} · ${c.solicitado} · CC ${c.cedula}`,
+                  }))}
+                />
+              </div>
+            )}
             {rutaCarga === 'pdf' ? (
               <>
                 <input

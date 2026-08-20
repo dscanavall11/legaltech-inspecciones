@@ -10,7 +10,6 @@ import {
   Tag,
   Typography,
   App,
-  Table,
 } from 'antd';
 import {
   DownloadOutlined,
@@ -20,11 +19,9 @@ import {
   UploadOutlined,
   SearchOutlined,
   SafetyCertificateOutlined,
-  UnorderedListOutlined,
 } from '@ant-design/icons';
 import { Sparkles } from 'lucide-react';
 import dayjs from 'dayjs';
-import { Link } from 'react-router-dom';
 import {
   generarActaFirmeza,
   actaFirmezaComoDocumento,
@@ -49,12 +46,12 @@ import { ELEVACION, PALETA } from '@/theme/theme';
 import { useInspeccionStore } from '@/store/inspeccionStore';
 import { useAiChat } from '@/shared/ai/useAiChat';
 import { Campo } from '@/shared/ui/Campo';
-import { Tarjeta } from '@/shared/ui/Tarjeta';
 import { Bloque } from '@/shared/ui/Bloque';
 import { TEXTO, RADIO, RELLENO } from '@/theme/escala';
 import { useComparendosStore } from '@/shared/comparendos/store';
 import { CabeceraPagina } from '@/shared/ui/CabeceraPagina';
 import { ESPACIO } from '@/theme/escala';
+import { NORMA } from '@/shared/ai/identity';
 
 const { Text } = Typography;
 
@@ -273,87 +270,6 @@ export function ActasFirmezaPage() {
       />
       <div style={{ height: ESPACIO.lg }} />
 
-      {/* ── Cola de trabajo: actas de firmeza cargadas desde el CSV/Excel ── */}
-      <Tarjeta style={{ marginBottom: 22 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <Text strong>Cola de trabajo — actas de firmeza ({bd.length})</Text>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Link to="/panel/procesos">
-              <Button size="small" icon={<UnorderedListOutlined />}>
-                Ver todos los procesos
-              </Button>
-            </Link>
-            <Tag color={origenBd === 'archivo' ? 'green' : 'blue'}>
-              {origenBd === 'archivo' ? 'BD del despacho' : 'BD de demostración'}
-            </Tag>
-          </div>
-        </div>
-        <Table<Comparendo>
-          size="small"
-          pagination={{ pageSize: 8, hideOnSinglePage: true }}
-          dataSource={bd}
-          rowKey={(c) => c.comparendo}
-          onRow={(c) => ({
-            onClick: () => seleccionarComparendo(c.comparendo),
-            style: { cursor: 'pointer' },
-          })}
-          columns={[
-            { title: 'Comparendo', dataIndex: 'comparendo', key: 'comparendo', width: 150 },
-            { title: 'Infractor', dataIndex: 'solicitado', key: 'solicitado', ellipsis: true },
-            {
-              title: 'Multa',
-              dataIndex: 'tipoMulta',
-              key: 'tipoMulta',
-              width: 80,
-              render: (t: TipoMulta) => `Tipo ${t}`,
-            },
-            {
-              title: 'Reincidencia',
-              dataIndex: 'causal',
-              key: 'causal',
-              width: 160,
-              render: (c: CausalIncremento) =>
-                c === 'ninguna' ? (
-                  <Tag color="default">Sin reincidencia</Tag>
-                ) : (
-                  <Tag color="volcano">{INCREMENTO_LABEL[c]}</Tag>
-                ),
-            },
-            {
-              title: 'Estado',
-              key: 'estado',
-              width: 110,
-              render: (_: unknown, c: Comparendo) =>
-                datos.comparendo === c.comparendo ? (
-                  <Tag color="processing">En edición</Tag>
-                ) : (
-                  <Tag color="default">Pendiente</Tag>
-                ),
-            },
-            {
-              title: '',
-              key: 'accion',
-              width: 90,
-              render: (_: unknown, c: Comparendo) => (
-                <Button
-                  size="small"
-                  type={datos.comparendo === c.comparendo ? 'primary' : 'default'}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    seleccionarComparendo(c.comparendo);
-                  }}
-                >
-                  {datos.comparendo === c.comparendo ? 'Abierto' : 'Abrir'}
-                </Button>
-              ),
-            },
-          ]}
-        />
-        <div style={{ fontSize: TEXTO.menor, color: PALETA.textoTenue, marginTop: 8 }}>
-          Seleccione un comparendo de la cola para cargarlo en el editor (HITL) y generar su acta.
-        </div>
-      </Tarjeta>
-
       <div style={{ display: 'flex', gap: 22, alignItems: 'flex-start', flexWrap: 'wrap' }}>
         {/* ── Columna izquierda: un solo contenedor, no cinco tarjetas
             compitiendo por peso — mismo lenguaje que querellas/quejas
@@ -384,6 +300,39 @@ export function ActasFirmezaPage() {
               ]}
               style={{ marginBottom: 14 }}
             />
+
+            {/* La cola era una tabla a lo ancho de la página, con más peso
+                que la vista y edición del acta. Un selector compacto —
+                mismo lenguaje que "o uno ya radicado" en querellas/quejas —
+                cubre lo mismo sin dominar la pantalla. Solo en la pestaña
+                PDF: la de Excel ya trae su propio buscador sobre la BD. */}
+            {bd.length > 0 && ruta === 'pdf' && (
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: ESPACIO.md, marginBottom: ESPACIO.sm }}>
+                  <span style={{ flex: 1, height: 1, background: PALETA.borde }} />
+                  <span style={{ fontSize: TEXTO.nota, color: PALETA.textoTenue }}>
+                    o uno de la cola ({bd.length})
+                  </span>
+                  <span style={{ flex: 1, height: 1, background: PALETA.borde }} />
+                </div>
+                <Select
+                  showSearch
+                  allowClear
+                  style={{ width: '100%' }}
+                  placeholder="Comparendo, cédula o nombre…"
+                  suffixIcon={<SearchOutlined />}
+                  value={datos.comparendo || undefined}
+                  onChange={(v) => v && seleccionarComparendo(v)}
+                  filterOption={(input, option) =>
+                    String(option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                  }
+                  options={bd.map((c) => ({
+                    value: c.comparendo,
+                    label: `${c.comparendo} · ${c.solicitado} · CC ${c.cedula}`,
+                  }))}
+                />
+              </div>
+            )}
 
             {ruta === 'pdf' ? (
               <>
@@ -655,7 +604,7 @@ export function ActasFirmezaPage() {
                   loading={enviandoIA}
                   disabled={enviandoIA}
                 >
-                  Asistir con IA (redacta hechos)
+                  Asistir con {NORMA.nombre} (redacta hechos)
                 </Button>
                 {enviandoIA && (
                   <Button size="small" danger onClick={() => detenerIA()}>

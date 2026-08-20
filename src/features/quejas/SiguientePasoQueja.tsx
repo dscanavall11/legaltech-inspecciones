@@ -34,6 +34,7 @@ import {
 } from './documentosQueja';
 import type { Queja } from './types';
 import { PALETA } from '@/theme/theme';
+import { TEXTO } from '@/theme/escala';
 
 const { TextArea } = Input;
 
@@ -151,7 +152,7 @@ export function SiguientePasoQueja({ queja }: { queja: Queja & { caseMetadataRaw
       >
         <Text
           type="secondary"
-          style={{ fontSize: 11, letterSpacing: '0.09em', fontWeight: 600 }}
+          style={{ fontSize: TEXTO.nota, letterSpacing: '0.09em', fontWeight: 600 }}
         >
           PRÓXIMA ACTUACIÓN
         </Text>

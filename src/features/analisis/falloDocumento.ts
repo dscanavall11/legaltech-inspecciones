@@ -25,6 +25,14 @@ export interface BorradorFallo {
   tramite: string;
   /** 4. Problema jurídico — el motivo de policía como pregunta asertiva */
   juridicProblem: string;
+  /**
+   * 5. Argumentos y/o descargos del ciudadano. No está entre los nueve del
+   * art. 2.2.8.18.7.1, pero el despacho lo profiere siempre: un fallo sin los
+   * descargos es una decisión firmada que omite la defensa.
+   */
+  descargos: string;
+  /** 6. Pruebas obrantes: qué se incorporó, su decreto y su práctica. Distinto de valorarlas. */
+  pruebasObrantes: string;
   /** 5. Análisis crítico o valoración probatoria */
   evidences: string;
   /**
@@ -53,21 +61,41 @@ export interface AparteFallo {
   delDecreto7_1: boolean;
 }
 
+/**
+ * Los apartes en el orden en que ESTE despacho profiere la decisión, tomado de
+ * sus plantillas reales (ver okf-bundles/.../fallo-comparendo.yaml).
+ *
+ * Dos cosas se apartan de la lectura literal del art. 2.2.8.18.7.1 y las dos
+ * son deliberadas:
+ *
+ * - 'descargos' y 'pruebasObrantes' no están entre los nueve del decreto, pero
+ *   el despacho los profiere siempre. Sin ellos el fallo omite la defensa del
+ *   ciudadano y la constancia de qué prueba entró y cómo.
+ * - RECURSOS va ANTES de la decisión: en la audiencia se informa de los
+ *   recursos y después se resuelve, y la parte resolutiva vuelve a dejar la
+ *   notificación en estrados. Los nueve apartes siguen estando todos.
+ */
 export const APARTES_FALLO: AparteFallo[] = [
   { campo: 'competencia', titulo: 'COMPETENCIA', delDecreto7_1: true },
-  { campo: 'antecedents', titulo: 'HECHOS', delDecreto7_1: true },
+  { campo: 'antecedents', titulo: 'HECHOS Y TRÁMITE DESARROLLADO', delDecreto7_1: true },
   { campo: 'tramite', titulo: 'TRÁMITE DESARROLLADO', delDecreto7_1: true },
   { campo: 'juridicProblem', titulo: 'PROBLEMA JURÍDICO', delDecreto7_1: true },
-  { campo: 'evidences', titulo: 'ANÁLISIS CRÍTICO Y VALORACIÓN PROBATORIA', delDecreto7_1: true },
+  { campo: 'descargos', titulo: 'ARGUMENTOS Y/O DESCARGOS', delDecreto7_1: false },
+  { campo: 'pruebasObrantes', titulo: 'PRUEBAS OBRANTES', delDecreto7_1: false },
+  { campo: 'evidences', titulo: 'ANÁLISIS CRÍTICO O VALORACIÓN PROBATORIA', delDecreto7_1: true },
   {
     campo: 'necesidadProporcionalidad',
     titulo: 'ANÁLISIS DE NECESIDAD, RAZONABILIDAD Y PROPORCIONALIDAD',
     delDecreto7_1: false,
   },
-  { campo: 'juridicResponse', titulo: 'RESPUESTA AL PROBLEMA JURÍDICO', delDecreto7_1: true },
+  {
+    campo: 'juridicResponse',
+    titulo: 'RESPUESTA AL PROBLEMA JURÍDICO Y SENTIDO DE LA DECISIÓN',
+    delDecreto7_1: true,
+  },
   { campo: 'juridicFundamentals', titulo: 'FUNDAMENTOS DE DERECHO', delDecreto7_1: true },
-  { campo: 'parteResolutiva', titulo: 'DECISIÓN DEL CASO', delDecreto7_1: true },
   { campo: 'recursos', titulo: 'RECURSOS', delDecreto7_1: true },
+  { campo: 'parteResolutiva', titulo: 'DECISIÓN DEL CASO', delDecreto7_1: true },
 ];
 
 export interface DespachoFallo {

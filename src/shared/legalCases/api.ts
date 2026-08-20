@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/shared/api/client';
-import type { CreateLegalCaseInput, LegalCase, PagedResponse } from './types';
+import type { CaseParty, CreateLegalCaseInput, LegalCase, PagedResponse } from './types';
 
 export const legalCasesKeys = {
   all: ['legal-cases'] as const,
@@ -99,6 +99,32 @@ export function useUpdateCaseFields() {
       apiFetch<LegalCase>(`/legal-cases/${id}/fields`, {
         method: 'PATCH',
         body: JSON.stringify(fields),
+      }),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: legalCasesKeys.all });
+      queryClient.invalidateQueries({ queryKey: legalCasesKeys.detalle(variables.id) });
+    },
+  });
+}
+
+/**
+ * Reemplaza los sujetos procesales del expediente. Reemplazo completo, no
+ * parche: quien llama tiene la lista entera del trámite que conoce.
+ *
+ * `case_parties` no es un duplicado de lo que cada feature guarda en
+ * `caseMetadata`: es de donde leen Mis procesos para rotular el expediente, el
+ * encabezado del fallo cuando la ficha no trae el dato, y el seudonimizador del
+ * servicio legal para saber qué nombres tapar antes de que el expediente salga
+ * hacia el modelo. Una ficha llena y `case_parties` vacío deja las tres cosas
+ * sin datos.
+ */
+export function useReplaceCaseParties() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, parties }: { id: string; parties: CaseParty[] }) =>
+      apiFetch<LegalCase>(`/legal-cases/${id}/parties`, {
+        method: 'PUT',
+        body: JSON.stringify(parties),
       }),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: legalCasesKeys.all });

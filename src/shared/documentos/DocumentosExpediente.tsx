@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Button, Upload, Typography, App, Tooltip, Skeleton, Alert } from 'antd';
+import { Button, Upload, Typography, App, Tooltip, Skeleton, Alert, Popconfirm } from 'antd';
 import {
   FilePdfOutlined,
   FileWordOutlined,
   FileImageOutlined,
   AudioOutlined,
   FileOutlined,
+  DeleteOutlined,
   DownloadOutlined,
   PlusOutlined,
   EyeOutlined,
@@ -13,9 +14,22 @@ import {
 import type { ReactNode } from 'react';
 import dayjs from 'dayjs';
 import { CASE_DOCUMENT_ORIGIN_LABEL, type CaseDocument, type CaseDocumentType } from './types';
-import { useCaseDocuments, useUploadCaseDocument, getCaseDocumentDownloadUrl } from './api';
+import {
+  useCaseDocuments,
+  useDeleteCaseDocument,
+  useUploadCaseDocument,
+  getCaseDocumentDownloadUrl,
+} from './api';
 import { VisorLateral } from './VisorLateral';
 import { PALETA } from '@/theme/theme';
+import { RADIO, TEXTO } from '@/theme/escala';
+import {
+  ACEPTA_EXPEDIENTE,
+  avisoDeRechazo,
+  avisoDeTamano,
+  esFormatoDeExpediente,
+  excedeElTope,
+} from './formatos';
 
 const { Text } = Typography;
 
@@ -31,10 +45,14 @@ function FilaDocumento({
   doc,
   onVer,
   onDescargar,
+  onEliminar,
+  eliminando,
 }: {
   doc: CaseDocument;
   onVer: () => void;
   onDescargar: () => void;
+  onEliminar: () => void;
+  eliminando: boolean;
 }) {
   const estilo = TYPE_STYLE[doc.fileType];
   return (
@@ -44,7 +62,7 @@ function FilaDocumento({
         alignItems: 'center',
         gap: 14,
         padding: '12px 14px',
-        borderRadius: 16,
+        borderRadius: RADIO.bloque,
         transition: 'background 0.2s ease',
       }}
       onMouseEnter={(e) => (e.currentTarget.style.background = '#f7f9fc')}
@@ -54,7 +72,7 @@ function FilaDocumento({
         style={{
           width: 42,
           height: 42,
-          borderRadius: 13,
+          borderRadius: RADIO.control,
           background: estilo.fondo,
           color: estilo.color,
           display: 'flex',
@@ -78,7 +96,7 @@ function FilaDocumento({
         >
           {doc.fileName}
         </div>
-        <div style={{ fontSize: 12, color: PALETA.textoTenue }}>
+        <div style={{ fontSize: TEXTO.nota, color: PALETA.textoTenue }}>
           {CASE_DOCUMENT_ORIGIN_LABEL[doc.origin]} · {dayjs(doc.date).format('D [de] MMMM, YYYY')}
           {doc.fileSize ? ` · ${doc.fileSize}` : ''}
         </div>
@@ -97,6 +115,26 @@ function FilaDocumento({
           aria-label={`Descargar ${doc.fileName}`}
         />
       </Tooltip>
+      {/* Se confirma porque no hay deshacer: el archivo y su gemelo Markdown
+          salen de S3, no van a una papelera. */}
+      <Popconfirm
+        title="Retirar del expediente"
+        description={`«${doc.fileName}» dejará de estar en el expediente y de pesar en el proyecto de fallo. No se puede deshacer.`}
+        okText="Retirar"
+        cancelText="Cancelar"
+        okButtonProps={{ danger: true, loading: eliminando }}
+        onConfirm={onEliminar}
+      >
+        <Tooltip title="Retirar del expediente">
+          <Button
+            type="text"
+            shape="circle"
+            danger
+            icon={<DeleteOutlined />}
+            aria-label={`Retirar ${doc.fileName} del expediente`}
+          />
+        </Tooltip>
+      </Popconfirm>
     </div>
   );
 }
@@ -111,6 +149,7 @@ export function DocumentosExpediente({ caseId }: { caseId: string }) {
   const { message } = App.useApp();
   const { data: documentos, isLoading, isError } = useCaseDocuments(caseId);
   const subir = useUploadCaseDocument(caseId);
+  const eliminar = useDeleteCaseDocument(caseId);
   const [docEnVista, setDocEnVista] = useState<CaseDocument | null>(null);
   const [urlVista, setUrlVista] = useState<string | null>(null);
 
@@ -164,6 +203,16 @@ export function DocumentosExpediente({ caseId }: { caseId: string }) {
               doc={d}
               onVer={() => verDocumento(d)}
               onDescargar={() => descargarDocumento(d)}
+              eliminando={eliminar.isPending}
+              onEliminar={() =>
+                eliminar.mutate(d.id, {
+                  onSuccess: () => message.success(`«${d.fileName}» retirado del expediente.`),
+                  onError: (e) =>
+                    message.error(
+                      `No se pudo retirar «${d.fileName}»: ${e instanceof Error ? e.message : 'error del servidor'}.`,
+                    ),
+                })
+              }
             />
           ))}
         </div>
@@ -172,12 +221,25 @@ export function DocumentosExpediente({ caseId }: { caseId: string }) {
       <div style={{ marginTop: 14 }}>
         <Upload
           multiple
-          accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.doc,.docx,.mp3,.wav"
+          accept={ACEPTA_EXPEDIENTE}
           showUploadList={false}
           beforeUpload={(file) => {
+            // El aviso es el punto: `accept` descartaba en silencio y el
+            // inspector veia que "no se deja cargar" sin que nada se lo dijera.
+            if (!esFormatoDeExpediente(file.name)) {
+              message.error(avisoDeRechazo([file]));
+              return false;
+            }
+            if (excedeElTope(file.size)) {
+              message.error(avisoDeTamano(file.name, file.size));
+              return false;
+            }
             subir.mutate(file, {
               onSuccess: () => message.success(`«${file.name}» incorporado al expediente.`),
-              onError: () => message.error(`No se pudo subir «${file.name}».`),
+              onError: (e) =>
+                message.error(
+                  `No se pudo subir «${file.name}»: ${e instanceof Error ? e.message : 'error del servidor'}.`,
+                ),
             });
             return false; // subimos nosotros mismos via useUploadCaseDocument
           }}

@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
+import { Check, ChevronDown, ChevronRight, X } from 'lucide-react';
 import { PruebasExpediente } from '@/shared/pruebas/PruebasExpediente';
 import { DocumentosExpediente } from '@/shared/documentos/DocumentosExpediente';
 import type { FilaProceso } from '@/shared/procesos/types';
 import { PALETA } from '@/theme/palette';
-import { ELEVACION } from '@/theme/theme';
+import { ESPACIO, TEXTO } from '@/theme/escala';
 import { HERRAMIENTAS, motivoNoDisponible, type ClaveHerramienta, type Herramienta } from './herramientas';
 import { PanelDocumento, PanelMultas, PanelNorma } from './paneles';
 import { PanelContador, PanelEtapa, PanelGrafo } from './panelesCaso';
@@ -16,135 +16,71 @@ interface Props {
   artefacto: { titulo: string; artefacto: Artefacto } | null;
   onAbrir: (clave: ClaveHerramienta) => void;
   onCerrar: (clave: ClaveHerramienta) => void;
-  ancho: number;
-  colapsada: boolean;
-  onColapsar: (colapsada: boolean) => void;
 }
 
 /**
- * Columna derecha: la pila de herramientas abiertas. Cada tarjeta monta el
- * componente que ya existe en el repo (ver el mapa de abajo); acá solo se
- * decide qué se ofrece según el caso activo y cómo se apila.
+ * Herramientas del asistente, montadas dentro de un Drawer lateral (ver
+ * AsistentePage). Arriba va el directorio completo de herramientas —cada fila
+ * abre o quita la herramienta y las no disponibles explican por qué— y abajo
+ * las tarjetas de las que ya están abiertas. Antes era una columna persistente
+ * con un menú desplegable de "más herramientas"; el directorio siempre visible
+ * es más limpio y descubre mejor lo que aplica a cada caso.
  */
-export function PilaHerramientas({
-  abiertas,
-  caso,
-  artefacto,
-  onAbrir,
-  onCerrar,
-  ancho,
-  colapsada,
-  onColapsar,
-}: Props) {
-  const [menuAbierto, setMenuAbierto] = useState(false);
-
-  if (colapsada) {
-    return (
-      <aside style={{ ...estilos.columna, width: 44, borderLeft: `1px solid ${PALETA.borde}` }}>
-        <button
-          type="button"
-          style={{ ...estilos.iconBtn, padding: '14px 0' }}
-          onClick={() => onColapsar(false)}
-          aria-label="Expandir las herramientas"
-        >
-          <ChevronLeft size={16} />
-        </button>
-      </aside>
-    );
-  }
-
+export function PilaHerramientas({ abiertas, caso, artefacto, onAbrir, onCerrar }: Props) {
   return (
-    <aside style={{ ...estilos.columna, width: ancho }}>
-      <header style={estilos.header}>
-        <span style={estilos.tituloColumna}>Herramientas</span>
-        <div style={{ position: 'relative' }}>
-          <button
-            type="button"
-            style={{ ...estilos.iconBtn, marginRight: 2 }}
-            onClick={() => onColapsar(true)}
-            aria-label="Contraer las herramientas"
-          >
-            <ChevronRight size={16} />
-          </button>
-          <button
-            type="button"
-            style={estilos.agregarBtn}
-            onClick={() => setMenuAbierto((v) => !v)}
-            aria-expanded={menuAbierto}
-          >
-            <Plus size={14} /> Herramientas
-          </button>
-          {menuAbierto && (
-            <div style={estilos.menu} role="menu">
-              {HERRAMIENTAS.map((h) => (
-                <OpcionMenu
-                  key={h.clave}
-                  herramienta={h}
-                  motivo={motivoNoDisponible(h, caso?.tipo ?? null)}
-                  yaAbierta={abiertas.includes(h.clave)}
-                  onElegir={() => {
-                    onAbrir(h.clave);
-                    setMenuAbierto(false);
-                  }}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </header>
-
-      <div style={estilos.scroll}>
-        {abiertas.length === 0 && (
-          <p style={estilos.tenue}>
-            Ninguna herramienta abierta. Monta las que necesite el caso: puedes tener varias a la vez.
-          </p>
-        )}
-        {abiertas.map((clave) => {
-          const herramienta = HERRAMIENTAS.find((h) => h.clave === clave);
-          if (!herramienta) return null;
+    <div style={estilos.contenido}>
+      <div style={estilos.directorio}>
+        {HERRAMIENTAS.map((h) => {
+          const motivo = motivoNoDisponible(h, caso?.tipo ?? null);
+          const yaAbierta = abiertas.includes(h.clave);
+          const Icono = h.icono;
+          const bloqueada = motivo !== null;
           return (
-            <Tarjeta
-              key={clave}
-              herramienta={herramienta}
-              motivo={motivoNoDisponible(herramienta, caso?.tipo ?? null)}
-              caso={caso}
-              artefacto={artefacto}
-              onCerrar={() => onCerrar(clave)}
-            />
+            <button
+              key={h.clave}
+              type="button"
+              disabled={bloqueada}
+              onClick={() => (yaAbierta ? onCerrar(h.clave) : onAbrir(h.clave))}
+              style={{
+                ...estilos.opcion,
+                ...(bloqueada ? estilos.opcionBloqueada : null),
+                ...(yaAbierta ? estilos.opcionActiva : null),
+              }}
+            >
+              <Icono size={15} strokeWidth={1.8} />
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={estilos.opcionNombre}>{h.nombre}</span>
+                <span style={estilos.opcionMotivo}>
+                  {motivo ?? (yaAbierta ? 'Abierta · toca para quitar' : h.descripcion)}
+                </span>
+              </span>
+              {yaAbierta && !bloqueada && <Check size={14} color={PALETA.azul} />}
+            </button>
           );
         })}
       </div>
-    </aside>
-  );
-}
 
-function OpcionMenu({
-  herramienta,
-  motivo,
-  yaAbierta,
-  onElegir,
-}: {
-  herramienta: Herramienta;
-  motivo: string | null;
-  yaAbierta: boolean;
-  onElegir: () => void;
-}) {
-  const Icono = herramienta.icono;
-  const bloqueada = motivo !== null || yaAbierta;
-  return (
-    <button
-      type="button"
-      role="menuitem"
-      disabled={bloqueada}
-      onClick={onElegir}
-      style={{ ...estilos.opcion, ...(bloqueada ? estilos.opcionBloqueada : null) }}
-    >
-      <Icono size={15} strokeWidth={1.8} />
-      <span style={{ flex: 1, minWidth: 0 }}>
-        <span style={estilos.opcionNombre}>{herramienta.nombre}</span>
-        <span style={estilos.opcionMotivo}>{motivo ?? (yaAbierta ? 'Ya está abierta' : herramienta.descripcion)}</span>
-      </span>
-    </button>
+      <div style={estilos.scroll}>
+        {abiertas.length === 0 ? (
+          <p style={estilos.tenue}>Ninguna herramienta abierta. Elige una del directorio de arriba.</p>
+        ) : (
+          abiertas.map((clave) => {
+            const herramienta = HERRAMIENTAS.find((h) => h.clave === clave);
+            if (!herramienta) return null;
+            return (
+              <Tarjeta
+                key={clave}
+                herramienta={herramienta}
+                motivo={motivoNoDisponible(herramienta, caso?.tipo ?? null)}
+                caso={caso}
+                artefacto={artefacto}
+                onCerrar={() => onCerrar(clave)}
+              />
+            );
+          })
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -214,46 +150,13 @@ function contenido(clave: ClaveHerramienta, caso: FilaProceso | null, artefacto:
 }
 
 const estilos: Record<string, React.CSSProperties> = {
-  columna: {
-    flexShrink: 0,
+  contenido: { display: 'flex', flexDirection: 'column', gap: ESPACIO.md },
+  directorio: {
     display: 'flex',
     flexDirection: 'column',
-    background: PALETA.superficie,
-    overflow: 'hidden',
-  },
-  header: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-    padding: '13px 16px',
-    borderBottom: `1px solid ${PALETA.borde}`,
-  },
-  tituloColumna: { fontSize: 13, fontWeight: 600, color: PALETA.texto },
-  agregarBtn: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 6,
-    padding: '6px 11px',
-    border: `1px solid ${PALETA.borde}`,
-    borderRadius: 999,
-    background: 'transparent',
-    color: PALETA.texto,
-    fontSize: 12.5,
-    fontFamily: 'inherit',
-    cursor: 'pointer',
-  },
-  menu: {
-    position: 'absolute',
-    right: 0,
-    top: 'calc(100% + 6px)',
-    zIndex: 20,
-    width: 320,
-    padding: 6,
-    border: `1px solid ${PALETA.borde}`,
-    borderRadius: 12,
-    background: PALETA.superficie,
-    boxShadow: ELEVACION.media,
+    gap: 2,
+    paddingBottom: ESPACIO.md,
+    borderBottom: `1px dashed ${PALETA.borde}`,
   },
   opcion: {
     display: 'flex',
@@ -269,14 +172,14 @@ const estilos: Record<string, React.CSSProperties> = {
     color: PALETA.texto,
     cursor: 'pointer',
   },
+  opcionActiva: { background: PALETA.moradoBg },
   opcionBloqueada: { color: PALETA.textoTenue, cursor: 'not-allowed' },
-  opcionNombre: { display: 'block', fontSize: 13, fontWeight: 600 },
-  opcionMotivo: { display: 'block', fontSize: 11.5, color: PALETA.textoSuave, lineHeight: 1.4 },
-  scroll: { flex: 1, overflowY: 'auto', padding: '12px 14px 24px' },
+  opcionNombre: { display: 'block', fontSize: TEXTO.base, fontWeight: 600 },
+  opcionMotivo: { display: 'block', fontSize: TEXTO.nota, color: PALETA.textoSuave, lineHeight: 1.4 },
+  scroll: { display: 'flex', flexDirection: 'column', gap: ESPACIO.sm },
   tarjeta: {
     border: `1px solid ${PALETA.borde}`,
     borderRadius: 12,
-    marginBottom: 10,
     overflow: 'hidden',
   },
   tarjetaHeader: {
@@ -286,7 +189,7 @@ const estilos: Record<string, React.CSSProperties> = {
     padding: '8px 10px',
     background: 'rgba(0,0,0,0.02)',
   },
-  tarjetaTitulo: { flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: PALETA.texto },
+  tarjetaTitulo: { flex: 1, minWidth: 0, fontSize: TEXTO.base, fontWeight: 600, color: PALETA.texto },
   tarjetaCuerpo: { padding: '10px 12px 14px' },
   plegarBtn: {
     border: 'none',
@@ -304,5 +207,5 @@ const estilos: Record<string, React.CSSProperties> = {
     padding: 4,
     display: 'inline-flex',
   },
-  tenue: { color: PALETA.textoSuave, fontSize: 12.5, lineHeight: 1.55, margin: 0 },
+  tenue: { color: PALETA.textoSuave, fontSize: TEXTO.menor, lineHeight: 1.55, margin: 0 },
 };

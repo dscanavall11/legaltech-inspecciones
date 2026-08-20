@@ -15,6 +15,7 @@ import { descargarDocumentoLegalDocx } from '@/shared/documentos/documentoLegalD
 import { useInspeccionStore } from '@/store/inspeccionStore';
 import { PALETA } from '@/theme/palette';
 import type { Artefacto } from './skills';
+import { TEXTO } from '@/theme/escala';
 
 /**
  * Paneles de las herramientas que no dependen del expediente abierto: el
@@ -238,9 +239,9 @@ function Dato({ etiqueta, valor }: { etiqueta: string; valor: string }) {
 }
 
 const estilos: Record<string, React.CSSProperties> = {
-  tenue: { color: PALETA.textoSuave, fontSize: 12.5, lineHeight: 1.55, margin: '8px 0 0' },
+  tenue: { color: PALETA.textoSuave, fontSize: TEXTO.menor, lineHeight: 1.55, margin: '8px 0 0' },
   subtitulo: {
-    fontSize: 11.5,
+    fontSize: TEXTO.nota,
     letterSpacing: '0.06em',
     textTransform: 'uppercase',
     color: PALETA.textoTenue,
@@ -252,7 +253,7 @@ const estilos: Record<string, React.CSSProperties> = {
     borderRadius: 8,
     background: PALETA.amarilloBg,
     color: '#6b4b00',
-    fontSize: 12.5,
+    fontSize: TEXTO.menor,
     lineHeight: 1.5,
   },
   faltantes: {
@@ -260,7 +261,7 @@ const estilos: Record<string, React.CSSProperties> = {
     padding: '9px 11px',
     borderRadius: 8,
     border: `1px solid ${PALETA.borde}`,
-    fontSize: 12.5,
+    fontSize: TEXTO.menor,
     lineHeight: 1.5,
     color: PALETA.texto,
   },
@@ -274,7 +275,7 @@ const estilos: Record<string, React.CSSProperties> = {
     borderRadius: 10,
     background: 'transparent',
     color: PALETA.texto,
-    fontSize: 13,
+    fontSize: TEXTO.base,
     fontFamily: 'inherit',
     cursor: 'pointer',
   },
@@ -289,7 +290,7 @@ const estilos: Record<string, React.CSSProperties> = {
     background: 'transparent',
     padding: '9px 2px',
     fontFamily: 'inherit',
-    fontSize: 12.5,
+    fontSize: TEXTO.menor,
     color: PALETA.texto,
     cursor: 'pointer',
   },
@@ -298,36 +299,36 @@ const estilos: Record<string, React.CSSProperties> = {
     gap: 8,
     padding: '9px 2px',
     borderBottom: `1px solid ${PALETA.borde}`,
-    fontSize: 12.5,
+    fontSize: TEXTO.menor,
     lineHeight: 1.5,
     color: PALETA.texto,
   },
   campos: { display: 'flex', flexDirection: 'column', gap: 10 },
-  campo: { display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, color: PALETA.textoSuave },
+  campo: { display: 'flex', flexDirection: 'column', gap: 4, fontSize: TEXTO.menor, color: PALETA.textoSuave },
   select: {
     border: `1px solid ${PALETA.borde}`,
     borderRadius: 8,
     padding: '7px 8px',
     background: 'transparent',
     fontFamily: 'inherit',
-    fontSize: 13,
+    fontSize: TEXTO.base,
     color: PALETA.texto,
   },
   vistaPrevia: {
     marginTop: 16,
     paddingTop: 16,
     borderTop: `1px solid ${PALETA.borde}`,
-    fontSize: 12.5,
+    fontSize: TEXTO.menor,
     lineHeight: 1.65,
     color: PALETA.texto,
   },
-  docEntidad: { fontSize: 11.5, letterSpacing: '0.06em', color: PALETA.textoSuave, textTransform: 'uppercase' },
-  docTitulo: { fontSize: 15, fontWeight: 600, margin: '4px 0 8px' },
-  docEpigrafe: { margin: 0, fontSize: 11.5, color: PALETA.textoSuave, textAlign: 'justify' },
+  docEntidad: { fontSize: TEXTO.nota, letterSpacing: '0.06em', color: PALETA.textoSuave, textTransform: 'uppercase' },
+  docTitulo: { fontSize: TEXTO.titulo, fontWeight: 600, margin: '4px 0 8px' },
+  docEpigrafe: { margin: 0, fontSize: TEXTO.nota, color: PALETA.textoSuave, textAlign: 'justify' },
   docFila: { display: 'flex', gap: 8, padding: '3px 0', borderBottom: `1px solid ${PALETA.borde}` },
-  docEtiqueta: { flex: '0 0 42%', margin: 0, fontSize: 11, color: PALETA.textoSuave, textTransform: 'uppercase' },
-  docValor: { flex: 1, margin: 0, fontSize: 12 },
-  docSeccion: { fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', margin: '14px 0 6px' },
+  docEtiqueta: { flex: '0 0 42%', margin: 0, fontSize: TEXTO.nota, color: PALETA.textoSuave, textTransform: 'uppercase' },
+  docValor: { flex: 1, margin: 0, fontSize: TEXTO.menor },
+  docSeccion: { fontSize: TEXTO.menor, fontWeight: 700, letterSpacing: '0.04em', margin: '14px 0 6px' },
   docParrafo: { margin: '0 0 8px', textAlign: 'justify' },
   docFirma: { margin: '18px 0 0', fontWeight: 600 },
 };

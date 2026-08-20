@@ -5,9 +5,8 @@ import { ANCHO_RIEL, Dock } from './dock/Dock';
 export function AppLayout() {
   const location = useLocation();
 
-  // Vistas de trabajo a pantalla completa: el intake y el workspace de Legal.
-  const esPaginaFullBleed =
-    location.pathname.startsWith('/panel/nuevo-caso') || location.pathname.startsWith('/panel/chat');
+  // Vista de trabajo a pantalla completa: el intake.
+  const esPaginaFullBleed = location.pathname.startsWith('/panel/nuevo-caso');
 
   return (
     <div

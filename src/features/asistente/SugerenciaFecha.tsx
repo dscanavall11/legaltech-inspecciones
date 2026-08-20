@@ -4,6 +4,7 @@ import { CalendarCheck, X } from 'lucide-react';
 import type { FilaProceso } from '@/shared/procesos/types';
 import { PALETA } from '@/theme/palette';
 import { guardarFecha, leerFecha, olvidarFecha, sugerirActuacion, yaPaso } from './agenda';
+import { TEXTO } from '@/theme/escala';
 
 /**
  * La fecha la propone el chat, no una agenda: según la etapa procesal del caso
@@ -126,8 +127,8 @@ const estilos: Record<string, React.CSSProperties> = {
     borderRadius: 12,
     color: PALETA.texto,
   },
-  titulo: { fontSize: 13, fontWeight: 600 },
-  texto: { margin: '3px 0 0', fontSize: 12.5, lineHeight: 1.55, color: PALETA.textoSuave },
+  titulo: { fontSize: TEXTO.base, fontWeight: 600 },
+  texto: { margin: '3px 0 0', fontSize: TEXTO.menor, lineHeight: 1.55, color: PALETA.textoSuave },
   acciones: { display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 9 },
   input: {
     border: `1px solid ${PALETA.borde}`,
@@ -135,7 +136,7 @@ const estilos: Record<string, React.CSSProperties> = {
     padding: '5px 8px',
     background: 'transparent',
     fontFamily: 'inherit',
-    fontSize: 12.5,
+    fontSize: TEXTO.menor,
     color: PALETA.texto,
   },
   btn: {
@@ -144,7 +145,7 @@ const estilos: Record<string, React.CSSProperties> = {
     borderRadius: 8,
     background: 'transparent',
     color: PALETA.texto,
-    fontSize: 12.5,
+    fontSize: TEXTO.menor,
     fontFamily: 'inherit',
     cursor: 'pointer',
   },

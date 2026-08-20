@@ -1,5 +1,6 @@
 import { PALETA } from '@/theme/palette';
 import { ELEVACION } from '@/theme/theme';
+import { TEXTO } from '@/theme/escala';
 
 /** Hoja de estilos del asistente: vive aparte para que la página quede en lo que hace, no en cómo se ve. */
 export const estilos: Record<string, React.CSSProperties> = {
@@ -7,6 +8,34 @@ export const estilos: Record<string, React.CSSProperties> = {
 
   // ── Hilo ──────────────────────────────────────────────────────────────────
   centro: { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' },
+  barraSuperior: { display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, padding: '10px 24px' },
+  btnHerramientas: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 7,
+    padding: '7px 13px',
+    borderRadius: 10,
+    border: `1px solid ${PALETA.borde}`,
+    background: PALETA.superficie,
+    color: PALETA.texto,
+    fontSize: TEXTO.menor,
+    fontFamily: 'inherit',
+    cursor: 'pointer',
+  },
+  badgeHerramientas: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 18,
+    height: 18,
+    padding: '0 5px',
+    borderRadius: 9,
+    background: PALETA.morado,
+    color: '#fff',
+    fontSize: TEXTO.nota,
+    fontWeight: 600,
+    marginLeft: 2,
+  },
   barraCaso: {
     display: 'flex',
     alignItems: 'center',

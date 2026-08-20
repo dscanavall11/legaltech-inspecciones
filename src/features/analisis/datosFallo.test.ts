@@ -15,6 +15,8 @@ const BORRADOR: BorradorFallo = {
   antecedents: 'Hechos de prueba.',
   tramite: '',
   juridicProblem: '',
+  descargos: '',
+  pruebasObrantes: '',
   evidences: '',
   necesidadProporcionalidad: '',
   juridicResponse: '',
@@ -115,37 +117,60 @@ describe('construirDocumentoFallo', () => {
       fechaFallo: '2026-05-02',
       medidaCorrectiva: '',
     });
-    expect(doc.secciones.map((s) => s.titulo)).toEqual(['HECHOS']);
+    expect(doc.secciones.map((s) => s.titulo)).toEqual(['HECHOS Y TRÁMITE DESARROLLADO']);
   });
 });
 
 describe('apartes del art. 2.2.8.18.7.1 (Decreto 768)', () => {
-  it('los nueve del decreto están, en su orden', () => {
-    expect(APARTES_FALLO.filter((a) => a.delDecreto7_1).map((a) => a.titulo)).toEqual([
-      'COMPETENCIA',
-      'HECHOS',
-      'TRÁMITE DESARROLLADO',
-      'PROBLEMA JURÍDICO',
-      'ANÁLISIS CRÍTICO Y VALORACIÓN PROBATORIA',
-      'RESPUESTA AL PROBLEMA JURÍDICO',
-      'FUNDAMENTOS DE DERECHO',
-      'DECISIÓN DEL CASO',
-      'RECURSOS',
-    ]);
+  // Los nueve están todos; lo que manda en el ORDEN es la plantilla real del
+  // despacho, que informa de los recursos en la diligencia y decide después.
+  it('los nueve del decreto están, ninguno se perdió', () => {
+    expect(APARTES_FALLO.filter((a) => a.delDecreto7_1).map((a) => a.titulo).sort()).toEqual(
+      [
+        'COMPETENCIA',
+        'HECHOS Y TRÁMITE DESARROLLADO',
+        'TRÁMITE DESARROLLADO',
+        'PROBLEMA JURÍDICO',
+        'ANÁLISIS CRÍTICO O VALORACIÓN PROBATORIA',
+        'RESPUESTA AL PROBLEMA JURÍDICO Y SENTIDO DE LA DECISIÓN',
+        'FUNDAMENTOS DE DERECHO',
+        'DECISIÓN DEL CASO',
+        'RECURSOS',
+      ].sort(),
+    );
   });
 
-  // El decreto fija un mínimo; el despacho agrega el juicio de última ratio,
-  // que va entre la valoración probatoria y la respuesta.
-  it('el análisis de proporcionalidad se agrega sin desordenar los del decreto', () => {
-    const extras = APARTES_FALLO.filter((a) => !a.delDecreto7_1);
-    expect(extras.map((a) => a.titulo)).toEqual([
+  // Se informa de los recursos en la audiencia y luego se resuelve; la parte
+  // resolutiva vuelve a dejar la notificación en estrados. Es el orden de las
+  // plantillas del despacho, no un descuido de lectura del decreto.
+  it('los recursos se anuncian antes de resolver', () => {
+    const titulos = APARTES_FALLO.map((a) => a.titulo);
+    expect(titulos.indexOf('RECURSOS')).toBeLessThan(titulos.indexOf('DECISIÓN DEL CASO'));
+    expect(titulos[titulos.length - 1]).toBe('DECISIÓN DEL CASO');
+  });
+
+  // Los tres que el decreto no lista pero el despacho profiere siempre. Sin
+  // los dos primeros el fallo sale sin la defensa del ciudadano y sin decir
+  // qué prueba entró al expediente.
+  it('el despacho añade descargos, pruebas obrantes y el juicio de última ratio', () => {
+    expect(APARTES_FALLO.filter((a) => !a.delDecreto7_1).map((a) => a.titulo)).toEqual([
+      'ARGUMENTOS Y/O DESCARGOS',
+      'PRUEBAS OBRANTES',
       'ANÁLISIS DE NECESIDAD, RAZONABILIDAD Y PROPORCIONALIDAD',
     ]);
     const titulos = APARTES_FALLO.map((a) => a.titulo);
-    expect(titulos.indexOf('ANÁLISIS DE NECESIDAD, RAZONABILIDAD Y PROPORCIONALIDAD')).toBe(
-      titulos.indexOf('ANÁLISIS CRÍTICO Y VALORACIÓN PROBATORIA') + 1,
+    // Primero se oye, después se relaciona la prueba, después se valora.
+    expect(titulos.indexOf('ARGUMENTOS Y/O DESCARGOS')).toBeLessThan(
+      titulos.indexOf('PRUEBAS OBRANTES'),
     );
-    expect(titulos.indexOf('RESPUESTA AL PROBLEMA JURÍDICO')).toBe(
+    expect(titulos.indexOf('PRUEBAS OBRANTES')).toBeLessThan(
+      titulos.indexOf('ANÁLISIS CRÍTICO O VALORACIÓN PROBATORIA'),
+    );
+    // La última ratio va entre la valoración y la respuesta.
+    expect(titulos.indexOf('ANÁLISIS DE NECESIDAD, RAZONABILIDAD Y PROPORCIONALIDAD')).toBe(
+      titulos.indexOf('ANÁLISIS CRÍTICO O VALORACIÓN PROBATORIA') + 1,
+    );
+    expect(titulos.indexOf('RESPUESTA AL PROBLEMA JURÍDICO Y SENTIDO DE LA DECISIÓN')).toBe(
       titulos.indexOf('ANÁLISIS DE NECESIDAD, RAZONABILIDAD Y PROPORCIONALIDAD') + 1,
     );
   });

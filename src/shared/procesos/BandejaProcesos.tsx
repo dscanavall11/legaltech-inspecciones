@@ -18,8 +18,10 @@ import {
   type FilaProceso,
   type TipoProceso,
 } from './types';
+import { TEXTO } from '@/theme/escala';
+import { CabeceraPagina } from '@/shared/ui/CabeceraPagina';
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 const TODOS = 'todos';
 /** Filtro sintético (no es un `estado` real): expedientes con fallo proferido y motivado. */
@@ -133,7 +135,7 @@ export function BandejaProcesos({
       key: 'radicado',
       width: 170,
       render: (v: string) => (
-        <span className="font-display" style={{ fontSize: 15 }}>
+        <span className="font-display" style={{ fontSize: TEXTO.titulo }}>
           {v}
         </span>
       ),
@@ -181,14 +183,7 @@ export function BandejaProcesos({
         }}
       >
         <div>
-          <Title level={2} style={{ margin: 0 }}>
-            {titulo}
-          </Title>
-          {descripcion && (
-            <Text type="secondary" style={{ display: 'block', marginTop: 2 }}>
-              {descripcion}
-            </Text>
-          )}
+          <CabeceraPagina titulo={titulo} descripcion={descripcion} />
         </div>
         {accion && (
           <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => navigate(accion.ruta)}>

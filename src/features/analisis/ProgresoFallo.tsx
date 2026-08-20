@@ -1,5 +1,6 @@
 import { CheckOutlined } from '@ant-design/icons';
 import { PALETA } from '@/theme/theme';
+import { TEXTO } from '@/theme/escala';
 
 export interface PasoFallo {
   titulo: string;
@@ -57,7 +58,7 @@ export function ProgresoFallo({ pasos }: { pasos: PasoFallo[] }) {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: 12,
+                fontSize: TEXTO.menor,
                 fontWeight: 700,
                 color: paso.listo ? '#fff' : color,
                 background: paso.listo ? PALETA.verde : 'transparent',
@@ -70,7 +71,7 @@ export function ProgresoFallo({ pasos }: { pasos: PasoFallo[] }) {
               <span
                 style={{
                   display: 'block',
-                  fontSize: 13,
+                  fontSize: TEXTO.base,
                   fontWeight: actual ? 600 : 500,
                   color: PALETA.texto,
                   lineHeight: 1.25,
@@ -78,7 +79,7 @@ export function ProgresoFallo({ pasos }: { pasos: PasoFallo[] }) {
               >
                 {paso.titulo}
               </span>
-              <span style={{ display: 'block', fontSize: 11.5, color, lineHeight: 1.3 }}>
+              <span style={{ display: 'block', fontSize: TEXTO.nota, color, lineHeight: 1.3 }}>
                 {paso.detalle}
               </span>
             </span>

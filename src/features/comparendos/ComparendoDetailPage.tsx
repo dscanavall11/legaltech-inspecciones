@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Card,
@@ -49,6 +48,8 @@ import {
 } from '@/derecho';
 import { calcularTermino } from '@/shared/terminos/diasHabiles';
 import { ELEVACION, PALETA } from '@/theme/theme';
+import { Dato } from '@/shared/ui/Dato';
+import { TEXTO } from '@/theme/escala';
 
 const { Title, Text } = Typography;
 
@@ -81,15 +82,6 @@ const COLOR_ACTUACION: Record<TipoActuacionComparendo, string> = {
   otro: '#9aa0a6',
 };
 
-function Campo({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div>
-      <div style={{ fontSize: 12, color: PALETA.textoTenue, marginBottom: 3 }}>{label}</div>
-      <div style={{ color: PALETA.texto }}>{children}</div>
-    </div>
-  );
-}
-
 /** Términos del art. 223A: objeción (3 días) y firmeza (5 días), contados desde el comparendo. */
 function TerminosCard({ fechaComparendo }: { fechaComparendo: string }) {
   const objecion = calcularTermino(dayjs(fechaComparendo), TERMINOS_COMPARENDO.objecionDias);
@@ -97,14 +89,14 @@ function TerminosCard({ fechaComparendo }: { fechaComparendo: string }) {
 
   return (
     <Card variant="borderless" style={{ boxShadow: ELEVACION.base }}>
-      <Text type="secondary" style={{ fontSize: 12, letterSpacing: 0.3 }}>
+      <Text type="secondary" style={{ fontSize: TEXTO.menor, letterSpacing: 0.3 }}>
         TÉRMINOS PROCESALES (ART. 223A)
       </Text>
       <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <Text style={{ display: 'block' }}>Término de objeción (3 días háb.)</Text>
-            <Text type="secondary" style={{ fontSize: 12 }}>
+            <Text type="secondary" style={{ fontSize: TEXTO.menor }}>
               Vence {objecion.fechaVencimiento.format('D [de] MMMM, YYYY')}
             </Text>
           </div>
@@ -115,7 +107,7 @@ function TerminosCard({ fechaComparendo }: { fechaComparendo: string }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <Text style={{ display: 'block' }}>Término de firmeza (5 días háb.)</Text>
-            <Text type="secondary" style={{ fontSize: 12 }}>
+            <Text type="secondary" style={{ fontSize: TEXTO.menor }}>
               Vence {firmeza.fechaVencimiento.format('D [de] MMMM, YYYY')}
             </Text>
           </div>
@@ -124,7 +116,7 @@ function TerminosCard({ fechaComparendo }: { fechaComparendo: string }) {
           </Tag>
         </div>
       </div>
-      <div style={{ fontSize: 12, color: PALETA.textoTenue, marginTop: 12 }}>
+      <div style={{ fontSize: TEXTO.menor, color: PALETA.textoTenue, marginTop: 12 }}>
         Cálculo sujeto a validación jurídica — no sustituye el término real aplicado por el despacho.
       </div>
     </Card>
@@ -199,52 +191,52 @@ export function ComparendoDetailPage() {
       children: (
         <Row gutter={[24, 18]} style={{ marginTop: 4 }}>
           <Col xs={24} sm={12}>
-            <Campo label="Presunto infractor">{data.infractor}</Campo>
+            <Dato label="Presunto infractor">{data.infractor}</Dato>
           </Col>
           <Col xs={24} sm={12}>
-            <Campo label="Cédula">{data.cedula || 'Sin registro'}</Campo>
+            <Dato label="Cédula">{data.cedula || 'Sin registro'}</Dato>
           </Col>
           <Col xs={24} sm={12}>
-            <Campo label="No. de comparendo">{data.numeroComparendo}</Campo>
+            <Dato label="No. de comparendo">{data.numeroComparendo}</Dato>
           </Col>
           <Col xs={24} sm={12}>
-            <Campo label="Artículo y numeral (Ley 1801)">{data.articuloNumeral}</Campo>
+            <Dato label="Artículo y numeral (Ley 1801)">{data.articuloNumeral}</Dato>
           </Col>
           <Col xs={24} sm={12}>
-            <Campo label="Fecha del comparendo">
+            <Dato label="Fecha del comparendo">
               {dayjs(data.fechaComparendo).format('D [de] MMMM, YYYY')}
-            </Campo>
+            </Dato>
           </Col>
           <Col xs={24} sm={12}>
-            <Campo label="Lugar del comportamiento">{data.lugar || 'Sin registro'}</Campo>
+            <Dato label="Lugar del comportamiento">{data.lugar || 'Sin registro'}</Dato>
           </Col>
           <Col xs={24} sm={12}>
-            <Campo label="Procedencia (CAI)">{data.solicitante || 'Sin registro'}</Campo>
+            <Dato label="Procedencia (CAI)">{data.solicitante || 'Sin registro'}</Dato>
           </Col>
           <Col xs={24} sm={12}>
-            <Campo label="Reincidencia">
+            <Dato label="Reincidencia">
               {data.causal === 'ninguna' ? (
                 <Tag color="default">Sin reincidencia</Tag>
               ) : (
                 <Tag color="volcano">{INCREMENTO_LABEL[data.causal]}</Tag>
               )}
-            </Campo>
+            </Dato>
           </Col>
           {data.descripcionConducta && (
             <Col xs={24}>
-              <Campo label="Comportamiento contrario a la convivencia">{data.descripcionConducta}</Campo>
+              <Dato label="Comportamiento contrario a la convivencia">{data.descripcionConducta}</Dato>
             </Col>
           )}
           {data.hechos && (
             <Col xs={24}>
-              <Campo label="Hechos">{data.hechos}</Campo>
+              <Dato label="Hechos">{data.hechos}</Dato>
             </Col>
           )}
           <Col xs={24}>
-            <Campo label="Multa general (art. 180)">
+            <Dato label="Multa general (art. 180)">
               Tipo {liq.tipo} ({liq.smdlvLetras} SMDLV) — $ {liq.valorTotal.toLocaleString('es-CO')}
               {liq.porcentajeIncremento > 0 && ` (incluye incremento del ${liq.porcentajeIncremento}%)`}
-            </Campo>
+            </Dato>
           </Col>
         </Row>
       ),
@@ -263,7 +255,7 @@ export function ComparendoDetailPage() {
               children: (
                 <div>
                   <Text strong>{a.titulo}</Text>
-                  <div style={{ fontSize: 12, color: PALETA.textoTenue }}>
+                  <div style={{ fontSize: TEXTO.menor, color: PALETA.textoTenue }}>
                     {dayjs(a.fecha).format('D [de] MMMM, YYYY · h:mm a')}
                   </div>
                   {a.descripcion && (
@@ -282,7 +274,7 @@ export function ComparendoDetailPage() {
       label: 'Documentos',
       children: (
         <>
-          <Text type="secondary" style={{ fontSize: 12, letterSpacing: 0.3, display: 'block', marginBottom: 8 }}>
+          <Text type="secondary" style={{ fontSize: TEXTO.menor, letterSpacing: 0.3, display: 'block', marginBottom: 8 }}>
             PIEZAS PROCESALES DEL EXPEDIENTE
           </Text>
           <PiezasProcesalesCard id={data.id} data={data} />
@@ -315,7 +307,7 @@ export function ComparendoDetailPage() {
         </Button>
         <Button
           icon={<NormaMark size={17} />}
-          onClick={() => navigate('/panel/chat', { state: { radicado: data.radicado } })}
+          onClick={() => navigate('/panel/asistente', { state: { radicado: data.radicado } })}
         >
           Preguntarle a {NORMA.nombre}
         </Button>
@@ -328,7 +320,7 @@ export function ComparendoDetailPage() {
         <Tag color={ESTADO_COMPARENDO_COLOR[data.estado]}>{ESTADO_COMPARENDO_LABEL[data.estado]}</Tag>
       </Space>
       <div>
-        <Text type="secondary" style={{ fontSize: 15 }}>
+        <Text type="secondary" style={{ fontSize: TEXTO.titulo }}>
           Comparendo {data.numeroComparendo} — {data.infractor}
         </Text>
       </div>

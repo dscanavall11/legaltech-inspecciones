@@ -5,6 +5,7 @@ import dayjs from 'dayjs';
 import { generarExpedientePrevio, type RutaExpediente } from '@/derecho';
 import { descargarDocumentoLegalPdf } from './documentoLegalPdf';
 import { descargarDocumentoLegalDocx } from './documentoLegalDocx';
+import { TEXTO } from '@/theme/escala';
 
 export interface DatosExpedienteBase {
   municipio: string;
@@ -131,19 +132,19 @@ export function ExpedientePrevioButton({
       >
         <Space direction="vertical" style={{ width: '100%' }} size={12}>
           <div>
-            <div style={{ fontSize: 12, marginBottom: 4 }}>Unidad del archivo</div>
+            <div style={{ fontSize: TEXTO.menor, marginBottom: 4 }}>Unidad del archivo</div>
             <Input value={unidad} onChange={(e) => setUnidad(e.target.value)} />
           </div>
           <div>
-            <div style={{ fontSize: 12, marginBottom: 4 }}>Grupo</div>
+            <div style={{ fontSize: TEXTO.menor, marginBottom: 4 }}>Grupo</div>
             <Input value={grupo} onChange={(e) => setGrupo(e.target.value)} />
           </div>
           <div>
-            <div style={{ fontSize: 12, marginBottom: 4 }}>No. de expediente</div>
+            <div style={{ fontSize: TEXTO.menor, marginBottom: 4 }}>No. de expediente</div>
             <Input value={expediente} onChange={(e) => setExpediente(e.target.value)} />
           </div>
           <div>
-            <div style={{ fontSize: 12, marginBottom: 4 }}>Suscribe las constancias secretariales</div>
+            <div style={{ fontSize: TEXTO.menor, marginBottom: 4 }}>Suscribe las constancias secretariales</div>
             <Input
               value={firmanteNombre}
               onChange={(e) => setFirmanteNombre(e.target.value)}
@@ -151,11 +152,11 @@ export function ExpedientePrevioButton({
             />
           </div>
           <div>
-            <div style={{ fontSize: 12, marginBottom: 4 }}>Cargo</div>
+            <div style={{ fontSize: TEXTO.menor, marginBottom: 4 }}>Cargo</div>
             <Input value={firmanteRol} onChange={(e) => setFirmanteRol(e.target.value)} />
           </div>
           <div>
-            <div style={{ fontSize: 12, marginBottom: 4 }}>
+            <div style={{ fontSize: TEXTO.menor, marginBottom: 4 }}>
               Fecha de recepción del comparendo (cargue al sistema — normalmente coincide con la del comparendo, pero es editable)
             </div>
             <DatePicker
@@ -167,7 +168,7 @@ export function ExpedientePrevioButton({
           </div>
           {ruta !== 'firmeza' && (
             <div>
-              <div style={{ fontSize: 12, marginBottom: 4 }}>Fecha de comparecencia y solicitud</div>
+              <div style={{ fontSize: TEXTO.menor, marginBottom: 4 }}>Fecha de comparecencia y solicitud</div>
               <DatePicker
                 style={{ width: '100%' }}
                 format="DD/MM/YYYY"

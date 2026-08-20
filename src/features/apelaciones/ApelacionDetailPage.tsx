@@ -10,6 +10,7 @@ import { PruebasExpediente } from '@/shared/pruebas/PruebasExpediente';
 import { OrientacionesInspector } from '@/shared/orientaciones/OrientacionesInspector';
 import { ELEVACION } from '@/theme/theme';
 import { AreaTrabajoApelacion } from './AreaTrabajoApelacion';
+import { TEXTO } from '@/theme/escala';
 
 const { Title, Text } = Typography;
 
@@ -102,7 +103,7 @@ export function ApelacionDetailPage() {
         </Button>
         <Button
           icon={<NormaMark size={17} />}
-          onClick={() => navigate('/panel/chat', { state: { radicado: data.filingNumber } })}
+          onClick={() => navigate('/panel/asistente', { state: { radicado: data.filingNumber } })}
         >
           Preguntarle a {NORMA.nombre}
         </Button>
@@ -115,7 +116,7 @@ export function ApelacionDetailPage() {
         <Tag color="gold">Apelación</Tag>
       </Space>
       <div style={{ marginBottom: 22 }}>
-        <Text type="secondary" style={{ fontSize: 15 }}>
+        <Text type="secondary" style={{ fontSize: TEXTO.titulo }}>
           {comportamiento}
         </Text>
       </div>

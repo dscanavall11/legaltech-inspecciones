@@ -11,6 +11,7 @@ import {
   ETAPA_COMPARENDO_ACTIVA,
 } from '@/derecho';
 import { ELEVACION, PALETA } from '@/theme/theme';
+import { TEXTO } from '@/theme/escala';
 
 const { Title } = Typography;
 
@@ -61,7 +62,7 @@ export function ComparendosPage() {
       dataIndex: 'radicado',
       key: 'radicado',
       render: (v: string) => (
-        <span className="font-display" style={{ fontSize: 15 }}>
+        <span className="font-display" style={{ fontSize: TEXTO.titulo }}>
           {v}
         </span>
       ),

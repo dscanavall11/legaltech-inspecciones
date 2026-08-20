@@ -11,6 +11,7 @@ import { PALETA } from '@/theme/theme';
 import { generarAutoSuspension } from './autoSuspension';
 import { leerDecision, SENTIDOS, VARIANTES, type DecisionQuerella } from './decisionQuerella';
 import { leerPartes } from './partes';
+import { TEXTO } from '@/theme/escala';
 
 const { Text } = Typography;
 const { TextArea } = Input;
@@ -98,10 +99,10 @@ export function AudienciaQuerella({
   return (
     <Space direction="vertical" size="middle" style={{ width: '100%' }}>
       <Bloque>
-        <Text strong style={{ display: 'block', fontSize: 15, marginBottom: 4 }}>
+        <Text strong style={{ display: 'block', fontSize: TEXTO.titulo, marginBottom: 4 }}>
           Cómo transcurrió la audiencia
         </Text>
-        <Text type="secondary" style={{ display: 'block', fontSize: 12.5, marginBottom: 12 }}>
+        <Text type="secondary" style={{ display: 'block', fontSize: TEXTO.menor, marginBottom: 12 }}>
           Cambia el relato del trámite en el fallo (aparte 3 del art. 2.2.8.18.7.1). El resto del
           documento es igual en los dos casos.
         </Text>
@@ -111,16 +112,16 @@ export function AudienciaQuerella({
           onChange={(v) => set('variante', v as DecisionQuerella['variante'])}
           options={VARIANTES.map((v) => ({ value: v.valor, label: v.label }))}
         />
-        <Text type="secondary" style={{ display: 'block', fontSize: 12, marginTop: 8 }}>
+        <Text type="secondary" style={{ display: 'block', fontSize: TEXTO.menor, marginTop: 8 }}>
           {VARIANTES.find((v) => v.valor === decision.variante)?.ayuda}
         </Text>
       </Bloque>
 
       <Bloque>
-        <Text strong style={{ display: 'block', fontSize: 15, marginBottom: 4 }}>
+        <Text strong style={{ display: 'block', fontSize: TEXTO.titulo, marginBottom: 4 }}>
           Sentido de la decisión
         </Text>
-        <Text type="secondary" style={{ display: 'block', fontSize: 12.5, marginBottom: 12 }}>
+        <Text type="secondary" style={{ display: 'block', fontSize: TEXTO.menor, marginBottom: 12 }}>
           Son tres, no dos: declarar la responsabilidad y aun así abstenerse de la multa es una
           decisión distinta de absolver.
         </Text>
@@ -130,24 +131,24 @@ export function AudienciaQuerella({
           onChange={(v) => set('sentido', v as DecisionQuerella['sentido'])}
           options={SENTIDOS.map((s) => ({ value: s.valor, label: s.label }))}
         />
-        <Text type="secondary" style={{ display: 'block', fontSize: 12, marginTop: 8 }}>
+        <Text type="secondary" style={{ display: 'block', fontSize: TEXTO.menor, marginTop: 8 }}>
           {SENTIDOS.find((s) => s.valor === decision.sentido)?.ayuda}
         </Text>
       </Bloque>
 
       {decision.variante === 'continuacion' && (
         <Bloque>
-          <Text strong style={{ display: 'block', fontSize: 15, marginBottom: 4 }}>
+          <Text strong style={{ display: 'block', fontSize: TEXTO.titulo, marginBottom: 4 }}>
             Auto que decreta pruebas y suspende la audiencia
           </Text>
-          <Text type="secondary" style={{ display: 'block', fontSize: 12.5, marginBottom: 14 }}>
+          <Text type="secondary" style={{ display: 'block', fontSize: TEXTO.menor, marginBottom: 14 }}>
             Art. 223 num. 3 lit. c: las pruebas se practican en máximo cinco (5) días y la audiencia
             se reanuda al día siguiente del vencimiento. Este auto no decide el fondo.
           </Text>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px', gap: 12, marginBottom: 12 }}>
             <div>
-              <div style={{ fontSize: 12, color: PALETA.textoSuave, marginBottom: 5 }}>
+              <div style={{ fontSize: TEXTO.menor, color: PALETA.textoSuave, marginBottom: 5 }}>
                 Fecha de la audiencia
               </div>
               <DatePicker
@@ -158,7 +159,7 @@ export function AudienciaQuerella({
               />
             </div>
             <div>
-              <div style={{ fontSize: 12, color: PALETA.textoSuave, marginBottom: 5 }}>
+              <div style={{ fontSize: TEXTO.menor, color: PALETA.textoSuave, marginBottom: 5 }}>
                 Reanudación
               </div>
               <DatePicker
@@ -169,7 +170,7 @@ export function AudienciaQuerella({
               />
             </div>
             <div>
-              <div style={{ fontSize: 12, color: PALETA.textoSuave, marginBottom: 5 }}>Hora</div>
+              <div style={{ fontSize: TEXTO.menor, color: PALETA.textoSuave, marginBottom: 5 }}>Hora</div>
               <TimePicker
                 style={{ width: '100%' }}
                 format="HH:mm"
@@ -180,7 +181,7 @@ export function AudienciaQuerella({
           </div>
 
           <div style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 12, color: PALETA.textoSuave, marginBottom: 5 }}>
+            <div style={{ fontSize: TEXTO.menor, color: PALETA.textoSuave, marginBottom: 5 }}>
               Pruebas decretadas — una por línea
             </div>
             <TextArea
@@ -192,7 +193,7 @@ export function AudienciaQuerella({
           </div>
 
           <div style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 12, color: PALETA.textoSuave, marginBottom: 5 }}>
+            <div style={{ fontSize: TEXTO.menor, color: PALETA.textoSuave, marginBottom: 5 }}>
               Por qué son conducentes, pertinentes y útiles
             </div>
             <TextArea

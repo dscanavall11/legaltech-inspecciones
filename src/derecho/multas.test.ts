@@ -109,7 +109,7 @@ describe('generarActaFirmeza — plantilla del despacho', () => {
   const datos: DatosActaFirmeza = {
     municipio: 'Manizales',
     inspeccion: 'Inspección Permanente de Convivencia y Paz Turno Uno',
-    inspectorNombre: 'LUIS GABRIEL LADINO AYALA',
+    inspectorNombre: 'NOMBRE DEL INSPECTOR',
     inspectorCargo: 'Inspector Permanente de Convivencia y Paz – Turno Uno',
     proceso: '2026-6829',
     fechaResolucion: '2026-05-04',

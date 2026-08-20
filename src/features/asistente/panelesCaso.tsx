@@ -20,6 +20,7 @@ import { calcularTermino } from '@/shared/terminos/diasHabiles';
 import type { EstadoQuerella } from '@/features/querellas/types';
 import { PALETA } from '@/theme/palette';
 import { armarGrafo, MOTIVO_FALTA } from './grafo';
+import { TEXTO } from '@/theme/escala';
 
 /**
  * Paneles que dependen del expediente abierto: el mapa del trámite, el
@@ -206,9 +207,9 @@ export function PanelGrafo({ caso }: { caso: FilaProceso }) {
 }
 
 const estilos: Record<string, React.CSSProperties> = {
-  tenue: { color: PALETA.textoSuave, fontSize: 12.5, lineHeight: 1.55, margin: '8px 0 0' },
-  linea: { color: PALETA.texto, fontSize: 12.5, lineHeight: 1.55, margin: '8px 0 0' },
+  tenue: { color: PALETA.textoSuave, fontSize: TEXTO.menor, lineHeight: 1.55, margin: '8px 0 0' },
+  linea: { color: PALETA.texto, fontSize: TEXTO.menor, lineHeight: 1.55, margin: '8px 0 0' },
   contador: { display: 'flex', alignItems: 'baseline', gap: 8 },
   numero: { fontSize: 30, fontWeight: 600, lineHeight: 1.1 },
-  numeroPie: { fontSize: 12.5, color: PALETA.textoSuave },
+  numeroPie: { fontSize: TEXTO.menor, color: PALETA.textoSuave },
 };

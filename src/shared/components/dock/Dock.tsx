@@ -8,7 +8,6 @@ import {
   Wallet,
   Scale,
   Sparkles,
-  SquareSlash,
   Settings,
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -17,6 +16,7 @@ import { DockItemBoton } from './DockItemBoton';
 import { PALETA } from '@/theme/palette';
 import { glassChrome } from '@/theme/glass';
 import { usePrefersReducedTransparency } from '@/shared/hooks/usePrefersReducedTransparency';
+import { TEXTO } from '@/theme/escala';
 
 /** Ancho del riel. AppLayout compensa este mismo valor con su paddingLeft. */
 export const ANCHO_RIEL = 228;
@@ -34,8 +34,7 @@ const ICONOS_DOCK: Record<DockIconKey, ReactNode> = {
   'pronto-pago': <Wallet size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
   apelaciones: <Scale size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
   // El acento "IA": sparkle, no un ícono de robot.
-  'chat-ia': <Sparkles size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
-  asistente: <SquareSlash size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
+  asistente: <Sparkles size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
   configuracion: <Settings size={ICONO_TAMANO} strokeWidth={ICONO_TRAZO} />,
 };
 
@@ -79,7 +78,7 @@ export function Dock() {
           {section.titulo && (
             <div
               style={{
-                fontSize: 10.5,
+                fontSize: TEXTO.nota,
                 fontWeight: 700,
                 letterSpacing: '0.08em',
                 textTransform: 'uppercase',

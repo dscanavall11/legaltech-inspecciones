@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Button,
@@ -37,7 +37,7 @@ import {
   type TipoMulta,
 } from '@/derecho';
 import { calcularTermino } from '@/shared/terminos/diasHabiles';
-import { COMPARENDOS_DEMO, parsearBdComparendos, type Comparendo, type ReporteImportacion } from './comparendos';
+import { parsearBdComparendos, type Comparendo, type ReporteImportacion } from './comparendos';
 import { extraerComparendoPdf } from './extraerComparendoPdf';
 import { descargarDocumentoLegalPdf } from '@/shared/documentos/documentoLegalPdf';
 import { VistaPreviaActa } from '@/shared/documentos/VistaPreviaActa';
@@ -48,10 +48,15 @@ import { PdfViewer } from '@/shared/documentos/PdfViewer';
 import { ELEVACION, PALETA } from '@/theme/theme';
 import { useInspeccionStore } from '@/store/inspeccionStore';
 import { useAiChat } from '@/shared/ai/useAiChat';
+import { Campo } from '@/shared/ui/Campo';
+import { Tarjeta } from '@/shared/ui/Tarjeta';
+import { Bloque } from '@/shared/ui/Bloque';
+import { TEXTO, RADIO, RELLENO } from '@/theme/escala';
+import { useComparendosStore } from '@/shared/comparendos/store';
+import { CabeceraPagina } from '@/shared/ui/CabeceraPagina';
+import { ESPACIO } from '@/theme/escala';
 
-const { Title, Text } = Typography;
-
-const CLAVE_DESPACHO = 'acta-firmeza:despacho';
+const { Text } = Typography;
 
 const DATOS_INICIALES: DatosActaFirmeza = {
   municipio: 'Manizales',
@@ -94,62 +99,26 @@ const ETIQUETA_CAMPO: Partial<Record<keyof Comparendo, string>> = {
   hechos: 'Hechos',
 };
 
-function CampoActa({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div style={{ marginBottom: 16 }}>
-      <div
-        style={{
-          fontSize: 12,
-          fontWeight: 600,
-          letterSpacing: '0.05em',
-          textTransform: 'uppercase',
-          color: PALETA.textoSuave,
-          marginBottom: 6,
-          paddingLeft: 2,
-        }}
-      >
-        {label}
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function Tarjeta({ children, style }: { children: ReactNode; style?: React.CSSProperties }) {
-  return (
-    <div
-      style={{
-        background: PALETA.superficie,
-        borderRadius: 16,
-        boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06)',
-        padding: '24px 28px',
-        marginBottom: 24,
-        border: `1px solid ${PALETA.borde}`,
-        ...style,
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
 export function ActasFirmezaPage() {
   const { message } = App.useApp();
   const inspeccion = useInspeccionStore((s) => s.config);
   const [ruta, setRuta] = useState<'pdf' | 'excel'>('pdf');
   const [datos, setDatos] = useState<DatosActaFirmeza>(() => {
-    // Prioridad: store de inspección (contexto persistido) > recuerdo local > defaults.
-    const despacho = localStorage.getItem(CLAVE_DESPACHO);
-    const base = despacho ? { ...DATOS_INICIALES, ...JSON.parse(despacho) } : DATOS_INICIALES;
+    // El despacho (municipio, inspector, inspección) ya no se edita en esta
+    // pantalla: viene de Ajustes/useInspeccionStore, fuente única.
     const store = useInspeccionStore.getState().config;
     return {
-      ...base,
-      municipio: store.municipio || base.municipio,
-      inspectorNombre: store.inspectorNombre || base.inspectorNombre,
-      inspeccion: store.inspeccion || base.inspeccion,
+      ...DATOS_INICIALES,
+      municipio: store.municipio || DATOS_INICIALES.municipio,
+      inspectorNombre: store.inspectorNombre || DATOS_INICIALES.inspectorNombre,
+      inspeccion: store.inspeccion || DATOS_INICIALES.inspeccion,
     };
   });
-  const [bd, setBd] = useState<Comparendo[]>(COMPARENDOS_DEMO);
+  // La BD es una sola para toda la app y sobrevive al cambio de pantalla: antes
+  // cada página tenía su copia en useState y el .xlsx cargado aquí no existía
+  // en la queja de al lado.
+  const bd = useComparendosStore((s) => s.comparendos);
+  const setBd = useComparendosStore((s) => s.cargar);
   const [origenBd, setOrigenBd] = useState<'demo' | 'archivo'>('demo');
   const [apelo, setApelo] = useState(false);
   const [extrayendo, setExtrayendo] = useState(false);
@@ -199,15 +168,6 @@ export function ActasFirmezaPage() {
       }
     }
   }, [msjIA]);
-
-  // El despacho (municipio, inspección, inspector) se recuerda entre sesiones.
-  useEffect(() => {
-    const { municipio, inspeccion, inspectorNombre, inspectorCargo } = datos;
-    localStorage.setItem(
-      CLAVE_DESPACHO,
-      JSON.stringify({ municipio, inspeccion, inspectorNombre, inspectorCargo }),
-    );
-  }, [datos.municipio, datos.inspeccion, datos.inspectorNombre, datos.inspectorCargo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Ruta A: PDF del comparendo ───────────────────────────────────────
   async function cargarComparendoPdf(archivo: File | undefined) {
@@ -307,15 +267,11 @@ export function ActasFirmezaPage() {
 
   return (
     <div>
-      <Title level={2} style={{ marginBottom: 8, fontWeight: 700, color: PALETA.texto }}>
-        Actas de firmeza
-      </Title>
-      <div style={{ marginBottom: 32 }}>
-        <Text type="secondary" style={{ fontSize: 16, lineHeight: 1.6 }}>
-          Constancia de firmeza de la multa general señalada en una orden de comparendo
-          (art. 223A, literal e, Ley 1801 de 2016, adicionado por la Ley 2197 de 2022).
-        </Text>
-      </div>
+      <CabeceraPagina
+        titulo="Actas de firmeza"
+        descripcion="Constancia de firmeza de la multa general señalada en una orden de comparendo (art. 223A, literal e, Ley 1801 de 2016, adicionado por la Ley 2197 de 2022)."
+      />
+      <div style={{ height: ESPACIO.lg }} />
 
       {/* ── Cola de trabajo: actas de firmeza cargadas desde el CSV/Excel ── */}
       <Tarjeta style={{ marginBottom: 22 }}>
@@ -393,19 +349,31 @@ export function ActasFirmezaPage() {
             },
           ]}
         />
-        <div style={{ fontSize: 12, color: PALETA.textoTenue, marginTop: 8 }}>
+        <div style={{ fontSize: TEXTO.menor, color: PALETA.textoTenue, marginTop: 8 }}>
           Seleccione un comparendo de la cola para cargarlo en el editor (HITL) y generar su acta.
         </div>
       </Tarjeta>
 
       <div style={{ display: 'flex', gap: 22, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-        {/* ── Columna izquierda ─────────────────────────────────── */}
-        <div style={{ flex: '1 1 380px', maxWidth: 460, minWidth: 340 }}>
-          {/* Origen de los datos: dos rutas */}
-          <Tarjeta>
-            <Text strong style={{ display: 'block', marginBottom: 12 }}>
-              Origen de los datos del comparendo
-            </Text>
+        {/* ── Columna izquierda: un solo contenedor, no cinco tarjetas
+            compitiendo por peso — mismo lenguaje que querellas/quejas
+            (ver AreaTrabajoExpediente). ─────────────────────────────── */}
+        <section
+          style={{
+            flex: '1 1 380px',
+            maxWidth: 460,
+            minWidth: 340,
+            background: PALETA.superficie,
+            border: `1px solid ${PALETA.borde}`,
+            borderRadius: RADIO.tarjeta,
+            boxShadow: ELEVACION.base,
+            padding: RELLENO.tarjeta,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: ESPACIO.lg,
+          }}
+        >
+          <Bloque titulo="Origen de los datos del comparendo">
             <Segmented
               block
               value={ruta}
@@ -452,7 +420,7 @@ export function ActasFirmezaPage() {
                     description="La lectura de comparendos escaneados la hará el agente de IA (OCR) del backend. Por ahora diligencie los datos manualmente."
                   />
                 )}
-                <div style={{ fontSize: 12, color: PALETA.textoTenue, marginTop: 10 }}>
+                <div style={{ fontSize: TEXTO.menor, color: PALETA.textoTenue, marginTop: 10 }}>
                   El sistema extrae los datos del comparendo; el número de acta, la fecha y la
                   reincidencia se diligencian en el formulario.
                 </div>
@@ -464,7 +432,7 @@ export function ActasFirmezaPage() {
                       borderTop: `1px solid ${PALETA.borde}`,
                     }}
                   >
-                    <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>
+                    <Text type="secondary" style={{ fontSize: TEXTO.menor, display: 'block', marginBottom: 8 }}>
                       Comparendo subido — verifique visualmente los campos extraídos contra el
                       original:
                     </Text>
@@ -484,7 +452,7 @@ export function ActasFirmezaPage() {
                     marginBottom: 10,
                   }}
                 >
-                  <Text type="secondary" style={{ fontSize: 13 }}>
+                  <Text type="secondary" style={{ fontSize: TEXTO.base }}>
                     Buscar comparendo
                   </Text>
                   <Tag color={origenBd === 'archivo' ? 'green' : 'blue'}>
@@ -527,7 +495,7 @@ export function ActasFirmezaPage() {
                       reporteImportacion.descartadas > 0 ? (
                         <ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>
                           {Object.entries(reporteImportacion.motivos).map(([motivo, count]) => (
-                            <li key={motivo} style={{ fontSize: 12.5 }}>
+                            <li key={motivo} style={{ fontSize: TEXTO.menor }}>
                               {motivo}: {count}
                             </li>
                           ))}
@@ -536,20 +504,20 @@ export function ActasFirmezaPage() {
                     }
                   />
                 )}
-                <div style={{ fontSize: 12, color: PALETA.textoTenue, marginTop: 10 }}>
+                <div style={{ fontSize: TEXTO.menor, color: PALETA.textoTenue, marginTop: 10 }}>
                   Si la BD trae la columna REINCIDENTE, la reincidencia se precarga y puede
                   ajustarse en el formulario.
                 </div>
               </>
             )}
-          </Tarjeta>
+          </Bloque>
 
           {/* Verificación de términos */}
           {apelo && (
             <Alert
               type="error"
               showIcon
-              style={{ marginBottom: 18, borderRadius: 16 }}
+              style={{ borderRadius: 16 }}
               message="El comparendo registra objeción"
               description="La orden fue objetada dentro del término: no procede acta de firmeza. Corresponde dar trámite de proceso verbal abreviado."
             />
@@ -559,7 +527,7 @@ export function ActasFirmezaPage() {
               <Alert
                 type="success"
                 showIcon
-                style={{ marginBottom: 18, borderRadius: 16 }}
+                style={{ borderRadius: 16 }}
                 message="Procede la firmeza"
                 description={`Vencieron los ${TERMINOS_COMPARENDO.firmezaDias} días hábiles (el ${terminos.firmeza.fechaVencimiento.format('D [de] MMMM')}) sin objeción ni ejercicio de los beneficios del art. 180.`}
               />
@@ -567,7 +535,7 @@ export function ActasFirmezaPage() {
               <Alert
                 type="warning"
                 showIcon
-                style={{ marginBottom: 18, borderRadius: 16 }}
+                style={{ borderRadius: 16 }}
                 message="Términos aún en curso: no procede la firmeza"
                 description={`El ciudadano puede objetar hasta el ${terminos.objecion.fechaVencimiento.format('D [de] MMMM')} (3 días hábiles) y acogerse a los beneficios del art. 180 hasta el ${terminos.firmeza.fechaVencimiento.format('D [de] MMMM')} (5 días hábiles, art. 223A).`}
               />
@@ -575,23 +543,19 @@ export function ActasFirmezaPage() {
           )}
 
           {/* Datos del acta (formulario del inspector) */}
-          <Tarjeta>
-            <Text strong style={{ display: 'block', marginBottom: 14 }}>
-              Datos del acta
-            </Text>
-
+          <Bloque titulo="Datos del acta">
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 12 }}>
-              <CampoActa label="No. de acta / proceso">
+              <Campo label="No. de acta / proceso">
                 <Input value={datos.proceso} onChange={(e) => set('proceso', e.target.value)} placeholder="2026-0000" />
-              </CampoActa>
-              <CampoActa label="Fecha del acta">
+              </Campo>
+              <Campo label="Fecha del acta">
                 <DatePicker
                   style={{ width: '100%' }}
                   format="DD/MM/YYYY"
                   value={dayjs(datos.fechaResolucion)}
                   onChange={(d) => d && set('fechaResolucion', d.format('YYYY-MM-DD'))}
                 />
-              </CampoActa>
+              </Campo>
             </div>
 
             <div style={{ marginBottom: 16 }}>
@@ -605,14 +569,14 @@ export function ActasFirmezaPage() {
 
             {/* Liquidación */}
             <div style={{ background: '#eef4fa', borderRadius: 16, padding: '12px 16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: TEXTO.base }}>
                 <Text type="secondary">
                   Multa tipo {liq.tipo} ({liq.smdlvLetras} SMDLV)
                 </Text>
                 <Text>$ {liq.valorBase.toLocaleString('es-CO')}</Text>
               </div>
               {liq.porcentajeIncremento > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5, marginTop: 4 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: TEXTO.base, marginTop: 4 }}>
                   <Text type="secondary">Incremento {liq.porcentajeIncremento}%</Text>
                   <Text>$ {liq.valorIncremento.toLocaleString('es-CO')}</Text>
                 </div>
@@ -632,62 +596,58 @@ export function ActasFirmezaPage() {
                 </Text>
               </div>
             </div>
-          </Tarjeta>
+          </Bloque>
 
           {/* Datos del comparendo (editables) */}
-          <Tarjeta>
-            <Text strong style={{ display: 'block', marginBottom: 14 }}>
-              Datos del comparendo
-            </Text>
-
-            <CampoActa label="No. comparendo">
+          <Bloque titulo="Datos del comparendo">
+            <Campo label="No. comparendo">
               <Input value={datos.comparendo} onChange={(e) => set('comparendo', e.target.value)} placeholder="17-001-…" />
-            </CampoActa>
+            </Campo>
 
-            <CampoActa label="Presunto infractor">
+            <Campo label="Presunto infractor">
               <Input value={datos.solicitado} onChange={(e) => set('solicitado', e.target.value)} placeholder="Nombre completo" />
-            </CampoActa>
+            </Campo>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 12 }}>
-              <CampoActa label="Cédula">
+              <Campo label="Cédula">
                 <Input value={datos.cedula} onChange={(e) => set('cedula', e.target.value)} />
-              </CampoActa>
-              <CampoActa label="Teléfono">
+              </Campo>
+              <Campo label="Teléfono">
                 <Input value={datos.telefono} onChange={(e) => set('telefono', e.target.value)} placeholder="NO APORTA" />
-              </CampoActa>
+              </Campo>
             </div>
 
-            <CampoActa label="Dirección del infractor">
+            <Campo label="Dirección del infractor">
               <Input value={datos.direccion} onChange={(e) => set('direccion', e.target.value)} />
-            </CampoActa>
+            </Campo>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 12 }}>
-              <CampoActa label="Fecha del comparendo">
+              <Campo label="Fecha del comparendo">
                 <DatePicker
                   style={{ width: '100%' }}
                   format="DD/MM/YYYY"
                   value={datos.fechaComparendo ? dayjs(datos.fechaComparendo) : null}
                   onChange={(d) => set('fechaComparendo', d ? d.format('YYYY-MM-DD') : '')}
                 />
-              </CampoActa>
-              <CampoActa label="Procedencia (CAI)">
+              </Campo>
+              <Campo label="Procedencia (CAI)">
                 <Input value={datos.solicitante} onChange={(e) => set('solicitante', e.target.value)} placeholder="CAI …" />
-              </CampoActa>
+              </Campo>
             </div>
 
-            <CampoActa label="Lugar del comportamiento">
+            <Campo label="Lugar del comportamiento">
               <Input value={datos.lugar} onChange={(e) => set('lugar', e.target.value)} />
-            </CampoActa>
+            </Campo>
 
-            <CampoActa label="Artículo y numeral (Ley 1801)">
+            <Campo label="Artículo y numeral (Ley 1801)">
               <Input
                 value={datos.articuloNumeral}
                 onChange={(e) => set('articuloNumeral', e.target.value)}
                 placeholder="Artículo 140 Numeral 14"
               />
-            </CampoActa>
+            </Campo>
 
-            <CampoActa label="Hechos (descripción del comportamiento)">
+            <Campo label="Hechos (descripción del comportamiento)">
               <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                 <Button
                   icon={<Sparkles size={15} strokeWidth={1.75} />}
@@ -721,52 +681,35 @@ export function ActasFirmezaPage() {
                 onChange={(e) => set('hechos', e.target.value)}
                 placeholder="La IA redacta este párrafo a partir de la conducta y los descargos; usted lo revisa y ajusta."
               />
-            </CampoActa>
+            </Campo>
 
-            <CampoActa label="Multa general (art. 180)">
+            <Campo label="Multa general (art. 180)">
               <Select
                 style={{ width: '100%' }}
                 value={datos.tipoMulta}
                 onChange={(v) => set('tipoMulta', v)}
                 options={TIPO_MULTA_OPCIONES}
               />
-            </CampoActa>
-          </Tarjeta>
+            </Campo>
+          </Bloque>
 
-          {/* Despacho y membrete */}
-          <Tarjeta>
-            <Text strong style={{ display: 'block', marginBottom: 14 }}>
-              Despacho
-            </Text>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 12 }}>
-              <CampoActa label="Municipio (alcaldía)">
-                <Input value={datos.municipio} onChange={(e) => set('municipio', e.target.value)} />
-              </CampoActa>
-              <CampoActa label="Inspector">
-                <Input value={datos.inspectorNombre} onChange={(e) => set('inspectorNombre', e.target.value)} />
-              </CampoActa>
-            </div>
-            <CampoActa label="Inspección">
-              <Input value={datos.inspeccion} onChange={(e) => set('inspeccion', e.target.value)} />
-            </CampoActa>
-
-            <CampoActa label="Membrete de la alcaldía (encabezado del acta)">
-              <div
-                style={{
-                  background: inspeccion.membreteDataUrl ? PALETA.azulSuave : '#eef4fa',
-                  borderRadius: 12,
-                  padding: '10px 14px',
-                  fontSize: 13,
-                  color: inspeccion.membreteDataUrl ? PALETA.azulOscuro : PALETA.textoSuave,
-                }}
-              >
-                {inspeccion.membreteDataUrl
-                  ? 'Membrete cargado desde la configuración de la inspección.'
-                  : 'Aún no hay membrete. Ábrelo con el asistente "Configurar inspección" (botón flotante) para guardarlo una vez.'}
-              </div>
-            </CampoActa>
-
-            <div style={{ display: 'flex', gap: 10, marginTop: 6, flexWrap: 'wrap' }}>
+          {/* Membrete y acciones — el despacho (municipio/inspector/inspección)
+              ya no se edita aquí, viene de Ajustes. */}
+          <div
+            style={{
+              borderTop: `1px solid ${PALETA.borde}`,
+              paddingTop: ESPACIO.lg,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: ESPACIO.md,
+            }}
+          >
+            {!inspeccion.membreteDataUrl && (
+              <Text type="secondary" style={{ fontSize: TEXTO.menor }}>
+                Aún no hay membrete. Ábrelo con el asistente "Configurar inspección" (botón flotante) para guardarlo una vez.
+              </Text>
+            )}
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               <Button
                 type="primary"
                 size="large"
@@ -813,8 +756,8 @@ export function ActasFirmezaPage() {
                 }}
               />
             </div>
-          </Tarjeta>
-        </div>
+          </div>
+        </section>
 
         {/* ── Columna derecha: vista previa del acta ─────────────── */}
         <div style={{ flex: '1 1 520px', minWidth: 380 }}>
@@ -830,7 +773,7 @@ export function ActasFirmezaPage() {
               }}
             >
               <SafetyCertificateOutlined style={{ fontSize: 40, marginBottom: 14, color: '#c9cdd3' }} />
-              <div style={{ fontSize: 15 }}>
+              <div style={{ fontSize: TEXTO.titulo }}>
                 Suba el PDF del comparendo o selecciónelo de la base de datos.
                 El acta se redacta aquí en tiempo real.
               </div>

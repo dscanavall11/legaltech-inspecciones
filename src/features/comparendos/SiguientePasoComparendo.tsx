@@ -72,6 +72,7 @@ import { PALETA } from '@/theme/theme';
 import { ChecklistVisual } from '@/shared/components/ChecklistVisual';
 import { CHECKLIST_VERIFICACION_COMPARENDO } from './checklistVerificacionComparendo';
 import { derivarRequisitosFallo, requisitosFalloCumplidos } from './falloRequisitos';
+import { TEXTO } from '@/theme/escala';
 
 const { Text } = Typography;
 const { TextArea } = Input;
@@ -661,7 +662,7 @@ export function SiguientePasoComparendo({
         }}
         styles={{ body: { padding: '18px 22px 20px' } }}
       >
-        <Text type="secondary" style={{ fontSize: 11, letterSpacing: '0.09em', fontWeight: 600 }}>
+        <Text type="secondary" style={{ fontSize: TEXTO.nota, letterSpacing: '0.09em', fontWeight: 600 }}>
           PRÓXIMA ACTUACIÓN
         </Text>
         <div style={{ margin: '6px 0 14px', color: PALETA.texto }}>{paso.mensaje}</div>

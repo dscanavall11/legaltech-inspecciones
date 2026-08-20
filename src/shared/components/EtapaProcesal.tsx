@@ -1,5 +1,6 @@
 import { Fragment } from 'react';
 import { PALETA } from '@/theme/theme';
+import { TEXTO } from '@/theme/escala';
 
 /**
  * Riel de etapas del trámite. Codifica la secuencia procesal real:
@@ -75,7 +76,7 @@ export function EtapaProcesal({
               </span>
               <span
                 style={{
-                  fontSize: 11,
+                  fontSize: TEXTO.nota,
                   fontWeight: enCurso ? 600 : 500,
                   color: enCurso ? PALETA.azulOscuro : completada ? PALETA.textoSuave : PALETA.textoTenue,
                   whiteSpace: 'nowrap',

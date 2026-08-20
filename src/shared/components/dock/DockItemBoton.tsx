@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { PALETA } from '@/theme/palette';
+import { TEXTO } from '@/theme/escala';
 
 interface DockItemBotonProps {
   icon: ReactNode;
@@ -87,7 +88,7 @@ export function DockItemBoton({
         <span
           style={{
             display: 'block',
-            fontSize: 13.5,
+            fontSize: TEXTO.base,
             fontWeight: activo ? 600 : 500,
             lineHeight: 1.3,
             overflow: 'hidden',
@@ -101,7 +102,7 @@ export function DockItemBoton({
           <span
             style={{
               display: 'block',
-              fontSize: 11,
+              fontSize: TEXTO.nota,
               lineHeight: 1.35,
               marginTop: 1,
               color: PALETA.textoTenue,

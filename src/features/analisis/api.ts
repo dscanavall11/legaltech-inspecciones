@@ -113,6 +113,10 @@ export interface ComplaintResponseFields {
   antecedents: string;
   tramite: string;
   juridicProblem: string;
+  /** Argumentos del ciudadano en la diligencia; el despacho los profiere siempre. */
+  descargos: string;
+  /** Pruebas incorporadas, su decreto y su práctica. Distinto de valorarlas. */
+  pruebasObrantes: string;
   evidences: string;
   necesidadProporcionalidad: string;
   juridicResponse: string;

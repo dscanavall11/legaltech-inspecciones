@@ -7,6 +7,7 @@ import { useInspeccionStore } from '@/store/inspeccionStore';
 import { generarBlobEjemploPlantilla, NOMBRE_PLANTILLA } from '@/shared/documentos/ejemploPlantillas';
 import { VisorLateral } from '@/shared/documentos/VisorLateral';
 import { PALETA, ELEVACION } from '@/theme/theme';
+import { TEXTO } from '@/theme/escala';
 
 const { Text } = Typography;
 
@@ -66,7 +67,7 @@ function NodoEstado<TEstado extends string>({
       title={estadoLabel[estado]}
       content={
         <div style={{ maxWidth: 300 }}>
-          <Text style={{ fontSize: 12.5 }}>{paso.mensaje}</Text>
+          <Text style={{ fontSize: TEXTO.menor }}>{paso.mensaje}</Text>
           {paso.acciones.length > 0 && (
             <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
               {paso.acciones.map((a) => {
@@ -76,7 +77,7 @@ function NodoEstado<TEstado extends string>({
                     key={a.tipo}
                     style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}
                   >
-                    <Text style={{ fontSize: 12 }}>• {a.label}</Text>
+                    <Text style={{ fontSize: TEXTO.menor }}>• {a.label}</Text>
                     {documentKey && (
                       <Button
                         size="small"
@@ -122,7 +123,7 @@ function NodoEstado<TEstado extends string>({
           boxSizing: 'border-box',
           padding: '6px 9px',
           borderRadius: 8,
-          fontSize: 12.5,
+          fontSize: TEXTO.menor,
           textAlign: 'left',
           ...estilo,
         }}
@@ -233,10 +234,10 @@ export function FlujoNavegable<TEstado extends string>({
         }}
       >
         <div>
-          <Text strong style={{ fontSize: 14.5 }}>
+          <Text strong style={{ fontSize: TEXTO.titulo }}>
             Mapa del trámite
           </Text>
-          <div style={{ fontSize: 12, color: PALETA.textoTenue, marginTop: 1 }}>{descripcionMapa}</div>
+          <div style={{ fontSize: TEXTO.menor, color: PALETA.textoTenue, marginTop: 1 }}>{descripcionMapa}</div>
         </div>
         <Space size={8} align="center">
           {modoPruebas && (
@@ -244,7 +245,7 @@ export function FlujoNavegable<TEstado extends string>({
               Los saltos no siguen el trámite real
             </Tag>
           )}
-          <Text type="secondary" style={{ fontSize: 12.5 }}>
+          <Text type="secondary" style={{ fontSize: TEXTO.menor }}>
             Modo pruebas
           </Text>
           <Switch size="small" checked={modoPruebas} onChange={setModoPruebas} />
@@ -265,7 +266,7 @@ export function FlujoNavegable<TEstado extends string>({
                 border: ESTILO_NODO[l.estado].border,
               }}
             />
-            <Text type="secondary" style={{ fontSize: 11.5 }}>
+            <Text type="secondary" style={{ fontSize: TEXTO.nota }}>
               {l.label}
             </Text>
           </Space>
@@ -275,7 +276,7 @@ export function FlujoNavegable<TEstado extends string>({
       <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
         {columnas.map((estados, i) => (
           <div key={etapas[i]} style={{ minWidth: 168, flex: '1 1 0' }}>
-            <Text type="secondary" style={{ fontSize: 11, letterSpacing: '0.06em', fontWeight: 600 }}>
+            <Text type="secondary" style={{ fontSize: TEXTO.nota, letterSpacing: '0.06em', fontWeight: 600 }}>
               {etapas[i].toUpperCase()}
             </Text>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>

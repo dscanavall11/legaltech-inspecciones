@@ -1,6 +1,7 @@
 import { CheckSquareFilled, BorderOutlined, CheckCircleFilled } from '@ant-design/icons';
 import { Tag } from 'antd';
 import { PALETA } from '@/theme/theme';
+import { TEXTO } from '@/theme/escala';
 
 export interface ChecklistVisualItem {
   key: string;
@@ -85,7 +86,7 @@ export function ChecklistVisual({
           )}
           <span
             style={{
-              fontSize: 13.5,
+              fontSize: TEXTO.base,
               color: item.done ? PALETA.texto : PALETA.textoSuave,
               fontWeight: item.done ? 600 : 400,
             }}

@@ -12,12 +12,13 @@ import {
 import { NormaMark } from '@/shared/ai/NormaMark';
 import { ELEVACION, PALETA } from '@/theme/theme';
 import { useInspeccionStore } from '@/store/inspeccionStore';
-import { useChangeCaseState, useUpdateCaseFields } from '@/shared/legalCases/api';
+import { useChangeCaseState, useReplaceCaseParties, useUpdateCaseFields } from '@/shared/legalCases/api';
 import { buildCaseMetadata, parseCaseMetadata } from '@/shared/legalCases/types';
-import { leerPartes } from '@/features/querellas/partes';
+import { aCaseParties, leerPartes } from '@/features/querellas/partes';
 import {
   camposPorVerificar,
   fusionarExtraidas,
+  partesSinUbicar,
   type ParteExtraida,
 } from '@/features/querellas/partesExtraidas';
 import {
@@ -46,6 +47,8 @@ import {
   generarDocumentoLegalDocxBlob,
 } from '@/shared/documentos/documentoLegalDocx';
 import { useUploadCaseDocument } from '@/shared/documentos/api';
+import { Tarjeta } from '@/shared/ui/Tarjeta';
+import { TEXTO } from '@/theme/escala';
 
 // legalReasoning/evidenceAssessment ya existen como columnas genéricas en
 // legal-cases - se reutilizan para guardar el fallo en vez de pedir columnas
@@ -86,6 +89,10 @@ const AYUDA_APARTE: Record<keyof BorradorFallo, string> = {
     'Solo hechos concretos e indiscutibles, en orden cronológico. Sin argumentaciones, presunciones ni apreciaciones subjetivas.',
   tramite: 'Actuación inicial, citaciones, notificaciones, audiencias y pruebas practicadas.',
   juridicProblem: 'El motivo de policía formulado como pregunta asertiva.',
+  descargos:
+    'Lo que expuso el ciudadano en la diligencia, con la constancia de los veinte (20) minutos del art. 223 num. 3 lit. a). Se cita, no se valora.',
+  pruebasObrantes:
+    'Qué pruebas se incorporaron y para qué, su decreto por conducentes y pertinentes, y la práctica y el traslado de las que se surtieron en la diligencia.',
   evidences: 'Valoración de la prueba de ambas partes: querellante y querellado.',
   necesidadProporcionalidad:
     'Por qué la medida correctiva es —o no es— necesaria, razonable y proporcional (Decreto 768, arts. 2.2.8.18.2.1 y 2.2.8.18.2.2: la multa es la última opción).',
@@ -100,6 +107,8 @@ const BORRADOR_VACIO: BorradorFallo = {
   antecedents: '',
   tramite: '',
   juridicProblem: '',
+  descargos: '',
+  pruebasObrantes: '',
   evidences: '',
   necesidadProporcionalidad: '',
   juridicResponse: '',
@@ -107,23 +116,6 @@ const BORRADOR_VACIO: BorradorFallo = {
   parteResolutiva: '',
   recursos: '',
 };
-
-function Tarjeta({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
-  return (
-    <div
-      style={{
-        background: PALETA.superficie,
-        borderRadius: 20,
-        boxShadow: ELEVACION.base,
-        padding: '18px 20px',
-        marginBottom: 18,
-        ...style,
-      }}
-    >
-      {children}
-    </div>
-  );
-}
 
 /**
  * Editor del fallo: trae el caso (?caso=<id>) y su expediente saneado,
@@ -157,6 +149,7 @@ export function AnalisisPage({ caseId, embebido = false, autoGenerar = false }: 
   const inspeccion = useInspeccionStore((s) => s.config);
   const cambiarEstado = useChangeCaseState();
   const actualizarCampos = useUpdateCaseFields();
+  const reemplazarPartes = useReplaceCaseParties();
   const subir = useUploadCaseDocument(casoId ?? '');
 
   /**
@@ -251,6 +244,17 @@ export function AnalisisPage({ caseId, embebido = false, autoGenerar = false }: 
    */
   async function volcarPartesExtraidas(extraidas?: ParteExtraida[]) {
     if (!casoId || !extraidas) return;
+
+    // Una parte con un rol que no cae en ninguna casilla se perdía en silencio:
+    // el inspector veía la ficha vacía sin saber que la máquina sí había leído
+    // a alguien. Se nombra para que la ubique a mano.
+    const sinUbicar = partesSinUbicar(extraidas);
+    if (sinUbicar.length > 0) {
+      message.warning(
+        `El análisis leyó partes cuyo rol no encaja en querellante ni querellado: ${sinUbicar.join(', ')}. Ubíquelas a mano en Datos del proceso.`,
+      );
+    }
+
     const propuestos = camposPorVerificar(extraidas);
     if (propuestos.length === 0) return;
 
@@ -261,10 +265,16 @@ export function AnalisisPage({ caseId, embebido = false, autoGenerar = false }: 
     actualizarCampos.mutate(
       { id: casoId, fields: { caseMetadata: buildCaseMetadata({ ...metaActual, partes: fusionadas }) } },
       {
-        onSuccess: () =>
+        onSuccess: (actualizado) => {
+          setCaso((prev) => (prev ? { ...prev, caseMetadata: actualizado.caseMetadata } : prev));
+          // Proyección a case_parties: sin ella el expediente sigue apareciendo
+          // como "No identificado" en Mis procesos y el seudonimizador del
+          // servicio legal no tiene a quién tapar en la siguiente pasada.
+          reemplazarPartes.mutate({ id: casoId, parties: aCaseParties(fusionadas) });
           message.info(
             `Datos del proceso extraídos de los documentos: ${propuestos.join(', ')}. Verifíquelos en la ficha antes de proferir.`,
-          ),
+          );
+        },
       },
     );
   }
@@ -286,6 +296,8 @@ export function AnalisisPage({ caseId, embebido = false, autoGenerar = false }: 
         antecedents: real(campos.antecedents),
         tramite: real(campos.tramite),
         juridicProblem: real(campos.juridicProblem),
+        descargos: real(campos.descargos),
+        pruebasObrantes: real(campos.pruebasObrantes),
         evidences: real(campos.evidences),
         necesidadProporcionalidad: real(campos.necesidadProporcionalidad),
         juridicResponse: real(campos.juridicResponse),
@@ -411,11 +423,11 @@ export function AnalisisPage({ caseId, embebido = false, autoGenerar = false }: 
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
             <WarningOutlined style={{ color: '#b06a00', fontSize: 20 }} />
-            <Text strong style={{ fontSize: 15.5, color: '#7a4a00' }}>
+            <Text strong style={{ fontSize: TEXTO.titulo, color: '#7a4a00' }}>
               Los agentes de IA no alcanzaron consenso
             </Text>
           </div>
-          <Text style={{ display: 'block', color: '#6b4a10', fontSize: 13, marginBottom: 14 }}>
+          <Text style={{ display: 'block', color: '#6b4a10', fontSize: TEXTO.base, marginBottom: 14 }}>
             El análisis quedó como borrador. Revise los argumentos en conflicto, decida el punto de
             derecho y deje constancia de su resolución antes de proferir el fallo.
           </Text>
@@ -424,7 +436,7 @@ export function AnalisisPage({ caseId, embebido = false, autoGenerar = false }: 
             <div style={{ marginBottom: 14 }}>
               <div
                 style={{
-                  fontSize: 10.5,
+                  fontSize: TEXTO.nota,
                   fontWeight: 600,
                   letterSpacing: '0.08em',
                   textTransform: 'uppercase',
@@ -442,7 +454,7 @@ export function AnalisisPage({ caseId, embebido = false, autoGenerar = false }: 
             <div style={{ marginBottom: 14 }}>
               <div
                 style={{
-                  fontSize: 10.5,
+                  fontSize: TEXTO.nota,
                   fontWeight: 600,
                   letterSpacing: '0.08em',
                   textTransform: 'uppercase',
@@ -464,11 +476,11 @@ export function AnalisisPage({ caseId, embebido = false, autoGenerar = false }: 
                   }}
                 >
                   {d.affectedField?.trim() && (
-                    <div style={{ fontWeight: 600, fontSize: 12.5, color: '#5a3d00', marginBottom: 6 }}>
+                    <div style={{ fontWeight: 600, fontSize: TEXTO.menor, color: '#5a3d00', marginBottom: 6 }}>
                       {d.affectedField}
                     </div>
                   )}
-                  <div style={{ fontSize: 12.5, color: '#3a2a08', lineHeight: 1.5 }}>
+                  <div style={{ fontSize: TEXTO.menor, color: '#3a2a08', lineHeight: 1.5 }}>
                     <div>
                       <Text strong>Analista:</Text> {d.analystValue || '—'}
                     </div>
@@ -489,7 +501,7 @@ export function AnalisisPage({ caseId, embebido = false, autoGenerar = false }: 
           <div>
             <div
               style={{
-                fontSize: 10.5,
+                fontSize: TEXTO.nota,
                 fontWeight: 600,
                 letterSpacing: '0.08em',
                 textTransform: 'uppercase',
@@ -509,6 +521,11 @@ export function AnalisisPage({ caseId, embebido = false, autoGenerar = false }: 
         </div>
       )}
 
+      {/* Dentro del área de trabajo el avance ya lo lleva el riel de pasos:
+          pintar aquí otro juego de cuatro tarjetas ponía dos indicadores de
+          progreso compitiendo en la misma pantalla. Fuera del área —la ruta
+          /panel/analisis suelta— no hay riel y sí hace falta. */}
+      {!embebido && (
       <ProgresoFallo
         pasos={[
           {
@@ -533,6 +550,7 @@ export function AnalisisPage({ caseId, embebido = false, autoGenerar = false }: 
           },
         ]}
       />
+      )}
 
       {caso && (
         <Alert
@@ -581,7 +599,7 @@ export function AnalisisPage({ caseId, embebido = false, autoGenerar = false }: 
             <Text strong style={{ display: 'block', marginBottom: 8 }}>
               Expediente
             </Text>
-            <Text type="secondary" style={{ fontSize: 12.5, display: 'block', marginBottom: 12 }}>
+            <Text type="secondary" style={{ fontSize: TEXTO.menor, display: 'block', marginBottom: 12 }}>
               El análisis usa los datos del caso y su expediente saneado, resueltos por el servidor a
               partir del radicado.
             </Text>
@@ -604,13 +622,13 @@ export function AnalisisPage({ caseId, embebido = false, autoGenerar = false }: 
             <Text strong style={{ display: 'block', marginBottom: 4 }}>
               Datos del fallo
             </Text>
-            <Text type="secondary" style={{ display: 'block', fontSize: 12.5, marginBottom: 14 }}>
+            <Text type="secondary" style={{ display: 'block', fontSize: TEXTO.menor, marginBottom: 14 }}>
               El número y la fecha los asigna el despacho: encabezan el documento y no se deducen
               del expediente.
             </Text>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
-                <div style={{ fontSize: 12, color: PALETA.textoSuave, marginBottom: 6 }}>
+                <div style={{ fontSize: TEXTO.menor, color: PALETA.textoSuave, marginBottom: 6 }}>
                   Número del fallo
                 </div>
                 <Input
@@ -620,7 +638,7 @@ export function AnalisisPage({ caseId, embebido = false, autoGenerar = false }: 
                 />
               </div>
               <div>
-                <div style={{ fontSize: 12, color: PALETA.textoSuave, marginBottom: 6 }}>
+                <div style={{ fontSize: TEXTO.menor, color: PALETA.textoSuave, marginBottom: 6 }}>
                   Fecha del fallo
                 </div>
                 <DatePicker
@@ -635,7 +653,7 @@ export function AnalisisPage({ caseId, embebido = false, autoGenerar = false }: 
               </div>
             </div>
             <div style={{ marginTop: 12 }}>
-              <div style={{ fontSize: 12, color: PALETA.textoSuave, marginBottom: 6 }}>
+              <div style={{ fontSize: TEXTO.menor, color: PALETA.textoSuave, marginBottom: 6 }}>
                 Medida correctiva que se impone — dejar vacío si absuelve
               </div>
               <Input
@@ -645,7 +663,7 @@ export function AnalisisPage({ caseId, embebido = false, autoGenerar = false }: 
                 }
                 placeholder="Multa General Tipo 2, o la medida pedagógica que corresponda"
               />
-              <Text type="secondary" style={{ fontSize: 11.5 }}>
+              <Text type="secondary" style={{ fontSize: TEXTO.nota }}>
                 Va literal en la parte resolutiva. Es lo único del fallo que se ejecuta.
               </Text>
             </div>
@@ -665,7 +683,7 @@ export function AnalisisPage({ caseId, embebido = false, autoGenerar = false }: 
               Borrador del fallo
             </Text>
             {!hayBorrador ? (
-              <Text type="secondary" style={{ fontSize: 13 }}>
+              <Text type="secondary" style={{ fontSize: TEXTO.base }}>
                 Genere el borrador con IA o escriba cada sección manualmente.
               </Text>
             ) : null}
@@ -684,7 +702,7 @@ export function AnalisisPage({ caseId, embebido = false, autoGenerar = false }: 
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: 11,
+                      fontSize: TEXTO.nota,
                       fontWeight: 700,
                       color: diligenciado ? '#fff' : PALETA.textoTenue,
                       background: diligenciado ? PALETA.verde : 'transparent',
@@ -695,7 +713,7 @@ export function AnalisisPage({ caseId, embebido = false, autoGenerar = false }: 
                   </span>
                   <span
                     style={{
-                      fontSize: 11,
+                      fontSize: TEXTO.nota,
                       fontWeight: 700,
                       letterSpacing: '0.06em',
                       textTransform: 'uppercase',
@@ -705,7 +723,7 @@ export function AnalisisPage({ caseId, embebido = false, autoGenerar = false }: 
                     {titulo}
                   </span>
                 </div>
-                <div style={{ fontSize: 11.5, color: PALETA.textoTenue, marginBottom: 6, paddingLeft: 28 }}>
+                <div style={{ fontSize: TEXTO.nota, color: PALETA.textoTenue, marginBottom: 6, paddingLeft: 28 }}>
                   {campo === 'tramite'
                     ? guiaTramite(decision)
                     : campo === 'parteResolutiva'
@@ -727,7 +745,7 @@ export function AnalisisPage({ caseId, embebido = false, autoGenerar = false }: 
             <Text strong style={{ display: 'block', marginBottom: 10 }}>
               Despacho
             </Text>
-            <Text type="secondary" style={{ fontSize: 12.5 }}>
+            <Text type="secondary" style={{ fontSize: TEXTO.menor }}>
               {inspeccion.inspectorNombre
                 ? `${inspeccion.inspectorNombre} — ${inspeccion.inspeccion || inspeccion.municipio}`
                 : 'Configure el despacho (botón flotante "Configurar inspección") para que aparezca en la firma.'}
@@ -793,7 +811,7 @@ export function AnalisisPage({ caseId, embebido = false, autoGenerar = false }: 
               <div style={{ marginBottom: 14, opacity: 0.5, display: 'flex', justifyContent: 'center' }}>
                 <NormaMark size={40} />
               </div>
-              <div style={{ fontSize: 15 }}>
+              <div style={{ fontSize: TEXTO.titulo }}>
                 Genere el borrador con IA o complete las secciones manualmente. El fallo se
                 redacta aquí en tiempo real.
               </div>
@@ -807,7 +825,7 @@ export function AnalisisPage({ caseId, embebido = false, autoGenerar = false }: 
                 boxShadow: ELEVACION.media,
                 padding: '46px 52px',
                 fontFamily: "'Newsreader', Georgia, serif",
-                fontSize: 13.5,
+                fontSize: TEXTO.base,
                 lineHeight: 1.65,
                 color: '#1b1b1f',
               }}
@@ -823,7 +841,7 @@ export function AnalisisPage({ caseId, embebido = false, autoGenerar = false }: 
               )}
               <div style={{ textAlign: 'center', marginBottom: 18 }}>
                 <div style={{ fontWeight: 600, letterSpacing: '0.04em' }}>{documento.entidad}</div>
-                <div style={{ fontWeight: 700, fontSize: 17, marginTop: 10 }}>{documento.tituloDocumento}</div>
+                <div style={{ fontWeight: 700, fontSize: TEXTO.seccion, marginTop: 10 }}>{documento.tituloDocumento}</div>
                 <div style={{ marginTop: 2 }}>RADICADO {documento.proceso}</div>
                 <div style={{ marginTop: 2 }}>{documento.fechaResolucionLetras}</div>
               </div>
@@ -838,12 +856,12 @@ export function AnalisisPage({ caseId, embebido = false, autoGenerar = false }: 
                           fontWeight: 600,
                           whiteSpace: 'nowrap',
                           verticalAlign: 'top',
-                          fontSize: 12,
+                          fontSize: TEXTO.menor,
                         }}
                       >
                         {f.etiqueta}:
                       </td>
-                      <td style={{ padding: '3px 0', fontSize: 12.5 }}>{f.valor}</td>
+                      <td style={{ padding: '3px 0', fontSize: TEXTO.menor }}>{f.valor}</td>
                     </tr>
                   ))}
                 </tbody>

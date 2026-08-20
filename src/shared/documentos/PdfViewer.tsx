@@ -4,6 +4,7 @@ import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { Button, Spin, Typography } from 'antd';
 import { LeftOutlined, RightOutlined, WarningOutlined } from '@ant-design/icons';
 import { PALETA } from '@/theme/theme';
+import { TEXTO } from '@/theme/escala';
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
@@ -123,7 +124,7 @@ export function PdfViewer({ archivo }: { archivo: File | Blob | string }) {
             onClick={() => setPagina((p) => Math.max(1, p - 1))}
             aria-label="Página anterior"
           />
-          <Text style={{ fontSize: 13, color: PALETA.textoSuave }}>
+          <Text style={{ fontSize: TEXTO.base, color: PALETA.textoSuave }}>
             Página {pagina} / {totalPaginas}
           </Text>
           <Button

@@ -24,6 +24,7 @@ import { SiguientePaso } from './SiguientePaso';
 import { LineaTiempoEstados } from './LineaTiempoEstados';
 import { DocumentosExpediente } from '@/shared/documentos/DocumentosExpediente';
 import { PruebasExpediente } from '@/shared/pruebas/PruebasExpediente';
+import { MatrizHechosPruebas } from '@/features/pruebas/MatrizHechosPruebas';
 import { OrientacionesInspector } from '@/shared/orientaciones/OrientacionesInspector';
 import { PartesQuerellaForm } from './PartesQuerellaForm';
 import { AudienciaQuerella } from './AudienciaQuerella';
@@ -191,6 +192,11 @@ export function QuerellaDetailPage() {
       key: 'pruebas',
       label: 'Pruebas',
       children: <PruebasExpediente caseId={data.id} />,
+    },
+    {
+      key: 'matriz-probatoria',
+      label: 'Matriz probatoria',
+      children: <MatrizHechosPruebas caseId={data.id} caseMetadataRaw={data.caseMetadataRaw} />,
     },
     {
       key: 'orientaciones',

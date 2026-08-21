@@ -309,16 +309,16 @@ function RobotAmigo({ size = 130 }: { size?: number }) {
 
 // ── Contenido ───────────────────────────────────────────────────────────────
 const PASOS = [
-  ['La consulta del inspector', 'En lenguaje procesal o en lenguaje común.'],
-  ['Recuperación híbrida', 'Fichas jurisprudenciales por semántica y hechos; el grafo de fuentes aporta jerarquía, vigencia y precedente.'],
-  ['Redacción con citas', 'El borrador solo puede citar el texto recuperado, con el apartado exacto enlazado.'],
-  ['Validación y firma', 'Las citas se verifican contra la fuente literal y el inspector decide.'],
+  ['Radica o abre el expediente', 'Querella, queja, comparendo o apelación. El sistema asigna radicado automáticamente.'],
+  ['Carga documentos y pruebas', 'PDF, Word o imagen. El sistema extrae datos, organiza pruebas y construye el expediente.'],
+  ['El asistente analiza y propone', 'NORMA revisa la norma, jurisprudencia y hechos; sugiere la decisión con fuentes citadas.'],
+  ['Genera y descarga el documento', 'Plantillas del despacho, con membrete y datos del inspector. PDF y Word listos para firmar.'],
 ] as const;
 
 const CAPAS_RAG = [
-  ['Corpus normativo común', 'Ley 1801, códigos, jurisprudencia y acuerdos municipales, versionados y con vigencia controlada.'],
-  ['Corpus del despacho', 'Las plantillas y actas modelo de cada inspección: la IA redacta con la voz de tu despacho.'],
-  ['Expediente del caso', 'Los documentos radicados en el caso concreto, indexados mientras el proceso está vivo.'],
+  ['OKF — Open Knowledge Framework', 'Normas, comportamientos y plantillas en YAML, revisables por abogados sin tocar código. El contenido jurídico es dato, no código fuente.'],
+  ['Corpus del despacho', 'Membrete, datos del inspector, municipio e inspección: la IA redacta con la voz oficial de tu despacho.'],
+  ['Expediente del caso', 'Documentos radicados, pruebas cargadas y metadatos del proceso, indexados mientras el caso está vivo.'],
 ] as const;
 
 const GARANTIAS = [
@@ -332,10 +332,10 @@ const PRODUCTOS = [
   {
     nombre: 'LegalTech Cloud',
     detalle:
-      'La oficina en el navegador, pensada multi-tenant para todas las células. Hoy funciona el Radicador contra datos de prueba; la integración con el backend jurídico está en construcción.',
+      'La oficina del inspector en el navegador. Querellas, quejas, comparendos, firmeza, conmutación, pronto pago, apelaciones y asistente jurídico — ya operativos con backend jurídico real.',
     pastel: P.azulPastel,
     color: P.azulOscuro,
-    estado: 'En construcción',
+    estado: 'Disponible',
   },
   {
     nombre: 'LegalTech.exe',
@@ -376,14 +376,14 @@ interface Celula {
 }
 
 const CELULAS: Celula[] = [
-  { dominio: 'policia.legaltech', estado: 'disponible', promesa: 'Ley 1801 de 2016, querellas y actas de firmeza.' },
-  { dominio: 'comisariayfamilia.legaltech', estado: 'proximamente', promesa: 'Medidas de protección y trazabilidad familiar.' },
-  { dominio: 'conciliacion.legaltech', estado: 'proximamente', prioridad: 1, promesa: 'Ley 2220 de 2022, actas con efecto de cosa juzgada.' },
-  { dominio: 'transito.legaltech', estado: 'proximamente', prioridad: 2, promesa: 'Ley 769 de 2002, comparendos y audiencias contravencionales.' },
-  { dominio: 'laboral.legaltech', estado: 'proximamente', prioridad: 3, promesa: 'Inspección de trabajo, seguridad y salud en el trabajo, y liquidaciones.' },
-  { dominio: 'cobrocoactivo.legaltech', estado: 'proximamente', promesa: 'Cobro coactivo: cierra el ciclo de las multas en firme.' },
-  { dominio: 'personerias.legaltech', estado: 'proximamente', promesa: 'Tutelas, derechos de petición y veeduría.' },
-  { dominio: 'resguardos.legaltech', estado: 'propuesta', promesa: 'Gobernanza territorial y Jurisdicción Especial Indígena.' },
+  { dominio: 'inspeccionconvivenciaypaz.legaltech.com.co', estado: 'disponible', promesa: 'Querellas, quejas, comparendos, actas de firmeza, conmutación, pronto pago y apelaciones — todo bajo la Ley 1801 de 2016.' },
+  { dominio: 'comisariayfamilia.legaltech.com.co', estado: 'proximamente', promesa: 'Medidas de protección y trazabilidad familiar.' },
+  { dominio: 'conciliacion.legaltech.com.co', estado: 'proximamente', prioridad: 1, promesa: 'Ley 2220 de 2022, actas con efecto de cosa juzgada.' },
+  { dominio: 'transito.legaltech.com.co', estado: 'proximamente', prioridad: 2, promesa: 'Ley 769 de 2002, comparendos y audiencias contravencionales.' },
+  { dominio: 'laboral.legaltech.com.co', estado: 'proximamente', prioridad: 3, promesa: 'Inspección de trabajo, seguridad y salud en el trabajo, y liquidaciones.' },
+  { dominio: 'cobrocoactivo.legaltech.com.co', estado: 'proximamente', promesa: 'Cobro coactivo: cierra el ciclo de las multas en firmeza.' },
+  { dominio: 'personerias.legaltech.com.co', estado: 'proximamente', promesa: 'Tutelas, derechos de petición y veeduría.' },
+  { dominio: 'resguardos.legaltech.com.co', estado: 'propuesta', promesa: 'Gobernanza territorial y Jurisdicción Especial Indígena.' },
 ];
 
 function TarjetaCelula({ celula }: { celula: Celula }) {
@@ -575,12 +575,13 @@ export function LandingPage() {
                 color: P.texto,
               }}
             >
-              Inteligencia jurídica que{' '}
-              <span style={{ color: P.azul, fontStyle: 'italic' }}>cita su fuente</span>.
+              El despacho del Inspector, potenciado por{' '}
+              <span style={{ color: P.azul, fontStyle: 'italic' }}>inteligencia jurídica</span>.
             </h1>
             <p style={{ margin: 0, fontSize: 20, lineHeight: 1.7, color: P.textoSuave, maxWidth: 520 }}>
-              Un cerebro de conocimiento legal para cada área del derecho: radica, tramita y
-              expide actuaciones con respaldo normativo verificable.
+              Querellas, quejas, comparendos, actas de firmeza, conmutación, pronto pago y
+              apelaciones — con un asistente jurídico que redacta, cita la norma y deja
+              todo en el expediente.
             </p>
             <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
               <Link to={destinoCta} style={botonAzul}>{textoCta}</Link>
@@ -607,8 +608,8 @@ export function LandingPage() {
               ))}
             </div>
             <p id="areas" style={{ margin: 0, fontSize: 13.5, color: P.textoTenue, textAlign: 'center' }}>
-              Un solo cerebro RAG, ocho áreas del derecho. Convivencia y Paz ya está disponible;
-              las demás, en construcción.
+              Todo el ciclo de Convivencia y Paz ya operativo: radicación, pruebas, análisis
+              jurídico, generación de documentos y descarga en PDF y Word.
             </p>
           </div>
         </section>
@@ -621,8 +622,8 @@ export function LandingPage() {
             </h2>
             <p style={{ margin: '14px 0 0', fontSize: 16, lineHeight: 1.7, color: P.textoSuave, maxWidth: 620 }}>
               Cada vertical legal es una célula con su propio dominio, sus propias plantillas y su
-              propio corpus normativo, montada sobre el mismo motor de retrieval. Convivencia y
-              Paz ya está disponible; el resto avanza por prioridad.
+              propio corpus normativo. Hoy opera la inspección de Convivencia y Paz con todo su
+              ciclo procesal; las demás células avanzan por prioridad.
             </p>
             <div
               style={{
@@ -654,11 +655,11 @@ export function LandingPage() {
           >
             <div>
               <h2 style={{ margin: 0, fontSize: 32, fontWeight: 700, letterSpacing: '-0.01em', maxWidth: 460 }}>
-                Así responde el sistema, paso a paso.
+                El ciclo completo del inspector, en cuatro pasos.
               </h2>
               <p style={{ margin: '14px 0 0', fontSize: 16, lineHeight: 1.7, color: P.textoSuave, maxWidth: 480 }}>
-                Del lenguaje común del inspector a una actuación con fuentes enlazadas y
-                verificadas. Sin atajos.
+                Desde la radicación hasta el documento firmable: el sistema acompaña cada
+                etapa del proceso sin inventar ni decidir por el inspector.
               </p>
               <div style={{ marginTop: 24, display: 'inline-flex' }}>
                 <RobotAmigo />
@@ -738,8 +739,9 @@ export function LandingPage() {
                   </div>
                 ))}
                 <p style={{ margin: '18px 0 0', fontSize: 14, lineHeight: 1.7, color: P.textoSuave, maxWidth: 480 }}>
-                  La consulta desciende de lo particular a lo general: primero el caso, luego el
-                  despacho, al final la norma. Cada capa aporta contexto sin contaminar a las demás.
+                  El conocimiento jurídico entra por la izquierda —donde un abogado puede revisarlo
+                  y corregirlo— y alimenta tanto las plantillas como el motor de análisis. Cada capa
+                  aporta contexto sin contaminar a las demás.
                 </p>
               </div>
 
@@ -846,8 +848,9 @@ export function LandingPage() {
               Tres productos, un mismo expediente.
             </h2>
             <p style={{ margin: '14px 0 0', fontSize: 15.5, lineHeight: 1.7, color: P.textoSuave, maxWidth: 600 }}>
-              Hoy existe el frontend del Radicador contra datos de prueba y un backend parcial.
-              Así está cada producto, sin adelantar lo que aún no está construido.
+              LegalTech Cloud ya opera con backend jurídico real: expedientes, documentos,
+              análisis con IA y generación de actas. Así está cada producto, sin adelantar
+              lo que aún no está construido.
             </p>
             <div
               style={{
@@ -990,11 +993,11 @@ export function LandingPage() {
             <div>
               <h2 style={{ margin: 0, fontSize: 28, fontWeight: 700, color: P.texto }}>Contacto</h2>
               <p style={{ margin: '16px 0 0', fontSize: 16, lineHeight: 1.7, color: P.textoSuave, maxWidth: 440 }}>
-                ¿Su despacho quiere probar el Radicador o conocer el plan de las demás células?
-                Escríbanos y coordinamos una demo.
+                ¿Su inspección quiere operar con LegalTech Cloud o conocer el plan de las demás
+                células? Escríbanos y coordinamos una demo.
               </p>
               <a
-                href="mailto:contacto@legaltech.com.co?subject=Solicitud%20de%20demo%20LegalTech&body=Nombre%20del%20despacho%3A%0AVertical%20de%20inter%C3%A9s%3A%0AN%C3%BAmero%20de%20contacto%3A%0A"
+                href="mailto:contacto@legaltech.com.co?subject=Solicitud%20de%20demo%20-%20Inspeccion%20Convivencia%20y%20Paz&body=Nombre%20de%20la%20inspeccion%3A%0AMunicipio%3A%0AN%C3%BAmero%20de%20contacto%3A%0A"
                 style={{ ...botonAzul, marginTop: 24, padding: '12px 28px', fontSize: 15 }}
               >
                 Solicitar demo

@@ -10,6 +10,7 @@ interface DockItemBotonProps {
   destacado?: boolean;
   activo?: boolean;
   onClick: () => void;
+  compacto?: boolean;
 }
 
 /**
@@ -30,6 +31,7 @@ export function DockItemBoton({
   destacado,
   activo,
   onClick,
+  compacto,
 }: DockItemBotonProps) {
   const [hover, setHover] = useState(false);
 
@@ -41,13 +43,15 @@ export function DockItemBoton({
       onFocus={() => setHover(true)}
       onBlur={() => setHover(false)}
       aria-current={activo ? 'page' : undefined}
+      title={compacto ? label : undefined}
       style={{
         position: 'relative',
         width: '100%',
         display: 'flex',
         alignItems: 'center',
-        gap: 11,
-        padding: '8px 12px 8px 14px',
+        justifyContent: compacto ? 'center' : undefined,
+        gap: compacto ? 0 : 11,
+        padding: compacto ? '10px 4px' : '8px 12px 8px 14px',
         borderRadius: 10,
         border: 'none',
         textAlign: 'left',
@@ -84,39 +88,41 @@ export function DockItemBoton({
         {icon}
       </span>
 
-      <span style={{ minWidth: 0, flex: 1 }}>
-        <span
-          style={{
-            display: 'block',
-            fontSize: TEXTO.base,
-            fontWeight: activo ? 600 : 500,
-            lineHeight: 1.3,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {label}
-        </span>
-        {ayuda && (
+      {!compacto && (
+        <span style={{ minWidth: 0, flex: 1 }}>
           <span
             style={{
               display: 'block',
-              fontSize: TEXTO.nota,
-              lineHeight: 1.35,
-              marginTop: 1,
-              color: PALETA.textoTenue,
+              fontSize: TEXTO.base,
+              fontWeight: activo ? 600 : 500,
+              lineHeight: 1.3,
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
             }}
           >
-            {ayuda}
+            {label}
           </span>
-        )}
-      </span>
+          {ayuda && (
+            <span
+              style={{
+                display: 'block',
+                fontSize: TEXTO.nota,
+                lineHeight: 1.35,
+                marginTop: 1,
+                color: PALETA.textoTenue,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {ayuda}
+            </span>
+          )}
+        </span>
+      )}
 
-      {destacado && !activo && (
+      {!compacto && destacado && !activo && (
         <span
           aria-hidden
           style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }}

@@ -23,6 +23,18 @@ export interface Comparendo {
   apelo: boolean;
   /** Reincidencia registrada en la BD (columna REINCIDENTE), si la trae. */
   causal: CausalIncremento;
+  /** Medida correctiva dictada por la policía en campo (ej: DESTRUCCIÓN DE BIEN). */
+  medidaPolicia?: string;
+  /** Autoridad que dictó la medida: CAI, placa, grado, nombre. */
+  autoridadPolicia?: string;
+  /** Si el infractor interpuso recurso de apelación. */
+  interponeApelacion?: boolean;
+  /** Sustentación del recurso de apelación. */
+  sustentacionApelacion?: string;
+  /** Medida correctiva señalada por el inspector (puede ser multa + adicional). */
+  medidaInspector?: string;
+  /** Descargos del infractor al momento del comparendo. */
+  descargos?: string;
 }
 
 // ── Parseo del Excel del despacho ──────────────────────────────────────────

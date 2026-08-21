@@ -713,22 +713,31 @@ export function ActasFirmezaPage() {
           {!acta ? (
             <div
               style={{
-                background: PALETA.superficie,
-                borderRadius: 24,
-                boxShadow: ELEVACION.base,
+                background: 'transparent',
+                border: `1px dashed ${PALETA.borde}`,
+                borderRadius: 20,
                 padding: '70px 40px',
                 textAlign: 'center',
                 color: PALETA.textoTenue,
               }}
             >
-              <SafetyCertificateOutlined style={{ fontSize: 40, marginBottom: 14, color: '#c9cdd3' }} />
+              <SafetyCertificateOutlined style={{ fontSize: 40, marginBottom: 14, color: PALETA.borde }} />
               <div style={{ fontSize: TEXTO.titulo }}>
                 Suba el PDF del comparendo o selecciónelo de la base de datos.
                 El acta se redacta aquí en tiempo real.
               </div>
             </div>
           ) : (
-            <div id="acta-imprimible">
+            <div
+              id="acta-imprimible"
+              style={{
+                background: PALETA.superficie,
+                border: `1px solid ${PALETA.borde}`,
+                borderRadius: 16,
+                boxShadow: '0 2px 8px rgba(32,33,36,0.06)',
+                overflow: 'hidden',
+              }}
+            >
               <VistaPreviaActa
                 acta={actaFirmezaComoDocumento(acta)}
                 membreteDataUrl={inspeccion.membreteDataUrl}

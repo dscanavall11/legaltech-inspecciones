@@ -9,6 +9,7 @@ export interface RielPasosProps {
   onElegir: (i: number) => void;
   /** Ausente = todavía no hay expediente: el riel se ve, pero no se puede entrar. */
   caso?: LegalCase;
+  compacto?: boolean;
 }
 
 /**
@@ -21,7 +22,7 @@ export interface RielPasosProps {
  * expediente para hacer una sola cosa. Aquí el estado se consulta de un
  * vistazo y el trabajo ocurre en un solo sitio.
  */
-export function RielPasos({ pasos, activo, onElegir, caso }: RielPasosProps) {
+export function RielPasos({ pasos, activo, onElegir, caso, compacto }: RielPasosProps) {
   return (
     <nav aria-label="Pasos del expediente" style={{ display: 'grid', gap: 2 }}>
       {pasos.map((paso, i) => {
@@ -34,17 +35,18 @@ export function RielPasos({ pasos, activo, onElegir, caso }: RielPasosProps) {
             aria-current={esActivo ? 'step' : undefined}
             onClick={() => onElegir(i)}
             className="riel-paso"
+            title={compacto ? paso.titulo : undefined}
             style={{
-              display: 'grid',
-              gridTemplateColumns: '22px 1fr',
-              gap: ESPACIO.sm,
-              alignItems: 'start',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: compacto ? 'center' : undefined,
+              gap: compacto ? 0 : ESPACIO.sm,
               width: '100%',
               textAlign: 'left',
               border: 'none',
               background: esActivo ? 'var(--accent-light)' : 'transparent',
               borderRadius: RADIO.control,
-              padding: `${ESPACIO.sm}px ${ESPACIO.md}px`,
+              padding: compacto ? `${ESPACIO.sm}px 4px` : `${ESPACIO.sm}px ${ESPACIO.md}px`,
               cursor: caso ? 'pointer' : 'default',
               opacity: caso ? 1 : 0.45,
               transition: 'background 180ms ease',
@@ -56,10 +58,10 @@ export function RielPasos({ pasos, activo, onElegir, caso }: RielPasosProps) {
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                width: 20,
-                height: 20,
-                marginTop: 1,
-                borderRadius: 6,
+                width: compacto ? 28 : 20,
+                height: compacto ? 28 : 20,
+                marginTop: compacto ? 0 : 1,
+                borderRadius: compacto ? 8 : 6,
                 background: esActivo ? PALETA.azul : 'var(--surface-2)',
                 color: esActivo ? '#fff' : PALETA.textoSuave,
                 fontSize: TEXTO.nota,
@@ -68,29 +70,31 @@ export function RielPasos({ pasos, activo, onElegir, caso }: RielPasosProps) {
             >
               {i + 1}
             </span>
-            <span style={{ minWidth: 0 }}>
-              <span
-                style={{
-                  display: 'block',
-                  fontSize: TEXTO.base,
-                  fontWeight: esActivo ? 600 : 500,
-                  color: esActivo ? PALETA.azulOscuro : PALETA.texto,
-                  lineHeight: 1.35,
-                }}
-              >
-                {paso.titulo}
+            {!compacto && (
+              <span style={{ minWidth: 0 }}>
+                <span
+                  style={{
+                    display: 'block',
+                    fontSize: TEXTO.base,
+                    fontWeight: esActivo ? 600 : 500,
+                    color: esActivo ? PALETA.azulOscuro : PALETA.texto,
+                    lineHeight: 1.35,
+                  }}
+                >
+                  {paso.titulo}
+                </span>
+                <span
+                  style={{
+                    display: 'block',
+                    fontSize: TEXTO.nota,
+                    color: PALETA.textoSuave,
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {caso && paso.Resumen ? <paso.Resumen caso={caso} /> : paso.ayuda}
+                </span>
               </span>
-              <span
-                style={{
-                  display: 'block',
-                  fontSize: TEXTO.nota,
-                  color: PALETA.textoSuave,
-                  lineHeight: 1.4,
-                }}
-              >
-                {caso && paso.Resumen ? <paso.Resumen caso={caso} /> : paso.ayuda}
-              </span>
-            </span>
+            )}
           </button>
         );
       })}

@@ -44,6 +44,12 @@ const CAMPO_VACIO: NuevoComparendoInput = {
   hechos: '',
   tipoMulta: 1,
   causal: 'ninguna',
+  medidaPolicia: '',
+  autoridadPolicia: '',
+  interponeApelacion: false,
+  sustentacionApelacion: '',
+  medidaInspector: '',
+  descargos: '',
 };
 
 /** Modal de radicación: sube el PDF de la orden de comparendo y extrae los campos (mismo motor que Actas de firmeza). */
@@ -117,6 +123,13 @@ export function ModalRadicarComparendo({
           medidasCorrectivas: prev.medidasCorrectivas || catalogo?.medidasCorrectivas || '',
           hechos: e.hechos ?? prev.hechos,
           tipoMulta: e.tipoMulta ?? prev.tipoMulta,
+          // Nuevos campos del PDF
+          medidaPolicia: e.medidaPolicia ?? prev.medidaPolicia,
+          autoridadPolicia: e.autoridadPolicia ?? prev.autoridadPolicia,
+          interponeApelacion: e.interponeApelacion ?? prev.interponeApelacion,
+          sustentacionApelacion: e.sustentacionApelacion ?? prev.sustentacionApelacion,
+          medidaInspector: e.medidaInspector ?? prev.medidaInspector,
+          descargos: e.descargos ?? prev.descargos,
         };
       });
       setCamposDetectados(detectados);
@@ -244,15 +257,42 @@ export function ModalRadicarComparendo({
             style={{ gridColumn: '1 / span 2' }}
           />
           <Input
-            placeholder="Bien jurídico protegido (autocompletado por el catálogo, editable)"
-            value={datos.bienJuridico}
-            onChange={(e) => set('bienJuridico', e.target.value)}
+            placeholder="Medida dictada por la policía (ej: DESTRUCCIÓN DE BIEN)"
+            value={datos.medidaPolicia}
+            onChange={(e) => set('medidaPolicia', e.target.value)}
             style={{ gridColumn: '1 / span 2' }}
           />
           <Input
-            placeholder="Medidas correctivas previstas (autocompletadas por el catálogo, editable)"
-            value={datos.medidasCorrectivas}
-            onChange={(e) => set('medidasCorrectivas', e.target.value)}
+            placeholder="Autoridad (CAI, placa, grado, nombre)"
+            value={datos.autoridadPolicia}
+            onChange={(e) => set('autoridadPolicia', e.target.value)}
+            style={{ gridColumn: '1 / span 2' }}
+          />
+          <Input
+            placeholder="Descargos del infractor"
+            value={datos.descargos}
+            onChange={(e) => set('descargos', e.target.value)}
+            style={{ gridColumn: '1 / span 2' }}
+          />
+          <Select
+            style={{ width: '100%' }}
+            placeholder="¿Interpone recurso de apelación?"
+            value={datos.interponeApelacion}
+            onChange={(v) => set('interponeApelacion', v)}
+            options={[
+              { value: true, label: 'Sí' },
+              { value: false, label: 'No' },
+            ]}
+          />
+          <Input
+            placeholder="Sustentación del recurso"
+            value={datos.sustentacionApelacion}
+            onChange={(e) => set('sustentacionApelacion', e.target.value)}
+          />
+          <Input
+            placeholder="Medida señalada por el inspector"
+            value={datos.medidaInspector}
+            onChange={(e) => set('medidaInspector', e.target.value)}
             style={{ gridColumn: '1 / span 2' }}
           />
           <Select

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Drawer } from 'antd';
 import { Paperclip, Send, Square, Toolbox, X } from 'lucide-react';
 import { glassBackdrop } from '@/theme/glass';
+import { PALETA } from '@/theme/palette';
 import { usePrefersReducedTransparency } from '@/shared/hooks/usePrefersReducedTransparency';
 import { useConversaciones } from '@/shared/ai/useConversaciones';
 import { cargarContextoCaso } from '@/shared/ai/contextoCaso';
@@ -419,9 +420,21 @@ export function AsistentePage() {
         // donde solo el Dock/TopBar flotan sobre vidrio (ver theme/glass.ts).
         // Este panel también flota sobre el contenido, así que hereda el
         // mismo lenguaje en vez del rgba(0,0,0,0.45) plano por defecto.
+        // Bordes redondeados y sombra suave para que no se vea una caja
+        // pesada encima del contenido.
         styles={{
           mask: glassBackdrop(reducirTransparencia),
-          content: { ...glassBackdrop(reducirTransparencia), boxShadow: 'none' },
+          content: {
+            ...glassBackdrop(reducirTransparencia),
+            boxShadow: '-4px 0 24px rgba(32,33,36,0.08)',
+            borderTopLeftRadius: 20,
+            borderBottomLeftRadius: 20,
+          },
+          header: {
+            background: 'transparent',
+            borderBottom: `1px solid ${PALETA.borde}`,
+          },
+          body: { background: 'transparent' },
         }}
       >
         <PilaHerramientas

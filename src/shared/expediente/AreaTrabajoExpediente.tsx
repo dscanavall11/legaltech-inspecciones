@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Alert, App, Button, Empty, Select, Skeleton, Tag, Typography, Upload } from 'antd';
 import { LeftOutlined, LoadingOutlined, RightOutlined } from '@ant-design/icons';
-import { FolderPlus } from 'lucide-react';
+import { FolderPlus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { apiFetch } from '@/shared/api/client';
 import { useProcesos } from '@/shared/procesos/api';
 import { ESTADO_COLOR, ESTADO_LABEL } from '@/shared/procesos/types';
@@ -63,6 +63,7 @@ export function AreaTrabajoExpediente({
   const crearCaso = useCreateLegalCase();
   const [subiendo, setSubiendo] = useState(false);
   const [recienDeDocumentos, marcarRecienDeDocumentos] = useState(false);
+  const [rielColapsado, setRielColapsado] = useState(false);
 
   const pasos = useMemo(
     () => construirPasos({ recienDeDocumentos }),
@@ -173,12 +174,39 @@ export function AreaTrabajoExpediente({
         style={{
           display: 'grid',
           gap: ESPACIO.md,
-          gridTemplateColumns: 'minmax(240px, 300px) minmax(0, 1fr)',
+          gridTemplateColumns: rielColapsado ? '52px minmax(0, 1fr)' : 'minmax(240px, 300px) minmax(0, 1fr)',
           alignItems: 'start',
+          transition: 'grid-template-columns 200ms ease',
         }}
       >
         <aside style={{ position: 'sticky', top: ESPACIO.lg }}>
-          <RielPasos pasos={pasos} activo={activo} caso={caso} onElegir={(i) => ir(casoId, i)} />
+          <button
+            type="button"
+            onClick={() => setRielColapsado((v) => !v)}
+            aria-label={rielColapsado ? 'Expandir pasos' : 'Colapsar pasos'}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '100%',
+              height: 28,
+              borderRadius: 8,
+              border: 'none',
+              background: 'transparent',
+              color: PALETA.textoTenue,
+              cursor: 'pointer',
+              marginBottom: 6,
+            }}
+          >
+            {rielColapsado ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          </button>
+          <RielPasos
+            pasos={pasos}
+            activo={activo}
+            caso={caso}
+            onElegir={(i) => ir(casoId, i)}
+            compacto={rielColapsado}
+          />
         </aside>
 
         <section

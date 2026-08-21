@@ -198,5 +198,43 @@ export async function extraerComparendoPdf(archivo: File): Promise<ExtraccionCom
     ]);
   if (hechos && hechos.length > 15) asignar('hechos', hechos);
 
+  // ── Nuevos campos del PDF del RNMC (formato actual) ───────────────────────
+
+  // Descargos del infractor
+  const descargos =
+    valorRnmc(texto, 'Descargos') ??
+    despuesDe(texto, ['DESCARGOS', 'ARGUMENTOS DE DEFENSA']);
+  asignar('descargos', descargos);
+
+  // Medida correctiva dictada por la policía en campo
+  const medidaPolicia =
+    despuesDe(texto, ['SEÑALA MEDIDA POLICÍA', 'MEDIDA POLICÍA', 'MEDIDAS CORRECTIVAS POLICÍA']) ??
+    valorRnmc(texto, 'Medida Policía');
+  asignar('medidaPolicia', medidaPolicia);
+
+  // Autoridad que dictó la medida (CAI, nombre, placa, grado)
+  const autoridadPolicia =
+    valorRnmc(texto, 'Autoridad') ??
+    despuesDe(texto, ['AUTORIDAD', 'CAI']);
+  asignar('autoridadPolicia', autoridadPolicia);
+
+  // ¿Se interpone recurso de apelación?
+  const interponeMatch = /Interpone\s*Apelaci[óo]n\s*:\s*(SI|SÍ|NO)/i.exec(texto);
+  if (interponeMatch) {
+    asignar('interponeApelacion', /SI|SÍ/i.test(interponeMatch[1]));
+  }
+
+  // Sustentación del recurso de apelación
+  const sustentacion =
+    despuesDe(texto, ['SUSTENTACIÓN APELACIÓN', 'SUSTENTACION APELACION']) ??
+    valorRnmc(texto, 'Sustentación Apelación');
+  asignar('sustentacionApelacion', sustentacion);
+
+  // Medida correctiva señalada por el inspector
+  const medidaInspector =
+    despuesDe(texto, ['SEÑALA MEDIDA INSPECTOR', 'MEDIDA INSPECTOR', 'MEDIDAS CORRECTIVAS INSPECTOR']) ??
+    valorRnmc(texto, 'Medida Inspector');
+  asignar('medidaInspector', medidaInspector);
+
   return { datos, camposDetectados, textoDisponible: true };
 }

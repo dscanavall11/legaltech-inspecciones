@@ -1,6 +1,4 @@
 import { useState } from 'react';
-import { Typography, Avatar, Dropdown } from 'antd';
-import { UserOutlined, SettingOutlined, LogoutOutlined } from '@ant-design/icons';
 import { Archive, Sparkles, ScanLine } from 'lucide-react';
 import { ModalRadicarComparendo } from '@/features/comparendos/ModalRadicarComparendo';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -9,8 +7,6 @@ import { PALETA } from '@/theme/theme';
 import { glassChrome } from '@/theme/glass';
 import { usePrefersReducedTransparency } from '@/shared/hooks/usePrefersReducedTransparency';
 import { TEXTO } from '@/theme/escala';
-
-const { Text } = Typography;
 
 const RUTA_MIS_PROCESOS = '/panel/procesos';
 const RUTA_RADICADOR = '/panel/radicador';
@@ -38,7 +34,6 @@ export function TopBar() {
   const navigate = useNavigate();
   const location = useLocation();
   const usuario = useAuth((s) => s.usuario);
-  const cerrarSesion = useAuth((s) => s.cerrarSesion);
   const reducirTransparencia = usePrefersReducedTransparency();
 
   // Ninguna de las dos es un trámite: radicar es la entrada al despacho y Mis
@@ -133,41 +128,6 @@ export function TopBar() {
           <Archive size={16} strokeWidth={1.75} />
           Mis procesos
         </button>
-
-        <div style={{ width: 1, height: 22, background: PALETA.borde }} />
-
-        <Dropdown
-          menu={{
-            items: [
-              { key: 'ajustes', icon: <SettingOutlined />, label: 'Configurar inspección' },
-              { type: 'divider' },
-              { key: 'logout', icon: <LogoutOutlined />, label: 'Cerrar sesión' },
-            ],
-            onClick: ({ key }) => {
-              if (key === 'ajustes') navigate('/panel/ajustes');
-              if (key === 'logout') {
-                cerrarSesion();
-                navigate('/login');
-              }
-            },
-          }}
-          placement="bottomRight"
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
-            <Avatar
-              style={{ background: PALETA.azulSuave, color: PALETA.azulOscuro }}
-              icon={<UserOutlined />}
-            />
-            <div style={{ lineHeight: 1.2, maxWidth: 180 }}>
-              <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                <Text strong>{usuario?.nombre}</Text>
-              </div>
-              <Text type="secondary" style={{ fontSize: TEXTO.menor, textTransform: 'capitalize' }}>
-                {usuario?.rol}
-              </Text>
-            </div>
-          </div>
-        </Dropdown>
       </div>
 
       <ModalRadicarComparendo

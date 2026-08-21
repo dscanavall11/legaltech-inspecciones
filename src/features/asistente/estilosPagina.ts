@@ -47,7 +47,7 @@ export const estilos: Record<string, React.CSSProperties> = {
   casoTitulo: { fontSize: 13, fontWeight: 600, color: PALETA.texto },
   casoPartes: { fontSize: 11.5, color: PALETA.textoSuave },
   hilo: { flex: 1, overflowY: 'auto', padding: '28px 24px 8px' },
-  columnaLectura: { maxWidth: 680, margin: '0 auto' },
+  columnaLectura: { width: '100%' },
   turnoAsistente: {
     fontSize: 15,
     lineHeight: 1.7,

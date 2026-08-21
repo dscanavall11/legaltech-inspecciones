@@ -117,13 +117,25 @@ export interface NuevoComparendoInput {
   solicitante: string;
   articuloNumeral: string;
   descripcionConducta?: string;
-  /** Bien jurídico protegido por el artículo/numeral — capturado en radicación, catalogado por defecto (ver derivarDatosCatalogo). */
+  /** Bien jurídico protegido por el artículo/numeral — del catálogo, no del PDF. */
   bienJuridico?: string;
-  /** Medidas correctivas previstas para el comportamiento — ídem. */
+  /** Medidas correctivas previstas para el comportamiento — del catálogo. */
   medidasCorrectivas?: string;
   hechos: string;
   tipoMulta: ComparendoMetadata['tipoMulta'];
   causal: ComparendoMetadata['causal'];
+  /** Medida dictada por la policía en campo (ej: DESTRUCCIÓN DE BIEN). */
+  medidaPolicia?: string;
+  /** Autoridad que dictó la medida: CAI, placa, grado, nombre. */
+  autoridadPolicia?: string;
+  /** Si el infractor interpuso recurso de apelación. */
+  interponeApelacion?: boolean;
+  /** Sustentación del recurso de apelación. */
+  sustentacionApelacion?: string;
+  /** Medida señalada por el inspector. */
+  medidaInspector?: string;
+  /** Descargos del infractor. */
+  descargos?: string;
 }
 
 /**
@@ -167,6 +179,12 @@ export function useCreateComparendo() {
         direccion: datos.direccion,
         solicitante: datos.solicitante,
         hechos: datos.hechos,
+        medidaPolicia: datos.medidaPolicia,
+        autoridadPolicia: datos.autoridadPolicia,
+        interponeApelacion: datos.interponeApelacion,
+        sustentacionApelacion: datos.sustentacionApelacion,
+        medidaInspector: datos.medidaInspector,
+        descargos: datos.descargos,
       };
       const input: CreateLegalCaseInput = {
         caseType: CASE_TYPE,

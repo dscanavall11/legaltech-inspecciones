@@ -573,15 +573,15 @@ export function AreaTrabajoAcogida({ via }: { via: ViaAcogida }) {
           {!acta ? (
             <div
               style={{
-                background: PALETA.superficie,
-                borderRadius: 24,
-                boxShadow: ELEVACION.base,
+                background: 'transparent',
+                border: `1px dashed ${PALETA.borde}`,
+                borderRadius: 20,
                 padding: '70px 40px',
                 textAlign: 'center',
                 color: PALETA.textoTenue,
               }}
             >
-              <WalletOutlined style={{ fontSize: 40, marginBottom: 14, color: '#c9cdd3' }} />
+              <WalletOutlined style={{ fontSize: 40, marginBottom: 14, color: PALETA.borde }} />
               <div style={{ fontSize: TEXTO.titulo }}>
                 {tipoAdmitido
                   ? 'Cargue el comparendo y complete los datos; el acta se redacta aquí en tiempo real.'
@@ -589,7 +589,17 @@ export function AreaTrabajoAcogida({ via }: { via: ViaAcogida }) {
               </div>
             </div>
           ) : (
-            <VistaPreviaActa acta={acta} membreteDataUrl={inspeccion.membreteDataUrl} />
+            <div
+              style={{
+                background: PALETA.superficie,
+                border: `1px solid ${PALETA.borde}`,
+                borderRadius: 16,
+                boxShadow: '0 2px 8px rgba(32,33,36,0.06)',
+                overflow: 'hidden',
+              }}
+            >
+              <VistaPreviaActa acta={acta} membreteDataUrl={inspeccion.membreteDataUrl} />
+            </div>
           )}
         </div>
       </div>

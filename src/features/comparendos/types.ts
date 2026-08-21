@@ -147,6 +147,16 @@ export interface ComparendoMetadata {
   medidasCorrectivas?: string;
   apeloSiNo?: 'SI' | 'NO';
   descargos?: string;
+  /** Medida dictada por la policía en campo (ej: DESTRUCCIÓN DE BIEN). */
+  medidaPolicia?: string;
+  /** Autoridad que dictó la medida: CAI, placa, grado, nombre. */
+  autoridadPolicia?: string;
+  /** Si el infractor interpuso recurso de apelación al momento del comparendo. */
+  interponeApelacion?: boolean;
+  /** Sustentación del recurso de apelación. */
+  sustentacionApelacion?: string;
+  /** Medida señalada por el inspector. */
+  medidaInspector?: string;
   pruebasPracticadas?: string[];
   /** solo variante absuelve_unica */
   aplicaActividadPedagogica?: boolean;

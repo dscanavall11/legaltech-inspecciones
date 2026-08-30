@@ -6,10 +6,10 @@ import type { Comparendo } from './comparendos';
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
 /**
- * Extracción de datos de la orden de comparendo (formato RNMC de la Policía
- * Nacional) a partir del texto del PDF. Funciona con PDFs digitales (con capa
- * de texto); los comparendos escaneados como imagen requieren el OCR/agente
- * de IA del backend — en ese caso se informa y se diligencia manualmente.
+ * Extracción de datos de la orden de comparendo a partir del texto del PDF.
+ * Soporta el export del portal RNMC (pares "Etiqueta : Valor") y, como
+ * respaldo, el formato clásico de la orden en papel. Los comparendos escaneados
+ * como imagen requieren OCR del backend: en ese caso se diligencia manualmente.
  */
 export interface ExtraccionComparendo {
   datos: Partial<Comparendo>;
@@ -42,7 +42,35 @@ function normalizar(t: string): string {
   return t.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
 }
 
+function escaparRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Valor que sigue a "Etiqueta :" en el export del portal RNMC, tomado hasta la
+ * próxima etiqueta (secuencia de hasta 4 palabras capitalizadas terminada en
+ * ":"). Así "Dirección Ingresada : CALLE 55 CARRERA 9 A 60 Tipo Lugar :"
+ * devuelve la dirección completa sin confundir "CALLE"/"CARRERA" con etiquetas.
+ */
+function valorRnmc(texto: string, etiqueta: string): string | undefined {
+  // Las etiquetas del portal son Título (May+min: "Nombres", "Tipo Lugar",
+  // "Custodia Menor o Patria Potestad"); los valores van en MAYÚSCULA
+  // ("MUÑOZ GONZALEZ", "CAI SAMARIA"). Distinguir por caso evita cortar el
+  // valor en su primera palabra en mayúscula. Case-sensitive a propósito.
+  const titulo = '[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+';
+  const conector = '(?:de|del|la|las|los|o|y|e|a|con|en|al)';
+  const siguienteEtiqueta = `${titulo}(?:\\s+(?:${titulo}|${conector})){0,5}\\s*:`;
+  const re = new RegExp(
+    `${escaparRegex(etiqueta)}\\s*:\\s*(.+?)\\s*(?=\\s${siguienteEtiqueta}|$)`,
+  );
+  const valor = re.exec(texto)?.[1]?.trim();
+  return valor && valor.length > 0 ? valor : undefined;
+}
+
 function buscarFecha(texto: string): string | undefined {
+  // Formato ISO del portal RNMC: "Fecha : 2026-06-09" (no la fecha de nacimiento).
+  const iso = /\bFecha\s*:\s*(20\d{2})-(\d{2})-(\d{2})\b/.exec(texto);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
   // dd/mm/aaaa o dd-mm-aaaa
   const numerica = /\b([0-3]?\d)[/-]([01]?\d)[/-](20\d{2})\b/.exec(texto);
   if (numerica) {
@@ -56,7 +84,7 @@ function buscarFecha(texto: string): string | undefined {
   return undefined;
 }
 
-/** Valor que sigue a una etiqueta, hasta la próxima etiqueta en mayúsculas. */
+/** Valor tras una etiqueta en el formato clásico (respaldo del RNMC). */
 function despuesDe(texto: string, etiquetas: string[]): string | undefined {
   const t = normalizar(texto);
   for (const etiqueta of etiquetas) {
@@ -82,93 +110,131 @@ export async function extraerComparendoPdf(archivo: File): Promise<ExtraccionCom
     return { datos, camposDetectados, textoDisponible: false };
   }
 
-  // Número de comparendo: 17-001-6-2026-1398 / 17-001-085044
-  const numero =
+  const asignar = <K extends keyof Comparendo>(campo: K, valor: Comparendo[K] | undefined) => {
+    if (valor === undefined || valor === '' || (typeof valor === 'string' && valor.trim() === '')) return;
+    datos[campo] = valor;
+    camposDetectados.push(campo);
+  };
+
+  // Número: el del expediente en detalle ("Medida: ... | 17-... |"), no el
+  // primero de la tabla de bandeja; luego los formatos clásicos.
+  asignar('comparendo',
+    /Medida:\s*[^|]*\|\s*(\d{1,2}-\d{3}-\d-\d{4}-\d{1,6})/i.exec(texto)?.[1] ??
     /\b(\d{1,2}-\d{3}-\d-\d{4}-\d{1,6})\b/.exec(texto)?.[1] ??
-    /\b(\d{1,2}-\d{3}-\d{5,8})\b/.exec(texto)?.[1];
-  if (numero) {
-    datos.comparendo = numero;
-    camposDetectados.push('comparendo');
-  }
+    /\b(\d{1,2}-\d{3}-\d{5,8})\b/.exec(texto)?.[1]);
 
-  // Cédula: 6 a 10 dígitos cerca de una etiqueta de documento
-  const cedula =
-    /(?:C\.?C\.?|CEDULA|CÉDULA|DOCUMENTO|IDENTIFICACI[ÓO]N)[^\d]{0,25}(\d{6,10})\b/i.exec(texto)?.[1];
-  if (cedula) {
-    datos.cedula = cedula;
-    camposDetectados.push('cedula');
-  }
+  // Nombre = Nombres + Apellidos (orden natural), respaldo formato clásico.
+  const apellidos = valorRnmc(texto, 'Apellidos');
+  const nombres = valorRnmc(texto, 'Nombres');
+  const solicitadoRnmc = [nombres, apellidos].filter(Boolean).join(' ').trim();
+  asignar('solicitado',
+    (solicitadoRnmc ||
+      despuesDe(texto, [
+        'APELLIDOS Y NOMBRES DEL INFRACTOR',
+        'APELLIDOS Y NOMBRES',
+        'NOMBRE DEL INFRACTOR',
+        'PRESUNTO INFRACTOR',
+      ]))?.toUpperCase());
 
-  const nombre = despuesDe(texto, [
-    'APELLIDOS Y NOMBRES DEL INFRACTOR',
-    'APELLIDOS Y NOMBRES',
-    'NOMBRE DEL INFRACTOR',
-    'PRESUNTO INFRACTOR',
-  ]);
-  if (nombre) {
-    datos.solicitado = nombre.toUpperCase();
-    camposDetectados.push('solicitado');
-  }
+  asignar('cedula',
+    valorRnmc(texto, 'Número Identificación')?.match(/\d{6,10}/)?.[0] ??
+    /(?:C\.?C\.?|CEDULA|CÉDULA|DOCUMENTO|IDENTIFICACI[ÓO]N)[^\d]{0,25}(\d{6,10})\b/i.exec(texto)?.[1]);
 
-  const direccion = despuesDe(texto, ['DIRECCIÓN DE RESIDENCIA', 'DIRECCION DE RESIDENCIA', 'RESIDENCIA', 'DIRECCIÓN']);
-  if (direccion) {
-    datos.direccion = direccion.toUpperCase();
-    camposDetectados.push('direccion');
-  }
+  asignar('telefono',
+    valorRnmc(texto, 'Teléfono')?.match(/3\d{9}|\d{7,10}/)?.[0] ??
+    /(?:TEL[ÉE]FONO|CELULAR)[^\d]{0,15}(3\d{9}|\d{7,10})/i.exec(texto)?.[1]);
 
-  const telefono = /(?:TEL[ÉE]FONO|CELULAR)[^\d]{0,15}(3\d{9}|\d{7,10})/i.exec(texto)?.[1];
-  if (telefono) {
-    datos.telefono = telefono;
-    camposDetectados.push('telefono');
-  }
+  // Dos "Dirección Ingresada": la de Ubicación (hechos) y la de Domicilio
+  // (residencia). Se separan por la posición de "Domicilio :".
+  const domIdx = texto.search(/Domicilio\s*:/i);
+  const direccion =
+    (domIdx >= 0 ? valorRnmc(texto.slice(domIdx), 'Dirección Ingresada') : undefined) ??
+    valorRnmc(texto, 'Dirección Ingresada') ??
+    despuesDe(texto, ['DIRECCIÓN DE RESIDENCIA', 'DIRECCION DE RESIDENCIA', 'RESIDENCIA']);
+  asignar('direccion', direccion?.toUpperCase());
 
-  const lugar = despuesDe(texto, [
-    'LUGAR DE LOS HECHOS',
-    'DIRECCIÓN DE LOS HECHOS',
-    'DIRECCION DONDE OCURRIERON LOS HECHOS',
-    'SITIO DE LOS HECHOS',
-  ]);
-  if (lugar) {
-    datos.lugar = lugar.toUpperCase();
-    camposDetectados.push('lugar');
-  }
+  const lugar =
+    valorRnmc(texto.slice(0, domIdx >= 0 ? domIdx : texto.length), 'Dirección Ingresada') ??
+    despuesDe(texto, [
+      'LUGAR DE LOS HECHOS',
+      'DIRECCIÓN DE LOS HECHOS',
+      'DIRECCION DONDE OCURRIERON LOS HECHOS',
+      'SITIO DE LOS HECHOS',
+    ]);
+  asignar('lugar', lugar?.toUpperCase());
 
-  const fecha = buscarFecha(texto);
-  if (fecha) {
-    datos.fechaComparendo = fecha;
-    camposDetectados.push('fechaComparendo');
-  }
+  asignar('fechaComparendo', buscarFecha(texto));
 
-  // Artículo y numeral del CNSCC
-  const articulo = /ART[ÍI]?C?U?L?O?\.?\s*(\d{1,3})\s*[,.·]?\s*NUM(?:ERAL)?\.?\s*(\d{1,2})/i.exec(texto);
-  if (articulo) {
-    datos.articuloNumeral = `Artículo ${articulo[1]} Numeral ${articulo[2]}`;
-    camposDetectados.push('articuloNumeral');
-  }
+  const art = /\bArticulo\s*:\s*(\d{1,3})/i.exec(texto)?.[1];
+  const num = /\bNumeral\s*:\s*(\d{1,3})/i.exec(texto)?.[1];
+  const articuloClasico = /ART[ÍI]?C?U?L?O?\.?\s*(\d{1,3})\s*[,.·]?\s*NUM(?:ERAL)?\.?\s*(\d{1,2})/i.exec(texto);
+  asignar('articuloNumeral',
+    art && num
+      ? `Artículo ${art} Numeral ${num}`
+      : articuloClasico
+        ? `Artículo ${articuloClasico[1]} Numeral ${articuloClasico[2]}`
+        : undefined);
 
-  const tipo = /MULTA\s+GENERAL\s+TIPO\s*[:.]?\s*([1-4])\b/i.exec(texto)?.[1] ??
+  const tipo =
+    /Medida:\s*Multa\s+General\s+Tipo\s*(\d)/i.exec(texto)?.[1] ??
+    /MULTA\s+GENERAL\s+TIPO\s*[:.]?\s*([1-4])/i.exec(texto)?.[1] ??
     /\bTIPO\s*[:.]?\s*([1-4])\b/.exec(texto)?.[1];
-  if (tipo) {
-    datos.tipoMulta = Number(tipo) as TipoMulta;
-    camposDetectados.push('tipoMulta');
+  if (tipo) asignar('tipoMulta', Number(tipo) as TipoMulta);
+
+  asignar('solicitante',
+    valorRnmc(texto, 'Cai')?.replace(/\s+/g, ' ').trim() ??
+    /\b(CAI\s+[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s]{2,30})\b/.exec(normalizar(texto))?.[1]?.trim());
+
+  const conducta = valorRnmc(texto, 'Literal')?.replace(/^[a-z]\.\s*/i, '');
+  asignar('descripcionConducta', conducta);
+
+  const hechos =
+    valorRnmc(texto, 'Descripcion Hechos') ??
+    despuesDe(texto, [
+      'DESCRIPCIÓN DEL COMPORTAMIENTO',
+      'DESCRIPCION DEL COMPORTAMIENTO',
+      'RELATO DEL HECHO',
+      'OBSERVACIONES',
+    ]);
+  if (hechos && hechos.length > 15) asignar('hechos', hechos);
+
+  // ── Nuevos campos del PDF del RNMC (formato actual) ───────────────────────
+
+  // Descargos del infractor
+  const descargos =
+    valorRnmc(texto, 'Descargos') ??
+    despuesDe(texto, ['DESCARGOS', 'ARGUMENTOS DE DEFENSA']);
+  asignar('descargos', descargos);
+
+  // Medida correctiva dictada por la policía en campo
+  const medidaPolicia =
+    despuesDe(texto, ['SEÑALA MEDIDA POLICÍA', 'MEDIDA POLICÍA', 'MEDIDAS CORRECTIVAS POLICÍA']) ??
+    valorRnmc(texto, 'Medida Policía');
+  asignar('medidaPolicia', medidaPolicia);
+
+  // Autoridad que dictó la medida (CAI, nombre, placa, grado)
+  const autoridadPolicia =
+    valorRnmc(texto, 'Autoridad') ??
+    despuesDe(texto, ['AUTORIDAD', 'CAI']);
+  asignar('autoridadPolicia', autoridadPolicia);
+
+  // ¿Se interpone recurso de apelación?
+  const interponeMatch = /Interpone\s*Apelaci[óo]n\s*:\s*(SI|SÍ|NO)/i.exec(texto);
+  if (interponeMatch) {
+    asignar('interponeApelacion', /SI|SÍ/i.test(interponeMatch[1]));
   }
 
-  const cai = /\b(CAI\s+[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s]{2,30})\b/.exec(normalizar(texto))?.[1];
-  if (cai) {
-    datos.solicitante = cai.trim();
-    camposDetectados.push('solicitante');
-  }
+  // Sustentación del recurso de apelación
+  const sustentacion =
+    despuesDe(texto, ['SUSTENTACIÓN APELACIÓN', 'SUSTENTACION APELACION']) ??
+    valorRnmc(texto, 'Sustentación Apelación');
+  asignar('sustentacionApelacion', sustentacion);
 
-  const hechos = despuesDe(texto, [
-    'DESCRIPCIÓN DEL COMPORTAMIENTO',
-    'DESCRIPCION DEL COMPORTAMIENTO',
-    'RELATO DEL HECHO',
-    'OBSERVACIONES',
-  ]);
-  if (hechos && hechos.length > 15) {
-    datos.hechos = hechos;
-    camposDetectados.push('hechos');
-  }
+  // Medida correctiva señalada por el inspector
+  const medidaInspector =
+    despuesDe(texto, ['SEÑALA MEDIDA INSPECTOR', 'MEDIDA INSPECTOR', 'MEDIDAS CORRECTIVAS INSPECTOR']) ??
+    valorRnmc(texto, 'Medida Inspector');
+  asignar('medidaInspector', medidaInspector);
 
   return { datos, camposDetectados, textoDisponible: true };
 }

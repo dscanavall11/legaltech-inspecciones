@@ -1,4 +1,12 @@
-/* Reset mínimo. El sistema de diseño vive en el tema de Ant Design (src/theme). */
+/*
+ * Reset + sistema de diseño. Los componentes AntDesign se tematizan desde
+ * src/theme (buildTheme, PALETA, ELEVACION) — estas variables CSS y clases
+ * son el equivalente para todo lo que NO es AntDesign (Dock, tarjetas,
+ * badges, nav-items), portado 1:1 de resguardo-saas
+ * (SAS entidades territoriales indigenas/resguardo-saas/src/app/globals.css)
+ * para que las páginas hereden el mismo look sin reinventarlo por página.
+ * Los valores deben mantenerse en sync con PALETA/ELEVACION (src/theme/palette.ts).
+ */
 
 * {
   box-sizing: border-box;
@@ -13,26 +21,29 @@ body,
 }
 
 body {
+  /* Outfit: geométrica redondeada — la misma voz sans de la landing. */
   font-family:
-    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     'Helvetica Neue', Arial, sans-serif;
-  background: #f8f9fa;
+  /*
+   * Fondo "vivo": tres manchas de color suaves (azul/verde/morado, mismos
+   * tonos que las secciones del dock) sobre la superficie base. Sin esto,
+   * el glassmorphism del Dock/Launchpad/Spotlight no tiene nada detras que
+   * distorsionar — un panel translúcido sobre un fondo plano casi del mismo
+   * color se ve como una caja blanca lisa, no como vidrio. El resto de la
+   * página (cards, tablas) sigue plana/sólida — el "vivo" es solo el fondo.
+   */
+  /* Fondo "vivo" para el glassmorphism: tres tintes de color (tinta, teal y
+     violeta de sello) sobre el papel base. Las tarjetas son vidrio esmerilado
+     — sin color detrás, el vidrio se vería como cajas blancas planas. */
+  background:
+    radial-gradient(920px 580px at 4% -10%, rgba(47, 95, 179, 0.18) 0%, transparent 62%),
+    radial-gradient(780px 540px at 106% 16%, rgba(13, 155, 184, 0.14) 0%, transparent 58%),
+    radial-gradient(800px 580px at 24% 114%, rgba(122, 86, 201, 0.16) 0%, transparent 58%),
+    var(--surface-1);
+  background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-/*
- * Voz tipográfica del despacho: los títulos y números de radicado usan una
- * serif editorial (Newsreader) que da gravedad jurídica sobre las superficies
- * suaves; el cuerpo permanece en Inter.
- */
-h1.ant-typography,
-h2.ant-typography,
-h3.ant-typography,
-.font-display {
-  font-family: 'Newsreader', 'Iowan Old Style', Georgia, 'Times New Roman', serif;
-  font-weight: 550;
-  letter-spacing: -0.01em;
 }
 
 /*
@@ -69,6 +80,368 @@ h3.ant-typography,
   --anim-dur: 420ms;
   --anim-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --stagger-delay: 40ms;
+
+  /* Superficies (=PALETA.superficie/fondo + 2 tintes extra sólo usados por CSS) */
+  --surface-0: #ffffff;
+  --surface-1: #f6f5f1;
+  --surface-2: #efede7;
+  --surface-3: #e6e3da;
+
+  /* Texto (=PALETA.texto/textoSuave/textoTenue) */
+  --text-primary: #20232a;
+  --text-secondary: #5d6066;
+  --text-disabled: #95948d;
+
+  /* Acento (=PALETA.azul/azulSuave/azulOscuro) */
+  --accent: #2f5fb3;
+  --accent-light: #e7eefb;
+  --accent-hover: #1f4183;
+
+  /* Semáforo (=PALETA.verde/verdeBg, amarillo/amarilloBg, rojo/rojoBg) */
+  --green: #188038;
+  --green-bg: #e4f4e8;
+  --yellow: #c77800;
+  --yellow-bg: #fdf3dc;
+  --red: #d93025;
+  --red-bg: #fce9e7;
+  --blue: #2f5fb3;
+  --blue-bg: #e7eefb;
+  --purple: #7a56c9;
+  --purple-bg: #f0eafb;
+
+  /* Bordes */
+  --border: #e3e0d8;
+  --border-focus: #2f5fb3;
+
+  /* Sombras cálidas — neutras, sin halos de color. */
+  --shadow-1: 0 1px 2px rgba(50, 47, 40, 0.26), 0 1px 3px 1px rgba(50, 47, 40, 0.13);
+  --shadow-2: 0 1px 3px rgba(50, 47, 40, 0.26), 0 4px 8px 3px rgba(50, 47, 40, 0.13);
+
+  /* Tipografía de identidad: serif editorial para títulos (la misma de la
+     landing y de los documentos del despacho) y mono para radicados. */
+  --font-serif: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+}
+
+/* ── Botones ─────────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  transition: all 150ms ease;
+  user-select: none;
+  cursor: pointer;
+  outline: none;
+}
+.btn:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 1px;
+}
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+.btn-primary:hover {
+  background: var(--accent-hover);
+  box-shadow: var(--shadow-1);
+}
+.btn-primary:active {
+  background: #174ea6;
+}
+.btn-outlined {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--accent);
+}
+.btn-outlined:hover {
+  background: var(--accent-light);
+  border-color: var(--accent);
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+}
+.btn-ghost:hover {
+  background: var(--surface-2);
+  color: var(--text-primary);
+}
+
+/* ── Cards ───────────────────────────────────────────────────────────────── */
+.card {
+  background: var(--surface-0);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+}
+.card-flat {
+  background: var(--surface-0);
+  border-radius: 12px;
+  padding: 18px;
+}
+.stat-card {
+  background: var(--surface-0);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  transition: box-shadow 150ms ease;
+}
+.stat-card:hover {
+  box-shadow: var(--shadow-1);
+}
+
+/* ── Badges ──────────────────────────────────────────────────────────────── */
+/* Badges rectangulares con esquina corta: sello estampado, no píldora. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.badge-green {
+  background: var(--green-bg);
+  color: var(--green);
+}
+.badge-yellow {
+  background: var(--yellow-bg);
+  color: var(--yellow);
+}
+.badge-red {
+  background: var(--red-bg);
+  color: var(--red);
+}
+.badge-blue {
+  background: var(--blue-bg);
+  color: var(--blue);
+}
+.badge-gray {
+  background: var(--surface-2);
+  color: var(--text-secondary);
+}
+
+/* ── Input ───────────────────────────────────────────────────────────────── */
+.input {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  border: 1px solid var(--border);
+  background: var(--surface-0);
+  color: var(--text-primary);
+  transition: all 150ms ease;
+}
+.input:hover {
+  border-color: var(--text-secondary);
+}
+.input:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 2px var(--accent-light);
+}
+.input::placeholder {
+  color: var(--text-disabled);
+}
+
+/* ── Table ───────────────────────────────────────────────────────────────── */
+.table-auto {
+  width: 100%;
+  font-size: 14px;
+  border-collapse: collapse;
+}
+.table-auto th {
+  text-align: left;
+  padding: 12px 16px;
+  font-weight: 500;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-1);
+}
+.table-auto td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--surface-2);
+  color: var(--text-primary);
+}
+.table-auto tr:hover td {
+  background: var(--surface-1);
+}
+.table-auto tr:last-child td {
+  border-bottom: none;
+}
+
+/* ── Nav item (Dock) ─────────────────────────────────────────────────────── */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 14px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 100ms ease;
+}
+.nav-item:hover {
+  background: var(--surface-2);
+  color: var(--text-primary);
+}
+
+.nav-item.active {
+  background: var(--accent-light);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* ── Tipografía de identidad ─────────────────────────────────────────────── */
+/* Títulos AntD en serif editorial: la voz tipográfica de la landing y de los
+   documentos del despacho, ahora también en el panel. Los h4/h5 (labels
+   pequeños) se quedan en sans para no perder legibilidad. */
+h1.ant-typography,
+h2.ant-typography,
+h3.ant-typography,
+.titulo-serif {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* Radicados y códigos de expediente: misma sans del cuerpo, con números
+   tabulares para que las columnas no bailen — sin mono cuadrada. */
+.font-display {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: 0.015em;
+}
+
+/* ── Divider ─────────────────────────────────────────────────────────────── */
+.divider {
+  border: none;
+  border-top: 1px solid var(--border);
+}
+
+/* ── Empty state ─────────────────────────────────────────────────────────── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 0;
+  text-align: center;
+  color: var(--text-disabled);
+}
+.empty-state svg {
+  margin-bottom: 12px;
+  opacity: 0.4;
+}
+.empty-state p {
+  font-size: 14px;
+}
+
+/* ── Chip ────────────────────────────────────────────────────────────────── */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  background: var(--surface-0);
+}
+.chip.selected {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-light);
+}
+
+/* ── Pulso del despacho (dashboard) ──────────────────────────────────────── */
+/* Una sola franja con 4 indicadores separados por hairlines: los números son
+   parte del mismo mueble, no cuatro cajas flotando. */
+.pulso-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+.pulso-celda {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 20px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  border-right: 1px solid var(--border);
+  transition: background 150ms ease;
+  font-family: inherit;
+}
+.pulso-celda:last-child {
+  border-right: none;
+}
+.pulso-celda:hover {
+  background: rgba(255, 255, 255, 0.7);
+}
+.pulso-valor {
+  font-size: 27px;
+  font-weight: 600;
+  line-height: 1.15;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.pulso-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+.pulso-punto {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+@media (max-width: 900px) {
+  .pulso-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .pulso-celda:nth-child(2) {
+    border-right: none;
+  }
+  .pulso-celda:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+/* ── Page header ─────────────────────────────────────────────────────────── */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+/* ── Stats grid ──────────────────────────────────────────────────────────── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
 }
 
 @keyframes aparecer {
@@ -83,20 +456,24 @@ h3.ant-typography,
 }
 
 /* Stagger vía variable CSS --i en cada hijo directo */
+.vista-animada {
+  border-radius: 20px;
+}
 .vista-animada > * {
   animation: aparecer var(--anim-dur) var(--anim-ease) both;
   animation-delay: calc(var(--i, 0) * var(--stagger-delay));
+  border-radius: inherit;
 }
 
 /* Pulso de radicación — onda azul expansiva (600ms, una vez) */
 @keyframes pulso-radicacion {
   from {
     transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(26, 115, 232, 0.45);
+    box-shadow: 0 0 0 0 rgba(47, 95, 179, 0.45);
   }
   to {
     transform: scale(1.02);
-    box-shadow: 0 0 0 28px rgba(26, 115, 232, 0);
+    box-shadow: 0 0 0 28px rgba(47, 95, 179, 0);
   }
 }
 
@@ -117,12 +494,31 @@ h3.ant-typography,
 .cargando-brillo {
   background: linear-gradient(
     100deg,
-    #eef0f3 40%,
-    #f7f9fc 50%,
-    #eef0f3 60%
+    #eeece6 40%,
+    #f8f7f3 50%,
+    #eeece6 60%
   );
   background-size: 200% 100%;
   animation: brillo 1.4s linear infinite;
+}
+
+/* ── Glassmorphism de contenido ──────────────────────────────────────────── */
+/* Las tarjetas son vidrio esmerilado sobre el fondo vivo: translúcidas, con
+   blur y borde de luz. Las tarjetas con fondo sólido inline (p. ej. la de
+   Legal en tinta oscura) no se ven afectadas: su background inline gana. */
+.ant-card {
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+}
+
+/* Quien prefiere menos transparencia recibe superficies sólidas. */
+@media (prefers-reduced-transparency: reduce) {
+  .ant-card {
+    background: var(--surface-0) !important;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
 }
 
 /* Feedback táctil: los botones responden como objetos físicos al presionarlos. */
@@ -274,7 +670,7 @@ h3.ant-typography,
 
 /* Foco visible y marcado — clave para usuarios que navegan con teclado. */
 :focus-visible {
-  outline: 3px solid #1a73e8;
+  outline: 3px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -284,12 +680,48 @@ h3.ant-typography,
   height: 10px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #dadce0;
+  background: #d8d5cc;
   border-radius: 8px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #bdc1c6;
+  background: #c2bfb5;
   background-clip: content-box;
+}
+
+/* ── Área de trabajo del expediente ──────────────────────────────────────────
+   Un tercio para el índice de pasos, dos tercios para el paso activo. Por
+   debajo de 1024 px no caben dos columnas útiles: el riel pasa a ser una fila
+   de pastillas desplazable sobre el lienzo, que es lo que sí cabe en tableta. */
+@media (max-width: 1023px) {
+  .area-trabajo {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .area-trabajo > aside {
+    position: static !important;
+  }
+  .area-trabajo nav[aria-label='Pasos del expediente'] {
+    display: flex !important;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: thin;
+  }
+  .area-trabajo nav[aria-label='Pasos del expediente'] .riel-paso {
+    width: auto !important;
+    flex: 0 0 auto;
+  }
+  /* El resumen se cae: en horizontal solo cabe el número y el título. */
+  .area-trabajo .riel-paso > span:last-child > span:last-child {
+    display: none !important;
+  }
+}
+
+.riel-paso:hover:not(:disabled) {
+  background: var(--surface-2) !important;
+}
+.riel-paso:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 1px;
 }

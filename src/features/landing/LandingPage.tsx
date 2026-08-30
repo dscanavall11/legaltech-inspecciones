@@ -10,30 +10,30 @@ import { useAuth } from '@/shared/auth/auth';
  */
 
 const P = {
-  fondo: '#ffffff',
-  fondoSuave: '#f8f9fa',
-  texto: '#202124',
-  textoSuave: '#5f6368',
-  textoTenue: '#80868b',
-  borde: '#e8eaed',
-  azul: '#1a73e8',
-  azulOscuro: '#1967d2',
-  azulPastel: '#e8f0fe',
-  verde: '#1e8e3e',
-  verdePastel: '#e6f4ea',
-  amarillo: '#b06000',
-  amarilloPastel: '#fef7e0',
-  rojo: '#c5221f',
-  rojoPastel: '#fce8e6',
-  morado: '#673ab7',
-  moradoPastel: '#f3e8fd',
-  teal: '#00796b',
-  tealPastel: '#e0f2f1',
-  rosa: '#d81b60',
-  rosaPastel: '#fce4ec',
+  fondo: '#fafbfc',
+  fondoSuave: '#efede7',
+  texto: '#1a1a2e',
+  textoSuave: '#4a5568',
+  textoTenue: '#718096',
+  borde: '#e2e8f0',
+  azul: '#2563eb',
+  azulOscuro: '#1d4ed8',
+  azulPastel: '#eff6ff',
+  verde: '#059669',
+  verdePastel: '#ecfdf5',
+  amarillo: '#d97706',
+  amarilloPastel: '#fffbeb',
+  rojo: '#dc2626',
+  rojoPastel: '#fef2f2',
+  morado: '#7c3aed',
+  moradoPastel: '#f5f3ff',
+  teal: '#0891b2',
+  tealPastel: '#ecfeff',
+  rosa: '#db2777',
+  rosaPastel: '#fdf2f8',
 } as const;
 
-const fuente = "'Outfit', 'Inter', sans-serif";
+const fuente = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
 
 const botonAzul: CSSProperties = {
   display: 'inline-flex',
@@ -309,16 +309,16 @@ function RobotAmigo({ size = 130 }: { size?: number }) {
 
 // ── Contenido ───────────────────────────────────────────────────────────────
 const PASOS = [
-  ['La consulta del inspector', 'En lenguaje procesal o en lenguaje común.'],
-  ['Recuperación híbrida', 'Fichas jurisprudenciales por semántica y hechos; el grafo de fuentes aporta jerarquía, vigencia y precedente.'],
-  ['Redacción con citas', 'El borrador solo puede citar el texto recuperado, con el apartado exacto enlazado.'],
-  ['Validación y firma', 'Las citas se verifican contra la fuente literal y el inspector decide.'],
+  ['Radica o abre el expediente', 'Querella, queja, comparendo o apelación. El sistema asigna radicado automáticamente.'],
+  ['Carga documentos y pruebas', 'PDF, Word o imagen. El sistema extrae datos, organiza pruebas y construye el expediente.'],
+  ['El asistente analiza y propone', 'NORMA revisa la norma, jurisprudencia y hechos; sugiere la decisión con fuentes citadas.'],
+  ['Genera y descarga el documento', 'Plantillas del despacho, con membrete y datos del inspector. PDF y Word listos para firmar.'],
 ] as const;
 
 const CAPAS_RAG = [
-  ['Corpus normativo común', 'Ley 1801, códigos, jurisprudencia y acuerdos municipales, versionados y con vigencia controlada.'],
-  ['Corpus del despacho', 'Las plantillas y actas modelo de cada inspección: la IA redacta con la voz de tu despacho.'],
-  ['Expediente del caso', 'Los documentos radicados en el caso concreto, indexados mientras el proceso está vivo.'],
+  ['OKF — Open Knowledge Framework', 'Normas, comportamientos y plantillas en YAML, revisables por abogados sin tocar código. El contenido jurídico es dato, no código fuente.'],
+  ['Corpus del despacho', 'Membrete, datos del inspector, municipio e inspección: la IA redacta con la voz oficial de tu despacho.'],
+  ['Expediente del caso', 'Documentos radicados, pruebas cargadas y metadatos del proceso, indexados mientras el caso está vivo.'],
 ] as const;
 
 const GARANTIAS = [
@@ -332,10 +332,10 @@ const PRODUCTOS = [
   {
     nombre: 'LegalTech Cloud',
     detalle:
-      'La oficina en el navegador, pensada multi-tenant para todas las células. Hoy funciona el Radicador contra datos de prueba; la integración con el backend jurídico está en construcción.',
+      'La oficina del inspector en el navegador. Querellas, quejas, comparendos, firmeza, conmutación, pronto pago, apelaciones y asistente jurídico — ya operativos con backend jurídico real.',
     pastel: P.azulPastel,
     color: P.azulOscuro,
-    estado: 'En construcción',
+    estado: 'Disponible',
   },
   {
     nombre: 'LegalTech.exe',
@@ -376,14 +376,14 @@ interface Celula {
 }
 
 const CELULAS: Celula[] = [
-  { dominio: 'policia.legaltech', estado: 'disponible', promesa: 'Ley 1801 de 2016, querellas y actas de firmeza.' },
-  { dominio: 'comisariayfamilia.legaltech', estado: 'proximamente', promesa: 'Medidas de protección y trazabilidad familiar.' },
-  { dominio: 'conciliacion.legaltech', estado: 'proximamente', prioridad: 1, promesa: 'Ley 2220 de 2022, actas con efecto de cosa juzgada.' },
-  { dominio: 'transito.legaltech', estado: 'proximamente', prioridad: 2, promesa: 'Ley 769 de 2002, comparendos y audiencias contravencionales.' },
-  { dominio: 'laboral.legaltech', estado: 'proximamente', prioridad: 3, promesa: 'Inspección de trabajo, seguridad y salud en el trabajo, y liquidaciones.' },
-  { dominio: 'cobrocoactivo.legaltech', estado: 'proximamente', promesa: 'Cobro coactivo: cierra el ciclo de las multas en firme.' },
-  { dominio: 'personerias.legaltech', estado: 'proximamente', promesa: 'Tutelas, derechos de petición y veeduría.' },
-  { dominio: 'resguardos.legaltech', estado: 'propuesta', promesa: 'Gobernanza territorial y Jurisdicción Especial Indígena.' },
+  { dominio: 'inspeccionconvivenciaypaz.legaltech.com.co', estado: 'disponible', promesa: 'Querellas, quejas, comparendos, actas de firmeza, conmutación, pronto pago y apelaciones — todo bajo la Ley 1801 de 2016.' },
+  { dominio: 'comisariayfamilia.legaltech.com.co', estado: 'proximamente', promesa: 'Medidas de protección y trazabilidad familiar.' },
+  { dominio: 'conciliacion.legaltech.com.co', estado: 'proximamente', prioridad: 1, promesa: 'Ley 2220 de 2022, actas con efecto de cosa juzgada.' },
+  { dominio: 'transito.legaltech.com.co', estado: 'proximamente', prioridad: 2, promesa: 'Ley 769 de 2002, comparendos y audiencias contravencionales.' },
+  { dominio: 'laboral.legaltech.com.co', estado: 'proximamente', prioridad: 3, promesa: 'Inspección de trabajo, seguridad y salud en el trabajo, y liquidaciones.' },
+  { dominio: 'cobrocoactivo.legaltech.com.co', estado: 'proximamente', promesa: 'Cobro coactivo: cierra el ciclo de las multas en firmeza.' },
+  { dominio: 'personerias.legaltech.com.co', estado: 'proximamente', promesa: 'Tutelas, derechos de petición y veeduría.' },
+  { dominio: 'resguardos.legaltech.com.co', estado: 'propuesta', promesa: 'Gobernanza territorial y Jurisdicción Especial Indígena.' },
 ];
 
 function TarjetaCelula({ celula }: { celula: Celula }) {
@@ -391,18 +391,20 @@ function TarjetaCelula({ celula }: { celula: Celula }) {
   return (
     <div
       style={{
-        borderRadius: 20,
+        borderRadius: 16,
         border: `1px solid ${P.borde}`,
         background: '#fff',
-        padding: '20px 22px',
+        padding: '24px 28px',
         display: 'flex',
         flexDirection: 'column',
-        gap: 12,
+        gap: 16,
         height: '100%',
+        transition: 'all 0.2s ease',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-        <p style={{ margin: 0, fontSize: 16, fontWeight: 700, fontFamily: "'Newsreader', serif" }}>{celula.dominio}</p>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <p style={{ margin: 0, fontSize: 18, fontWeight: 700, color: P.texto }}>{celula.dominio}</p>
         <span
           style={{
             display: 'inline-flex',
@@ -422,7 +424,7 @@ function TarjetaCelula({ celula }: { celula: Celula }) {
           {celula.prioridad ? ` · prioridad ${celula.prioridad}` : ''}
         </span>
       </div>
-      <p style={{ margin: 0, fontSize: 14.5, lineHeight: 1.6, color: P.textoSuave }}>{celula.promesa}</p>
+      <p style={{ margin: 0, fontSize: 15, lineHeight: 1.6, color: P.textoSuave }}>{celula.promesa}</p>
     </div>
   );
 }
@@ -555,32 +557,39 @@ export function LandingPage() {
           id="inicio"
           style={{
             display: 'grid',
-            gap: 48,
+            gap: 64,
             gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
             alignItems: 'center',
+            paddingTop: 48,
+            paddingBottom: 48,
           }}
         >
-          <div className="vista-animada" style={{ display: 'flex', flexDirection: 'column', gap: 26 }}>
+          <div className="vista-animada" style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
             <h1
               style={{
                 margin: 0,
-                fontSize: 'clamp(36px, 4.8vw, 58px)',
-                fontWeight: 700,
-                letterSpacing: '-0.02em',
-                lineHeight: 1.08,
+                fontSize: 'clamp(40px, 5.2vw, 64px)',
+                fontWeight: 800,
+                letterSpacing: '-0.03em',
+                lineHeight: 1.05,
+                color: P.texto,
               }}
             >
-              Inteligencia jurídica que{' '}
-              <span style={{ color: P.azul }}>cita su fuente</span>.
+              El despacho del Inspector, potenciado por{' '}
+              <span style={{ color: P.azul, fontStyle: 'italic' }}>inteligencia jurídica</span>.
             </h1>
-            <p style={{ margin: 0, fontSize: 19, lineHeight: 1.75, color: P.textoSuave, maxWidth: 540 }}>
-              Un cerebro de conocimiento legal para cada área del derecho: radica, tramita y
-              expide actuaciones con respaldo normativo verificable.
+            <p style={{ margin: 0, fontSize: 20, lineHeight: 1.7, color: P.textoSuave, maxWidth: 520 }}>
+              Querellas, quejas, comparendos, actas de firmeza, conmutación, pronto pago y
+              apelaciones — con un asistente jurídico que redacta, cita la norma y deja
+              todo en el expediente.
             </p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
               <Link to={destinoCta} style={botonAzul}>{textoCta}</Link>
-              <a href="#arquitectura" style={{ fontSize: 15, fontWeight: 600, color: P.azul, textDecoration: 'none' }}>
+              <a href="#arquitectura" style={{ fontSize: 15, fontWeight: 600, color: P.azul, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
                 Ver cómo funciona
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </a>
             </div>
           </div>
@@ -599,8 +608,8 @@ export function LandingPage() {
               ))}
             </div>
             <p id="areas" style={{ margin: 0, fontSize: 13.5, color: P.textoTenue, textAlign: 'center' }}>
-              Un solo cerebro RAG, ocho áreas del derecho. Convivencia y Paz ya está disponible;
-              las demás, en construcción.
+              Todo el ciclo de Convivencia y Paz ya operativo: radicación, pruebas, análisis
+              jurídico, generación de documentos y descarga en PDF y Word.
             </p>
           </div>
         </section>
@@ -613,8 +622,8 @@ export function LandingPage() {
             </h2>
             <p style={{ margin: '14px 0 0', fontSize: 16, lineHeight: 1.7, color: P.textoSuave, maxWidth: 620 }}>
               Cada vertical legal es una célula con su propio dominio, sus propias plantillas y su
-              propio corpus normativo, montada sobre el mismo motor de retrieval. Convivencia y
-              Paz ya está disponible; el resto avanza por prioridad.
+              propio corpus normativo. Hoy opera la inspección de Convivencia y Paz con todo su
+              ciclo procesal; las demás células avanzan por prioridad.
             </p>
             <div
               style={{
@@ -646,11 +655,11 @@ export function LandingPage() {
           >
             <div>
               <h2 style={{ margin: 0, fontSize: 32, fontWeight: 700, letterSpacing: '-0.01em', maxWidth: 460 }}>
-                Así responde el sistema, paso a paso.
+                El ciclo completo del inspector, en cuatro pasos.
               </h2>
               <p style={{ margin: '14px 0 0', fontSize: 16, lineHeight: 1.7, color: P.textoSuave, maxWidth: 480 }}>
-                Del lenguaje común del inspector a una actuación con fuentes enlazadas y
-                verificadas. Sin atajos.
+                Desde la radicación hasta el documento firmable: el sistema acompaña cada
+                etapa del proceso sin inventar ni decidir por el inspector.
               </p>
               <div style={{ marginTop: 24, display: 'inline-flex' }}>
                 <RobotAmigo />
@@ -730,8 +739,9 @@ export function LandingPage() {
                   </div>
                 ))}
                 <p style={{ margin: '18px 0 0', fontSize: 14, lineHeight: 1.7, color: P.textoSuave, maxWidth: 480 }}>
-                  La consulta desciende de lo particular a lo general: primero el caso, luego el
-                  despacho, al final la norma. Cada capa aporta contexto sin contaminar a las demás.
+                  El conocimiento jurídico entra por la izquierda —donde un abogado puede revisarlo
+                  y corregirlo— y alimenta tanto las plantillas como el motor de análisis. Cada capa
+                  aporta contexto sin contaminar a las demás.
                 </p>
               </div>
 
@@ -838,46 +848,48 @@ export function LandingPage() {
               Tres productos, un mismo expediente.
             </h2>
             <p style={{ margin: '14px 0 0', fontSize: 15.5, lineHeight: 1.7, color: P.textoSuave, maxWidth: 600 }}>
-              Hoy existe el frontend del Radicador contra datos de prueba y un backend parcial.
-              Así está cada producto, sin adelantar lo que aún no está construido.
+              LegalTech Cloud ya opera con backend jurídico real: expedientes, documentos,
+              análisis con IA y generación de actas. Así está cada producto, sin adelantar
+              lo que aún no está construido.
             </p>
             <div
               style={{
-                marginTop: 28,
+                marginTop: 36,
                 display: 'flex',
                 flexWrap: 'wrap',
-                gap: 20,
+                gap: 24,
               }}
             >
               {PRODUCTOS.map((p) => (
                 <div
                   key={p.nombre}
                   style={{
-                    flex: '1 1 300px',
-                    borderRadius: 24,
+                    flex: '1 1 320px',
+                    borderRadius: 16,
                     background: p.pastel,
-                    padding: '22px 26px',
+                    padding: '28px 32px',
+                    transition: 'all 0.2s ease',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-                    <p style={{ margin: 0, fontSize: 17, fontWeight: 700, color: p.color }}>{p.nombre}</p>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                    <p style={{ margin: 0, fontSize: 20, fontWeight: 700, color: p.color }}>{p.nombre}</p>
                     <span
                       style={{
-                        fontSize: 11.5,
+                        fontSize: 12,
                         fontWeight: 700,
-                        letterSpacing: '0.04em',
+                        letterSpacing: '0.05em',
                         textTransform: 'uppercase',
                         color: p.color,
                         background: '#fff',
                         borderRadius: 999,
-                        padding: '3px 10px',
+                        padding: '4px 12px',
                         whiteSpace: 'nowrap',
                       }}
                     >
                       {p.estado}
                     </span>
                   </div>
-                  <p style={{ margin: '10px 0 0', fontSize: 14.5, lineHeight: 1.65, color: P.textoSuave }}>{p.detalle}</p>
+                  <p style={{ margin: '14px 0 0', fontSize: 15, lineHeight: 1.7, color: P.textoSuave }}>{p.detalle}</p>
                 </div>
               ))}
             </div>
@@ -896,23 +908,25 @@ export function LandingPage() {
             </p>
             <div
               style={{
-                marginTop: 32,
+                marginTop: 40,
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                gap: 20,
+                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                gap: 24,
               }}
             >
               {VENTAJAS.map((v) => (
                 <div
                   key={v.titulo}
                   style={{
-                    borderRadius: 22,
+                    borderRadius: 16,
                     border: `1px solid ${P.borde}`,
                     background: '#fff',
-                    padding: '22px 24px',
+                    padding: '28px 32px',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: 14,
+                    gap: 18,
+                    transition: 'all 0.2s ease',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
                   }}
                 >
                   <span
@@ -920,9 +934,9 @@ export function LandingPage() {
                       display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      width: 44,
-                      height: 44,
-                      borderRadius: 14,
+                      width: 48,
+                      height: 48,
+                      borderRadius: 12,
                       background: v.pastel,
                       color: v.color,
                       flexShrink: 0,
@@ -931,8 +945,8 @@ export function LandingPage() {
                     {v.icono}
                   </span>
                   <div>
-                    <p style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>{v.titulo}</p>
-                    <p style={{ margin: '8px 0 0', fontSize: 14.5, lineHeight: 1.7, color: P.textoSuave }}>{v.detalle}</p>
+                    <p style={{ margin: 0, fontSize: 18, fontWeight: 700, color: P.texto }}>{v.titulo}</p>
+                    <p style={{ margin: '10px 0 0', fontSize: 15, lineHeight: 1.7, color: P.textoSuave }}>{v.detalle}</p>
                   </div>
                 </div>
               ))}
@@ -963,55 +977,57 @@ export function LandingPage() {
         </Revela>
 
         {/* ── Contacto ── */}
-        <Revela style={{ marginTop: 90 }}>
+        <Revela style={{ marginTop: 100 }}>
           <section
             id="contacto"
             style={{
               background: P.fondoSuave,
-              borderRadius: '32px 32px 0 0',
-              padding: 'clamp(28px, 4vw, 48px)',
+              borderRadius: '24px 24px 0 0',
+              padding: 'clamp(32px, 5vw, 56px)',
               display: 'grid',
-              gap: 24,
-              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              gap: 40,
+              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
               alignItems: 'start',
             }}
           >
             <div>
-              <h2 style={{ margin: 0, fontSize: 24, fontWeight: 700, fontFamily: "'Newsreader', serif" }}>Contacto</h2>
-              <p style={{ margin: '14px 0 0', fontSize: 15, lineHeight: 1.7, color: P.textoSuave, maxWidth: 420 }}>
-                ¿Su despacho quiere probar el Radicador o conocer el plan de las demás células?
-                Escríbanos y coordinamos una demo.
+              <h2 style={{ margin: 0, fontSize: 28, fontWeight: 700, color: P.texto }}>Contacto</h2>
+              <p style={{ margin: '16px 0 0', fontSize: 16, lineHeight: 1.7, color: P.textoSuave, maxWidth: 440 }}>
+                ¿Su inspección quiere operar con LegalTech Cloud o conocer el plan de las demás
+                células? Escríbanos y coordinamos una demo.
               </p>
               <a
-                href="mailto:contacto@legaltech.com.co?subject=Solicitud%20de%20demo%20LegalTech&body=Nombre%20del%20despacho%3A%0AVertical%20de%20inter%C3%A9s%3A%0AN%C3%BAmero%20de%20contacto%3A%0A"
-                style={{ ...botonAzul, marginTop: 20, padding: '11px 26px', fontSize: 14 }}
+                href="mailto:contacto@legaltech.com.co?subject=Solicitud%20de%20demo%20-%20Inspeccion%20Convivencia%20y%20Paz&body=Nombre%20de%20la%20inspeccion%3A%0AMunicipio%3A%0AN%C3%BAmero%20de%20contacto%3A%0A"
+                style={{ ...botonAzul, marginTop: 24, padding: '12px 28px', fontSize: 15 }}
               >
                 Solicitar demo
               </a>
-              <p style={{ margin: '20px 0 0', color: P.textoSuave }}>
-                Email:{' '}
-                <a href="mailto:contacto@legaltech.com.co" style={{ color: P.azul }}>
-                  contacto@legaltech.com.co
-                </a>
-              </p>
-              <p style={{ margin: '8px 0 0', color: P.textoSuave }}>Tel: +57 305 390 7634</p>
-              <p style={{ margin: '4px 0 0', color: P.textoSuave }}>WP: +57 305 390 7534</p>
-              <p style={{ margin: '8px 0 0', color: P.textoSuave }}>
-                Facebook:{' '}
-                <a
-                  href="https://www.facebook.com/legaltTechColombia"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ color: P.azul }}
-                >
-                  legaltTechColombia
-                </a>
-              </p>
+              <div style={{ marginTop: 28, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <p style={{ margin: 0, color: P.textoSuave }}>
+                  Email:{' '}
+                  <a href="mailto:contacto@legaltech.com.co" style={{ color: P.azul, fontWeight: 500 }}>
+                    contacto@legaltech.com.co
+                  </a>
+                </p>
+                <p style={{ margin: 0, color: P.textoSuave }}>Tel: +57 305 390 7634</p>
+                <p style={{ margin: 0, color: P.textoSuave }}>WP: +57 305 390 7534</p>
+                <p style={{ margin: 0, color: P.textoSuave }}>
+                  Facebook:{' '}
+                  <a
+                    href="https://www.facebook.com/legaltTechColombia"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: P.azul, fontWeight: 500 }}
+                  >
+                    legaltTechColombia
+                  </a>
+                </p>
+              </div>
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Horario de atención</h3>
-              <p style={{ margin: '8px 0 0', color: P.textoSuave }}>Lun - Vie: 8:00 - 18:00 (COT)</p>
-              <p style={{ margin: '16px 0 0', color: P.textoSuave, lineHeight: 1.7 }}>
+              <h3 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: P.texto }}>Horario de atención</h3>
+              <p style={{ margin: '12px 0 0', color: P.textoSuave, fontSize: 16 }}>Lun - Vie: 8:00 - 18:00 (COT)</p>
+              <p style={{ margin: '20px 0 0', color: P.textoSuave, lineHeight: 1.7, fontSize: 15 }}>
                 Si nos contactas por WhatsApp, indícanos tu nombre y una breve descripción del
                 asunto para agilizar la respuesta.
               </p>

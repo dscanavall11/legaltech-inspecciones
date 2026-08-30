@@ -1,84 +1,69 @@
-import { Card, Col, Row, Typography, Tag, Empty, Skeleton, Button } from 'antd';
-import {
-  FileTextOutlined,
-  CalendarOutlined,
-  WarningOutlined,
-  CheckCircleOutlined,
-  RightOutlined,
-  PlusSquareOutlined,
-  InboxOutlined,
-} from '@ant-design/icons';
-import { useState, type ReactNode } from 'react';
-import dayjs from 'dayjs';
+import { Card, Col, Row, Typography, Tag, Empty, Skeleton, Alert, Button, Tooltip } from 'antd';
+import { RightOutlined } from '@ant-design/icons';
+import { ShieldCheck, Scale, BookOpen, Landmark, ScrollText, ExternalLink, Clock, PauseCircle } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useQuerellas } from '@/features/querellas/api';
-import { useAudiencias } from '@/features/audiencias/api';
-import { calcularTermino } from '@/shared/terminos/diasHabiles';
-import { ESTADO_LABEL } from '@/features/querellas/types';
+import { useProcesos } from '@/shared/procesos/api';
+import { etiquetaEstado } from '@/shared/procesos/types';
 import { useAuth } from '@/shared/auth/auth';
-import { ELEVACION, PALETA } from '@/theme/theme';
-import { MVP } from '@/app/mvp';
+import { fechaLarga, saludoPorHora } from '@/shared/util/fechas';
+import { PALETA, ELEVACION } from '@/theme/theme';
+import { NormaMark } from '@/shared/ai/NormaMark';
+import { NORMA } from '@/shared/ai/identity';
+import { terminosEnRiesgo, sinMovimiento, DIAS_ALERTA, DIAS_INACTIVIDAD } from './atencion';
 
 const { Title, Text } = Typography;
 
-function StatCard({
-  label,
-  valor,
-  icono,
-  color,
-  fondo,
-  destino,
-}: {
-  label: string;
-  valor: number;
-  icono: ReactNode;
-  color: string;
-  fondo: string;
-  destino: string;
-}) {
-  const navigate = useNavigate();
-  const [hover, setHover] = useState(false);
-  return (
-    <Card
-      variant="borderless"
-      style={{
-        boxShadow: hover ? ELEVACION.media : ELEVACION.base,
-        height: '100%',
-        cursor: 'pointer',
-        transform: hover ? 'translateY(-2px)' : 'none',
-        transition: 'box-shadow 0.25s ease, transform 0.25s ease',
-      }}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      onClick={() => navigate(destino)}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-        <div
-          style={{
-            width: 52,
-            height: 52,
-            borderRadius: 16,
-            background: fondo,
-            color,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 24,
-            flexShrink: 0,
-          }}
-        >
-          {icono}
-        </div>
-        <div>
-          <div style={{ fontSize: 30, fontWeight: 700, lineHeight: 1.1, color: PALETA.texto }}>
-            {valor}
-          </div>
-          <Text type="secondary">{label}</Text>
-        </div>
-      </div>
-    </Card>
-  );
-}
+/** Portales oficiales que un inspector de policía consulta a diario. */
+const PORTALES_INSPECTOR = [
+  {
+    nombre: 'RNMC — Medidas correctivas',
+    detalle: 'Policía Nacional · consulta de comparendos',
+    url: 'https://srvcnpc.policia.gov.co/PSC/frm_cnp_consulta.aspx',
+    icono: <ShieldCheck size={17} strokeWidth={1.9} />,
+    color: PALETA.verde,
+    fondo: PALETA.verdeBg,
+  },
+  {
+    nombre: 'Consulta de procesos',
+    detalle: 'Rama Judicial · estado de expedientes',
+    url: 'https://consultaprocesos.ramajudicial.gov.co',
+    icono: <Scale size={17} strokeWidth={1.9} />,
+    color: PALETA.azul,
+    fondo: PALETA.azulBg,
+  },
+  {
+    nombre: 'SUIN-Juriscol',
+    detalle: 'MinJusticia · normativa vigente',
+    url: 'https://www.suin-juriscol.gov.co',
+    icono: <BookOpen size={17} strokeWidth={1.9} />,
+    color: PALETA.morado,
+    fondo: PALETA.moradoBg,
+  },
+  {
+    nombre: 'Corte Constitucional',
+    detalle: 'Jurisprudencia y sentencias',
+    url: 'https://www.corteconstitucional.gov.co',
+    icono: <Landmark size={17} strokeWidth={1.9} />,
+    color: PALETA.teal,
+    fondo: PALETA.tealBg,
+  },
+  {
+    nombre: 'Ley 1801 de 2016',
+    detalle: 'Secretaría del Senado · texto oficial',
+    url: 'https://www.secretariasenado.gov.co/senado/basedoc/ley_1801_2016.html',
+    icono: <ScrollText size={17} strokeWidth={1.9} />,
+    color: PALETA.naranja,
+    fondo: PALETA.naranjaBg,
+  },
+] as const;
+
+/** Lo prometido, declarado como promesa y no como botón que falla. */
+const PROXIMAMENTE = [
+  { nombre: 'Consulta de estados', motivo: 'Pendiente de la integración con los portales de consulta.' },
+  { nombre: 'Medidas correctivas', motivo: 'El módulo existe pero no entra al MVP.' },
+  { nombre: 'Herramientas de scraping a la medida', motivo: 'Se definen con cada despacho.' },
+] as const;
 
 function FilaCaso({
   to,
@@ -98,15 +83,17 @@ function FilaCaso({
           display: 'flex',
           alignItems: 'center',
           gap: 14,
-          padding: '11px 14px',
-          borderRadius: 16,
-          transition: 'background 0.2s ease',
+          padding: '10px 14px',
+          borderRadius: 10,
+          transition: 'background 0.15s ease',
         }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = '#f7f9fc')}
+        onMouseEnter={(e) => (e.currentTarget.style.background = PALETA.fondo)}
         onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
       >
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ color: PALETA.texto }}>{principal}</div>
+          <div className="font-display" style={{ fontSize: 13.5, color: PALETA.texto }}>
+            {principal}
+          </div>
           <div
             style={{
               fontSize: 12.5,
@@ -127,241 +114,340 @@ function FilaCaso({
   );
 }
 
-export function DashboardPage() {
-  const { data, isLoading } = useQuerellas();
-  const { data: audienciasData } = useAudiencias();
-  const usuario = useAuth((s) => s.usuario);
+function Grupo({ icono, titulo, children }: { icono: ReactNode; titulo: string; children: ReactNode }) {
+  return (
+    <div style={{ marginBottom: 6 }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '4px 14px',
+          fontSize: 12,
+          fontWeight: 600,
+          letterSpacing: 0.3,
+          textTransform: 'uppercase',
+          color: PALETA.textoSuave,
+        }}
+      >
+        {icono}
+        {titulo}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/** Entrada al asistente: la acción principal del producto, en tinta plena. */
+function AbrirAsistente() {
   const navigate = useNavigate();
-  const querellas = data ?? [];
+  return (
+    <Card
+      variant="borderless"
+      style={{ height: '100%', background: PALETA.azulOscuro }}
+      styles={{ body: { display: 'flex', flexDirection: 'column', height: '100%', padding: 20 } }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 13, marginBottom: 12 }}>
+        <div
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 12,
+            background: PALETA.superficie,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+            boxShadow: ELEVACION.base,
+          }}
+        >
+          <NormaMark size={26} />
+        </div>
+        <div>
+          <div className="titulo-serif" style={{ fontSize: 19, color: '#fff', lineHeight: 1.2 }}>
+            {NORMA.nombre}
+          </div>
+          <span style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.72)' }}>{NORMA.rol}</span>
+        </div>
+      </div>
 
-  const enTramite = querellas.filter(
-    (q) => q.estado === 'en_tramite' || q.estado === 'radicada',
-  ).length;
-  const audiencias = querellas.filter(
-    (q) => q.estado === 'audiencia_programada',
-  ).length;
-  const enFirmeza = querellas.filter((q) => q.estado === 'en_firmeza').length;
+      <span
+        style={{
+          display: 'block',
+          fontSize: 13,
+          color: 'rgba(255,255,255,0.85)',
+          lineHeight: 1.55,
+          marginBottom: 16,
+        }}
+      >
+        Radica el caso, consulta el derecho de policía y redacta las piezas del expediente en una sola
+        conversación, con el contexto de tu despacho.
+      </span>
 
-  const porVencer = querellas
-    .map((q) => ({
-      ...q,
-      termino: calcularTermino(dayjs(q.fechaRadicacion), q.diasTermino),
-    }))
-    .filter((q) => !q.termino.vencido && q.termino.diasRestantes <= 5)
-    .sort((a, b) => a.termino.diasRestantes - b.termino.diasRestantes);
+      <Button
+        block
+        size="large"
+        onClick={() => navigate('/panel/asistente')}
+        style={{
+          marginTop: 'auto',
+          background: PALETA.superficie,
+          color: PALETA.azulOscuro,
+          border: 'none',
+          fontWeight: 600,
+        }}
+      >
+        Abrir asistente
+      </Button>
+    </Card>
+  );
+}
 
-  const proximasAudiencias = [...(audienciasData ?? [])]
-    .sort((a, b) => a.fecha.localeCompare(b.fecha))
-    .slice(0, 4);
+export function DashboardPage() {
+  // Una sola consulta a /legal-cases alimenta los dos bloques de arriba.
+  const { data, isLoading, isError } = useProcesos();
+  const usuario = useAuth((s) => s.usuario);
 
-  const fechaHoy = dayjs().format('dddd, D [de] MMMM [de] YYYY');
+  const procesos = data ?? [];
+  const enRiesgo = terminosEnRiesgo(procesos);
+  const vencidos = enRiesgo.filter((c) => c.vencido);
+  const porVencer = enRiesgo.filter((c) => !c.vencido);
+  const quietos = sinMovimiento(procesos).slice(0, 5);
+  const pendientes = vencidos.length + porVencer.length + quietos.length;
 
-  if (isLoading) {
-    return (
-      <Card variant="borderless" style={{ boxShadow: ELEVACION.base }}>
-        <Skeleton active paragraph={{ rows: 6 }} />
-      </Card>
+  const resumen = isError
+    ? 'No se pudo consultar los expedientes'
+    : pendientes === 0
+      ? 'Nada pendiente de atención hoy'
+      : `${pendientes} ${pendientes === 1 ? 'expediente requiere' : 'expedientes requieren'} tu atención`;
+
+  const tagTermino = (c: { vencido: boolean; diasRestantes: number; presuntivo: boolean }) => {
+    const tag = (
+      <Tag
+        color={c.vencido ? 'error' : c.diasRestantes <= 2 ? 'error' : 'warning'}
+        style={{ fontWeight: 600, marginInlineEnd: 0, fontVariantNumeric: 'tabular-nums' }}
+      >
+        {c.vencido ? 'Vencido' : `${c.diasRestantes} días háb.`}
+      </Tag>
     );
-  }
-
-  // En MVP, no mostramos tarjetas de módulos diferidos (audiencias, actas-firmeza, etc.)
-  // La tarjeta de audiencias se mantiene porque alimenta querellas
-  // Pero los enlaces a módulos diferidos se ocultan
+    return c.presuntivo ? (
+      <Tooltip title="Término presuntivo: el expediente no trae diasTermino, se usa el default del tipo.">
+        {tag}
+      </Tooltip>
+    ) : (
+      tag
+    );
+  };
 
   return (
     <div>
-      <div
-        style={{
-          fontSize: 12,
-          letterSpacing: '0.08em',
-          textTransform: 'uppercase',
-          color: PALETA.textoTenue,
-          marginBottom: 6,
-        }}
-      >
-        {fechaHoy}
-      </div>
-      <Title level={2} style={{ marginTop: 0, marginBottom: 4 }}>
-        Buen día, {usuario?.nombre?.split(' ')[0]}
-      </Title>
-      <Text type="secondary" style={{ fontSize: 16 }}>
-        Este es el estado de tu despacho hoy.
-      </Text>
-
-      <div style={{ marginTop: 18, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-        <Button
-          type="primary"
-          size="large"
-          icon={<PlusSquareOutlined />}
-          onClick={() => navigate('/panel/radicador')}
-          style={{ fontWeight: 600, borderRadius: 12, height: 46 }}
-        >
-          Radicar nuevo caso
-        </Button>
-        <Button
-          size="large"
-          icon={<InboxOutlined />}
-          onClick={() => navigate('/panel/cola')}
-          style={{ borderRadius: 12, height: 46 }}
-        >
-          Ver cola de trabajo
-        </Button>
+      <div style={{ marginBottom: 16 }}>
+        <Title level={2} style={{ margin: 0 }}>
+          {saludoPorHora()}, {usuario?.nombre?.split(' ')[0]}
+        </Title>
+        <Text type="secondary" style={{ fontSize: 13 }}>
+          {fechaLarga()} · {resumen}
+        </Text>
       </div>
 
-      <Row gutter={[20, 20]} style={{ marginTop: 28 }}>
-        <Col xs={24} sm={12} lg={6}>
-          <StatCard
-            label="En trámite"
-            valor={enTramite}
-            icono={<FileTextOutlined />}
-            color={PALETA.azul}
-            fondo={PALETA.azulSuave}
-            destino="/panel/querellas"
-          />
+      {isError && (
+        <Alert
+          type="warning"
+          showIcon
+          message="No se pudieron cargar los expedientes"
+          description="El servicio de expedientes no respondió. Los bloques que dependen de él quedan vacíos: no se muestran datos aproximados."
+          style={{ marginBottom: 12 }}
+        />
+      )}
+
+      <Row gutter={[12, 12]}>
+        <Col xs={24} lg={15}>
+          <Card
+            variant="borderless"
+            title="Requiere tu atención"
+            style={{ height: '100%' }}
+            styles={{
+              header: { fontSize: 15, fontWeight: 600, borderBottom: `1px solid ${PALETA.borde}` },
+              body: { paddingTop: 8, paddingInline: 0 },
+            }}
+            extra={<Link to="/panel/procesos">Ver todos <RightOutlined style={{ fontSize: 11 }} /></Link>}
+          >
+            {isLoading ? (
+              <div style={{ padding: '0 24px' }}>
+                <Skeleton active paragraph={{ rows: 4 }} />
+              </div>
+            ) : vencidos.length === 0 && quietos.length === 0 ? (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={
+                  isError
+                    ? 'Sin datos: la consulta de expedientes falló.'
+                    : 'Ningún expediente con término vencido ni estancado.'
+                }
+              />
+            ) : (
+              <div style={{ padding: '0 10px' }}>
+                {vencidos.length > 0 && (
+                  <Grupo icono={<Clock size={13} />} titulo={`Término vencido (${vencidos.length})`}>
+                    {vencidos.map((c) => (
+                      <FilaCaso
+                        key={c.id}
+                        to={c.ruta}
+                        principal={c.radicado}
+                        secundario={`${c.asunto} · ${etiquetaEstado(c.estado)}`}
+                        extremo={tagTermino(c)}
+                      />
+                    ))}
+                  </Grupo>
+                )}
+                {quietos.length > 0 && (
+                  <Grupo
+                    icono={<PauseCircle size={13} />}
+                    titulo={`Sin movimiento hace más de ${DIAS_INACTIVIDAD} días`}
+                  >
+                    {quietos.map((c) => (
+                      <FilaCaso
+                        key={c.id}
+                        to={c.ruta}
+                        principal={c.radicado}
+                        secundario={`${c.asunto} · ${etiquetaEstado(c.estado)}`}
+                        extremo={
+                          <Tag style={{ marginInlineEnd: 0, fontVariantNumeric: 'tabular-nums' }}>
+                            {c.diasSinMovimiento} días
+                          </Tag>
+                        }
+                      />
+                    ))}
+                  </Grupo>
+                )}
+              </div>
+            )}
+          </Card>
         </Col>
-        {!MVP && (
-          <>
-            <Col xs={24} sm={12} lg={6}>
-              <StatCard
-                label="Audiencias programadas"
-                valor={audiencias}
-                icono={<CalendarOutlined />}
-                color={PALETA.verde}
-                fondo="#e6f4ea"
-                destino="/panel/audiencias"
-              />
-            </Col>
-            <Col xs={24} sm={12} lg={6}>
-              <StatCard
-                label="En firmeza"
-                valor={enFirmeza}
-                icono={<CheckCircleOutlined />}
-                color="#9334e6"
-                fondo="#f3e8fd"
-                destino="/panel/actas-firmeza"
-              />
-            </Col>
-          </>
-        )}
-        <Col xs={24} sm={12} lg={6}>
-          <StatCard
-            label="Términos por vencer"
-            valor={porVencer.length}
-            icono={<WarningOutlined />}
-            color={PALETA.rojo}
-            fondo="#fce8e6"
-            destino="/panel/querellas"
-          />
+
+        <Col xs={24} lg={9}>
+          <AbrirAsistente />
         </Col>
       </Row>
 
-      <Row gutter={[20, 20]} style={{ marginTop: 24 }}>
-        {/* Términos por vencer */}
-        <Col xs={24} lg={13}>
+      <Row gutter={[12, 12]} style={{ marginTop: 12 }}>
+        <Col xs={24} lg={15}>
           <Card
             variant="borderless"
-            title="Casos con término por vencer"
-            style={{ boxShadow: ELEVACION.base, height: '100%' }}
+            title={`Términos por vencer (próximos ${DIAS_ALERTA} días hábiles)`}
+            style={{ height: '100%' }}
             styles={{
-              header: { fontSize: 17, fontWeight: 600, borderBottom: 'none', paddingBottom: 0 },
-              body: { paddingTop: 10 },
+              header: { fontSize: 15, fontWeight: 600, borderBottom: `1px solid ${PALETA.borde}` },
+              body: { paddingTop: 8, paddingInline: 10 },
             }}
-            extra={
-              <Link to="/panel/querellas">
-                Ver todas <RightOutlined style={{ fontSize: 11 }} />
-              </Link>
-            }
           >
-            {porVencer.length === 0 ? (
+            {isLoading ? (
+              <Skeleton active paragraph={{ rows: 3 }} />
+            ) : porVencer.length === 0 ? (
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="Ningún término vence en los próximos 5 días hábiles."
+                description={
+                  isError
+                    ? 'Sin datos: la consulta de expedientes falló.'
+                    : `Ningún término vence en los próximos ${DIAS_ALERTA} días hábiles.`
+                }
               />
             ) : (
-              <div style={{ margin: '0 -14px' }}>
-                {porVencer.map((q) => (
-                  <FilaCaso
-                    key={q.id}
-                    to={`/panel/querellas/${q.id}`}
-                    principal={
-                      <span className="font-display" style={{ fontSize: 15.5 }}>
-                        Radicado {q.radicado}
+              porVencer.map((c) => (
+                <FilaCaso
+                  key={c.id}
+                  to={c.ruta}
+                  principal={c.radicado}
+                  secundario={`${c.asunto} · ${etiquetaEstado(c.estado)}`}
+                  extremo={tagTermino(c)}
+                />
+              ))
+            )}
+          </Card>
+        </Col>
+
+        <Col xs={24} lg={9}>
+          <Card variant="borderless" title="Portales del inspector" style={{ height: '100%' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {PORTALES_INSPECTOR.map((p) => (
+                <a key={p.url} href={p.url} target="_blank" rel="noreferrer noopener" style={{ textDecoration: 'none' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      padding: '8px 10px',
+                      borderRadius: 10,
+                      transition: 'background 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = PALETA.fondo)}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    <span
+                      style={{
+                        width: 34,
+                        height: 34,
+                        borderRadius: 9,
+                        background: p.fondo,
+                        color: p.color,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {p.icono}
+                    </span>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: 'block', fontSize: 13.5, fontWeight: 500, color: PALETA.texto }}>
+                        {p.nombre}
                       </span>
-                    }
-                    secundario={`${q.asunto} · ${ESTADO_LABEL[q.estado]}`}
-                    extremo={
-                      <Tag
-                        color={q.termino.diasRestantes <= 2 ? 'error' : 'warning'}
-                        style={{ fontWeight: 600, marginInlineEnd: 0 }}
+                      <span
+                        style={{
+                          display: 'block',
+                          fontSize: 11.5,
+                          color: PALETA.textoTenue,
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
                       >
-                        {q.termino.diasRestantes} días háb.
-                      </Tag>
-                    }
-                  />
-                ))}
-              </div>
-            )}
-          </Card>
-        </Col>
-
-        {/* Agenda de audiencias - mantener en MVP porque alimenta querellas */}
-        <Col xs={24} lg={11}>
-          <Card
-            variant="borderless"
-            title="Próximas audiencias"
-            style={{ boxShadow: ELEVACION.base, height: '100%' }}
-            styles={{
-              header: { fontSize: 17, fontWeight: 600, borderBottom: 'none', paddingBottom: 0 },
-              body: { paddingTop: 10 },
-            }}
-            extra={
-              <Link to="/panel/audiencias">
-                Ver agenda <RightOutlined style={{ fontSize: 11 }} />
-              </Link>
-            }
-          >
-            {proximasAudiencias.length === 0 ? (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="No hay audiencias en agenda."
-              />
-            ) : (
-              <div style={{ margin: '0 -14px' }}>
-                {proximasAudiencias.map((a) => {
-                  const fecha = dayjs(a.fecha);
-                  return (
-                    <FilaCaso
-                      key={a.id}
-                      to={`/panel/querellas/${a.querellaId}`}
-                      principal={<Text strong>{a.asunto}</Text>}
-                      secundario={`${a.querellante} contra ${a.querellado}`}
-                      extremo={
-                        <div
-                          style={{
-                            textAlign: 'center',
-                            background: PALETA.azulSuave,
-                            borderRadius: 14,
-                            padding: '6px 12px',
-                            lineHeight: 1.25,
-                            flexShrink: 0,
-                          }}
-                        >
-                          <div style={{ fontSize: 12, fontWeight: 600, color: PALETA.azulOscuro }}>
-                            {fecha.format('D MMM')}
-                          </div>
-                          <div style={{ fontSize: 11.5, color: PALETA.azulOscuro, opacity: 0.8 }}>
-                            {fecha.format('h:mm a')}
-                          </div>
-                        </div>
-                      }
-                    />
-                  );
-                })}
-              </div>
-            )}
+                        {p.detalle}
+                      </span>
+                    </span>
+                    <ExternalLink size={13} style={{ color: PALETA.textoTenue, flexShrink: 0 }} />
+                  </div>
+                </a>
+              ))}
+            </div>
           </Card>
         </Col>
       </Row>
+
+      {/* Promesa declarada, no botón que falla: deshabilitado y con su motivo. */}
+      <div style={{ marginTop: 18 }}>
+        <Text style={{ fontSize: 12, fontWeight: 600, letterSpacing: 0.3, color: PALETA.textoSuave }}>
+          PRONTO
+        </Text>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+          {PROXIMAMENTE.map((f) => (
+            <Tooltip key={f.nombre} title={f.motivo}>
+              <div
+                aria-disabled="true"
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: 10,
+                  border: `1px dashed ${PALETA.borde}`,
+                  color: PALETA.textoTenue,
+                  fontSize: 13,
+                  cursor: 'not-allowed',
+                }}
+              >
+                {f.nombre}
+              </div>
+            </Tooltip>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

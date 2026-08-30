@@ -55,14 +55,21 @@ export function tokenActual(): string | null {
 }
 
 /**
- * El backend solo devuelve username por ahora; rol y despacho quedan con
- * valores por defecto hasta que el servicio de autenticación los exponga.
+ * El backend solo devuelve username (email) por ahora; nunca mostrar el email
+ * crudo en la UI: sin fullName, se presenta la parte local capitalizada
+ * ("diarc91@…" → "Diarc91").
  */
+function nombreParaMostrar(sesion: Sesion): string {
+  const local = sesion.username.split('@')[0] ?? sesion.username;
+  const presentable = local.charAt(0).toUpperCase() + local.slice(1);
+  return sesion.fullName?.trim() || presentable;
+}
+
 function usuarioDesdeSesion(sesion: Sesion | null): Usuario | null {
   if (!sesion) return null;
   return {
     id: sesion.username,
-    nombre: sesion.fullName ?? sesion.username,
+    nombre: nombreParaMostrar(sesion),
     rol: 'inspector',
     despacho: DESPACHO.nombre,
   };

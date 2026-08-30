@@ -20,6 +20,7 @@ import {
   type MultaTipo,
 } from '@/shared/multas/multas';
 import { ELEVACION, PALETA } from '@/theme/theme';
+import { TEXTO } from '@/theme/escala';
 
 const { Title, Text } = Typography;
 const TIPOS: MultaTipo[] = [1, 2, 3, 4];
@@ -38,7 +39,7 @@ export function MultasPage() {
       <Title level={2} style={{ marginTop: 0, marginBottom: 4 }}>
         Medidas correctivas
       </Title>
-      <Text type="secondary" style={{ fontSize: 15 }}>
+      <Text type="secondary" style={{ fontSize: TEXTO.titulo }}>
         Multas generales del Código Nacional de Seguridad y Convivencia (Art. 180,
         Ley 1801 de 2016).
       </Text>
@@ -83,10 +84,10 @@ export function MultasPage() {
               >
                 {formatearPesos(valorMulta(tipo, smmlv))}
               </div>
-              <Text type="secondary" style={{ fontSize: 13 }}>
+              <Text type="secondary" style={{ fontSize: TEXTO.base }}>
                 {SMDLV_POR_TIPO[tipo]} SMDLV
               </Text>
-              <div style={{ marginTop: 12, fontSize: 13, color: PALETA.textoSuave }}>
+              <div style={{ marginTop: 12, fontSize: TEXTO.base, color: PALETA.textoSuave }}>
                 {MULTA_EJEMPLOS[tipo]}
               </div>
             </Card>

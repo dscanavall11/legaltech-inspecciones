@@ -1,19 +1,31 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { tokenActual } from '@/shared/auth/auth';
 import { DESPACHO } from '@/derecho';
+import { pedirRecepcion } from '@/shared/recepcion/api';
+import { leerCaseFiled, leerCaseUpdate, limpiarMarcadores } from '@/shared/recepcion/marcadores';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api';
+export interface CasoParte {
+  rol: string;
+  tipoId: string | null;
+  numeroId: string | null;
+  nombre: string;
+}
 
+// Espeja el <case_update> que emite legal/recepcionRules.st (ver
+// IntakeCaseCreationGate.IntakeUpdate) campo a campo. Es solo lectura: el
+// inspector ve el progreso que la IA va extrayendo de la conversación, no lo
+// edita a mano - el estado real vive en legalcase una vez radicado.
 export interface CasoDraft {
-  tipo: '' | 'querella' | 'queja';
-  viaProcesal: '' | 'verbal_abreviado' | 'verbal';
-  querellante: string;
-  querellado: string;
-  comportamiento: string;
-  articuloInfringido: string;
-  direccion: string;
-  proximoPaso: string;
-  anotaciones: string;
+  tipoSolicitud: string | null;
+  listoParaRadicar: boolean;
+  radicado: string | null;
+  juzgado: string | null;
+  ciudad: string | null;
+  hechos: string | null;
+  pretension: string | null;
+  partes: CasoParte[];
+  estadoSugerido: string | null;
+  categorias: string[];
+  observaciones: string | null;
 }
 
 export interface ChatMessage {
@@ -22,37 +34,26 @@ export interface ChatMessage {
   streaming?: boolean;
 }
 
+export interface CasoRadicado {
+  id: string;
+  filingNumber: string;
+  currentStateCode: string;
+  readyForFallo: boolean;
+}
+
 const DRAFT_INICIAL: CasoDraft = {
-  tipo: '',
-  viaProcesal: '',
-  querellante: '',
-  querellado: '',
-  comportamiento: '',
-  articuloInfringido: '',
-  direccion: '',
-  proximoPaso: '',
-  anotaciones: '',
+  tipoSolicitud: null,
+  listoParaRadicar: false,
+  radicado: null,
+  juzgado: null,
+  ciudad: null,
+  hechos: null,
+  pretension: null,
+  partes: [],
+  estadoSugerido: null,
+  categorias: [],
+  observaciones: null,
 };
-
-const CASE_UPDATE_RE = /<case_update>([\s\S]*?)<\/case_update>/;
-
-function parseCaseUpdate(texto: string): Partial<CasoDraft> {
-  const match = CASE_UPDATE_RE.exec(texto);
-  if (!match) return {};
-  try {
-    return JSON.parse(match[1]) as Partial<CasoDraft>;
-  } catch {
-    return {};
-  }
-}
-
-function limpiarMarcadores(texto: string): string {
-  // Remove complete markers first
-  let result = texto.replace(/<case_update>[\s\S]*?<\/case_update>/g, '');
-  // Remove any partial/open marker still being streamed (no closing tag yet)
-  result = result.replace(/<case_update>[\s\S]*/, '');
-  return result.trim();
-}
 
 export function useIntakeChat() {
   const [mensajes, setMensajes] = useState<ChatMessage[]>([
@@ -65,7 +66,7 @@ export function useIntakeChat() {
   const [draft, setDraft] = useState<CasoDraft>(DRAFT_INICIAL);
   const [cargando, setCargando] = useState(false);
   const [recentFields, setRecentFields] = useState<Set<keyof CasoDraft>>(new Set());
-  const turnoRef = useRef(0);
+  const [casoRadicado, setCasoRadicado] = useState<CasoRadicado | null>(null);
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(
@@ -83,11 +84,8 @@ export function useIntakeChat() {
   }, []);
 
   const enviar = useCallback(
-    async (texto: string) => {
+    async (texto: string, archivos?: File[]) => {
       if (!texto.trim() || cargando) return;
-
-      const turno = turnoRef.current;
-      turnoRef.current += 1;
 
       setMensajes((prev) => [
         ...prev,
@@ -97,36 +95,13 @@ export function useIntakeChat() {
       setCargando(true);
 
       try {
-        const token = tokenActual();
-        const res = await fetch(`${API_BASE}/intake/chat`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({ mensaje: texto.trim(), turno }),
-        });
+        // Sin caseId: este ES el chat de radicacion, el unico que puede abrir
+        // el expediente cuando el agente marca listoParaRadicar.
+        const respuesta = await pedirRecepcion({ texto: texto.trim(), archivos });
 
-        if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
-
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let acumulado = '';
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          acumulado += decoder.decode(value, { stream: true });
-          const visible = limpiarMarcadores(acumulado);
-          setMensajes((prev) => {
-            const copia = [...prev];
-            copia[copia.length - 1] = { rol: 'agente', texto: visible, streaming: true };
-            return copia;
-          });
-        }
-
-        const actualiza = parseCaseUpdate(acumulado);
-        const visible = limpiarMarcadores(acumulado);
+        const actualiza = leerCaseUpdate<CasoDraft>(respuesta) ?? {};
+        const radicado = leerCaseFiled<CasoRadicado>(respuesta);
+        const visible = limpiarMarcadores(respuesta);
 
         setMensajes((prev) => {
           const copia = [...prev];
@@ -138,6 +113,7 @@ export function useIntakeChat() {
           setDraft((prev) => ({ ...prev, ...actualiza }));
           flashFields(Object.keys(actualiza) as (keyof CasoDraft)[]);
         }
+        if (radicado) setCasoRadicado(radicado);
       } catch {
         setMensajes((prev) => {
           const copia = [...prev];
@@ -154,11 +130,5 @@ export function useIntakeChat() {
     [cargando, flashFields],
   );
 
-  const completoMinimo =
-    draft.tipo !== '' &&
-    draft.querellante.trim() !== '' &&
-    draft.querellado.trim() !== '' &&
-    draft.comportamiento.trim() !== '';
-
-  return { mensajes, draft, setDraft, cargando, recentFields, enviar, completoMinimo };
+  return { mensajes, draft, cargando, recentFields, enviar, casoRadicado };
 }

@@ -1,4 +1,5 @@
 import { limpiarSesion, tokenActual } from '@/shared/auth/auth';
+import { useWorkspaceContextStore } from '@/store/workspaceContextStore';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api';
 
@@ -15,6 +16,23 @@ export class ApiError extends Error {
 // Los endpoints públicos de auth no llevan Authorization (mismo criterio
 // que el interceptor del frontend Angular anterior).
 const AUTH_ENDPOINT_RE = /\/public\/auth\/(login|register)/;
+
+/**
+ * Headers estándar (Bearer + X-Workspace-Context) para los fetch crudos que
+ * no pasan por apiFetch — p. ej. las llamadas de IA multipart/texto/markdown.
+ * Sin esto, Norma pierde el contexto del workspace y responde sin OKF.
+ */
+export function contextHeaders(base?: HeadersInit): Headers {
+  const headers = new Headers(base);
+
+  const token = tokenActual();
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+
+  const contextId = useWorkspaceContextStore.getState().context?.contextId;
+  if (contextId) headers.set('X-Workspace-Context', contextId);
+
+  return headers;
+}
 
 /**
  * Wrapper de fetch con base URL, JSON, Bearer token y manejo de errores
@@ -34,6 +52,13 @@ export async function apiFetch<T>(
   const token = tokenActual();
   if (token && !AUTH_ENDPOINT_RE.test(path)) {
     headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  // Resuelto una vez al arrancar (ver src/main.tsx); ausente hasta entonces
+  // o si el subdominio no matchea ningun workspace.
+  const contextId = useWorkspaceContextStore.getState().context?.contextId;
+  if (contextId) {
+    headers.set('X-Workspace-Context', contextId);
   }
 
   const res = await fetch(`${BASE_URL}${path}`, { ...options, headers });

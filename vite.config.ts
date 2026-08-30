@@ -1,11 +1,9 @@
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, __dirname, '');
-
+export default defineConfig(() => {
   return {
     plugins: [react()],
     resolve: {
@@ -28,15 +26,12 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: Number(process.env.PORT ?? 5173),
-      // Proxy hacia los microservicios en desarrollo (cuando el mock esté
-      // apagado). Por defecto apunta al API de producción, igual que hacía
-      // el proxy.conf.json del app Angular. Se puede sobreescribir con
-      // VITE_DEV_PROXY_TARGET (ej: http://localhost:8080).
+      host: true,
+      allowedHosts: ['inspeccionconvivenciaypaz.legaltech.com.co', '.legaltech.com.co', '.trycloudflare.com'],
       proxy: {
         '/api': {
-          target: env.VITE_DEV_PROXY_TARGET ?? 'https://legaltech.com.co',
+          target: 'http://localhost:8090',
           changeOrigin: true,
-          secure: false,
         },
       },
     },

@@ -97,7 +97,8 @@ function FilaDocumento({
           {doc.fileName}
         </div>
         <div style={{ fontSize: TEXTO.nota, color: PALETA.textoTenue }}>
-          {CASE_DOCUMENT_ORIGIN_LABEL[doc.origin]} · {dayjs(doc.date).format('D [de] MMMM, YYYY')}
+          {doc.origin ? CASE_DOCUMENT_ORIGIN_LABEL[doc.origin] : 'Origen no registrado'}
+          {doc.date ? ` · ${dayjs(doc.date).format('D [de] MMMM, YYYY')}` : ''}
           {doc.fileSize ? ` · ${doc.fileSize}` : ''}
         </div>
       </div>
@@ -154,6 +155,10 @@ export function DocumentosExpediente({ caseId }: { caseId: string }) {
   const [urlVista, setUrlVista] = useState<string | null>(null);
 
   async function verDocumento(doc: CaseDocument) {
+    if (!doc.storageKey) {
+      message.error('Este documento no tiene un archivo asociado.');
+      return;
+    }
     setDocEnVista(doc);
     try {
       setUrlVista(await getCaseDocumentDownloadUrl(caseId, doc.storageKey));
@@ -164,6 +169,10 @@ export function DocumentosExpediente({ caseId }: { caseId: string }) {
   }
 
   async function descargarDocumento(doc: CaseDocument) {
+    if (!doc.storageKey) {
+      message.error('Este documento no tiene un archivo asociado.');
+      return;
+    }
     try {
       const url = await getCaseDocumentDownloadUrl(caseId, doc.storageKey);
       window.open(url, '_blank', 'noopener');

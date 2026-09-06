@@ -29,7 +29,7 @@ function legalCaseToQuerella(caso: LegalCase): QuerellaDetalle {
 
   return {
     id: caso.id,
-    radicado: caso.filingNumber,
+    radicado: caso.filingNumber ?? 'Sin radicar',
     querellante: nombrePorRol(caso, 'querellante'),
     querellado: nombrePorRol(caso, 'querellado'),
     asunto: meta.asunto ?? caso.background?.reliefSought ?? 'Sin asunto registrado',

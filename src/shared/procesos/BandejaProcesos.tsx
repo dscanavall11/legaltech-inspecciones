@@ -37,8 +37,8 @@ export interface BandejaProcesosProps {
   aviso?: string;
 }
 
-// Cerrado = ya no corre término: post-decisión (ESTADOS_POST_FALLO) o archivado/terminado.
-const ESTADOS_CERRADOS = [...ESTADOS_POST_FALLO, 'archivada', 'archivado', 'terminado_inactividad'];
+// Cerrado = ya no corre término: expediente FINALIZADO (ver ESTADOS_POST_FALLO).
+const ESTADOS_CERRADOS = ESTADOS_POST_FALLO;
 
 function ColumnaTermino({ fila }: { fila: FilaProceso }) {
   const cerrado = ESTADOS_CERRADOS.includes(fila.estado);

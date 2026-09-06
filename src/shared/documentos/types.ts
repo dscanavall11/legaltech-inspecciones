@@ -6,22 +6,27 @@
  */
 export type CaseDocumentType = 'PDF' | 'WORD' | 'IMAGEN' | 'AUDIO' | 'OTRO';
 
-export type CaseDocumentOrigin = 'RADICACION' | 'RECEPCION' | 'MANUAL';
+/**
+ * origin real de legalcase (Querellas Fase 1): String libre en minúsculas
+ * (catálogo-como-dato, no enum). null = no registrado.
+ */
+export type CaseDocumentOrigin = 'radicacion' | 'actuacion' | 'incorporado';
 
 export interface CaseDocument {
   id: string;
   fileName: string;
+  /** Derivado client-side de la extensión del archivo - no es el documentType jurídico de legalcase. */
   fileType: CaseDocumentType;
-  origin: CaseDocumentOrigin;
-  date: string; // ISO date
+  origin: CaseDocumentOrigin | null;
+  date: string | null; // ISO date
   fileSize?: string | null;
-  storageKey: string;
+  storageKey: string | null;
 }
 
 export const CASE_DOCUMENT_ORIGIN_LABEL: Record<CaseDocumentOrigin, string> = {
-  RADICACION: 'Aportado al radicar',
-  RECEPCION: 'Aportado al radicar',
-  MANUAL: 'Incorporado al expediente',
+  radicacion: 'Aportado al radicar',
+  actuacion: 'Incorporado en una actuación',
+  incorporado: 'Incorporado al expediente',
 };
 
 /** Deduce el tipo de documento a partir de la extensión del archivo (antes de subir). */

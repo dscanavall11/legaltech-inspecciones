@@ -13,7 +13,7 @@ function fila(over: Partial<FilaProceso> = {}): FilaProceso {
     parteA: 'A',
     parteB: 'B',
     asunto: 'Ruido',
-    estado: 'en_tramite',
+    estado: 'ACTIVO',
     fechaRadicacion: '2026-08-12',
     fechaUltimoMovimiento: '2026-08-12',
     diasTermino: 15,
@@ -35,7 +35,7 @@ describe('terminosEnRiesgo', () => {
   });
 
   it('ignora expedientes cerrados y los que no tienen término calculable', () => {
-    const cerrado = fila({ id: 'cerrado', estado: 'archivada', fechaRadicacion: '2026-06-01' });
+    const cerrado = fila({ id: 'cerrado', estado: 'FINALIZADO', fechaRadicacion: '2026-06-01' });
     const sinTermino = fila({ id: 'sin-termino', tipo: 'comparendo', diasTermino: undefined });
     expect(terminosEnRiesgo([cerrado, sinTermino], HOY)).toEqual([]);
   });
@@ -46,7 +46,7 @@ describe('sinMovimiento', () => {
     const quieto = fila({ id: 'quieto', fechaUltimoMovimiento: '2026-05-01' });
     const tibio = fila({ id: 'tibio', fechaUltimoMovimiento: '2026-06-20' });
     const reciente = fila({ id: 'reciente', fechaUltimoMovimiento: '2026-08-10' });
-    const cerrado = fila({ id: 'cerrado', estado: 'archivada', fechaUltimoMovimiento: '2026-01-01' });
+    const cerrado = fila({ id: 'cerrado', estado: 'FINALIZADO', fechaUltimoMovimiento: '2026-01-01' });
 
     const inactivos = sinMovimiento([tibio, quieto, reciente, cerrado], HOY);
     expect(inactivos.map((c) => c.id)).toEqual(['quieto', 'tibio']);

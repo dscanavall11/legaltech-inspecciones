@@ -29,7 +29,7 @@ function legalCaseToAudiencia(caso: LegalCase): Audiencia | null {
   return {
     id: caso.id,
     querellaId: caso.id,
-    radicado: caso.filingNumber,
+    radicado: caso.filingNumber ?? 'Sin radicar',
     fecha: meta.fechaAudiencia,
     asunto: meta.asunto ?? caso.background?.reliefSought ?? 'Sin asunto registrado',
     querellante: nombrePorRol(caso, 'querellante'),

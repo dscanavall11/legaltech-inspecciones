@@ -12,29 +12,32 @@ asistente de IA integrado (Spring AI). Producto de **legaltech.com.co**.
 | Estado servidor | TanStack React Query |
 | Estado cliente | Zustand |
 | Ruteo | React Router 6 |
-| Formularios | React Hook Form + Zod |
 | Fechas | Day.js |
-| Mock API | MSW (Mock Service Worker) |
 
 ## Cómo correr
 
+Sin mocks: el frontend consume el backend real vía **orchestrator** (el BFF
+único de la plataforma, `http://localhost:8090`), que reenvía hacia
+legalcase/legal/legalbases/authentication. Necesitás el stack Docker de
+`local-dev/` (repo hermano) levantado antes de `npm run dev`.
+
 ```bash
+# en local-dev/ (repo hermano)
+docker compose -f docker-compose.local.yml up
+
+# acá
 npm install
 npm run dev
 ```
 
 Abre http://localhost:5173
 
-> La app arranca con **datos mock (MSW)** activados. No necesitas el backend
-> para desarrollar. Cuando el backend Spring esté listo, pon
-> `VITE_ENABLE_MOCKS=false` en `.env.local`.
-
 ## Variables de entorno
 
 Copia `.env.example` a `.env.local`:
 
-- `VITE_API_BASE_URL` — URL base del backend (en dev se usa el proxy `/api`).
-- `VITE_ENABLE_MOCKS` — `true` para usar datos falsos, `false` para el backend real.
+- `VITE_API_BASE_URL` — URL base única para todo `/api` (CRUD, IA, workspace-context).
+  En dev local: `http://localhost:8090/api` (orchestrator).
 
 ## Arquitectura
 
@@ -53,14 +56,18 @@ src/
     components/ Layout, controles compartidos
   features/
     dashboard/  Inicio con métricas y alertas de términos
-    querellas/  Listado de querellas (CRUD legal)
-  mocks/        Handlers de MSW = contrato de la API
+    querellas/  Detalle de querella
+  shared/procesos/  Bandeja única de expedientes (ver "Bandeja única" abajo)
 ```
 
 ## Decisiones de diseño clave
 
-- **Mock-first**: el frontend avanza sin depender del backend. Los handlers de
-  MSW son el contrato que el backend debe cumplir.
+- **Sin mocks**: el frontend consume el backend real vía orchestrator
+  (`localhost:8090` en dev). No hay datos falsos ni contrato mockeado — lo que
+  se ve en pantalla es lo que devuelve `legal-cases`.
+- **Bandeja única**: `shared/procesos/BandejaProcesos.tsx` reemplaza los
+  listados que había por trámite (querellas, quejas, cola, fallos, casos):
+  todos consultaban la misma tabla `legal_cases`, agnóstica a `caseType`.
 - **Accesibilidad para inspectores de edad avanzada**: control de tamaño de
   fuente siempre visible (A / A+ / A++), controles grandes, íconos siempre con
   texto, foco visible.

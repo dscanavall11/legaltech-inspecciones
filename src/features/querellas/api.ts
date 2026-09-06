@@ -1,47 +1,76 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiFetch } from '@/shared/api/client';
-import type { Querella, QuerellaDetalle } from './types';
+import { useLegalCases, useLegalCase, type LegalCasesQuery } from '@/shared/legalCases/api';
+import { parseCaseMetadata, type LegalCase } from '@/shared/legalCases/types';
+import type { Actuacion, EstadoQuerella, Querella, QuerellaDetalle, QuerellaMetadata, TipoActuacion } from './types';
 
-export interface NuevaQuerella {
-  querellante: string;
-  querellado: string;
-  asunto: string;
-  direccionInmueble?: string;
-  diasTermino: number;
+const CASE_TYPE = 'querella';
+
+function nombrePorRol(caso: LegalCase, rol: string): string {
+  return caso.parties?.find((p) => p.partyRole?.toLowerCase() === rol)?.fullName ?? 'No identificado';
 }
 
-/** Claves de query centralizadas para invalidación consistente. */
+function tipoActuacion(stateCode: string | null): TipoActuacion {
+  switch (stateCode) {
+    case 'radicada':
+      return 'radicacion';
+    case 'audiencia_programada':
+      return 'audiencia';
+    case 'fallo_emitido':
+      return 'fallo';
+    case 'en_firmeza':
+      return 'firmeza';
+    default:
+      return 'auto';
+  }
+}
+
+function legalCaseToQuerella(caso: LegalCase): QuerellaDetalle {
+  const meta = parseCaseMetadata<QuerellaMetadata>(caso.caseMetadata);
+  const primeraFecha = caso.stateHistory?.[0]?.changedAt ?? caso.createdAt ?? new Date().toISOString();
+
+  return {
+    id: caso.id,
+    radicado: caso.filingNumber ?? 'Sin radicar',
+    querellante: nombrePorRol(caso, 'querellante'),
+    querellado: nombrePorRol(caso, 'querellado'),
+    asunto: meta.asunto ?? caso.background?.reliefSought ?? 'Sin asunto registrado',
+    estado: caso.currentStateCode as EstadoQuerella,
+    fechaRadicacion: primeraFecha,
+    diasTermino: meta.diasTermino ?? 15,
+    direccionInmueble: meta.direccionInmueble,
+    actuaciones: (caso.stateHistory ?? []).map(
+      (h, i): Actuacion => ({
+        id: `${caso.id}-${i}`,
+        fecha: h.changedAt,
+        tipo: tipoActuacion(h.stateCode),
+        titulo: h.stateName ?? h.reason ?? h.stateCode ?? 'Actuación',
+        descripcion: h.stateName ? (h.reason ?? undefined) : undefined,
+        estadoCodigo: h.stateCode ?? undefined,
+      }),
+    ),
+    caseMetadataRaw: caso.caseMetadata,
+  };
+}
+
 export const querellasKeys = {
   all: ['querellas'] as const,
-  lista: () => [...querellasKeys.all, 'lista'] as const,
-  detalle: (id: string) => [...querellasKeys.all, 'detalle', id] as const,
 };
 
+function useQuerellasQuery(opts: Partial<LegalCasesQuery> = {}) {
+  return useLegalCases({ caseType: CASE_TYPE, ...opts });
+}
+
 export function useQuerellas() {
-  return useQuery({
-    queryKey: querellasKeys.lista(),
-    queryFn: () => apiFetch<Querella[]>('/querellas'),
-  });
+  const query = useQuerellasQuery();
+  return {
+    ...query,
+    data: query.data?.content.map(legalCaseToQuerella) as Querella[] | undefined,
+  };
 }
 
 export function useQuerella(id: string) {
-  return useQuery({
-    queryKey: querellasKeys.detalle(id),
-    queryFn: () => apiFetch<QuerellaDetalle>(`/querellas/${id}`),
-    enabled: Boolean(id),
-  });
-}
-
-export function useCrearQuerella() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: NuevaQuerella) =>
-      apiFetch<Querella>('/querellas', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: querellasKeys.lista() });
-    },
-  });
+  const query = useLegalCase(id);
+  return {
+    ...query,
+    data: query.data ? legalCaseToQuerella(query.data) : undefined,
+  };
 }

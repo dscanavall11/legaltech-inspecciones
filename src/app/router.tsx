@@ -1,21 +1,18 @@
 import { lazy, Suspense, type ReactNode } from 'react';
-import { createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { Spin } from 'antd';
 import { AppLayout } from '@/shared/components/AppLayout';
-import { EnConstruccion } from '@/shared/components/EnConstruccion';
+import { RequireAuth } from '@/features/auth/RequireAuth';
 
 // Code-splitting: cada vista se carga bajo demanda para aligerar el arranque.
 const DashboardPage = lazy(() =>
   import('@/features/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })),
 );
-const QuerellasListPage = lazy(() =>
-  import('@/features/querellas/QuerellasListPage').then((m) => ({ default: m.QuerellasListPage })),
+const BandejaProcesos = lazy(() =>
+  import('@/shared/procesos/BandejaProcesos').then((m) => ({ default: m.BandejaProcesos })),
 );
 const QuerellaDetailPage = lazy(() =>
   import('@/features/querellas/QuerellaDetailPage').then((m) => ({ default: m.QuerellaDetailPage })),
-);
-const NuevaQuerellaPage = lazy(() =>
-  import('@/features/querellas/NuevaQuerellaPage').then((m) => ({ default: m.NuevaQuerellaPage })),
 );
 const DocumentoPage = lazy(() =>
   import('@/features/querellas/documento/DocumentoPage').then((m) => ({ default: m.DocumentoPage })),
@@ -26,14 +23,82 @@ const AudienciasPage = lazy(() =>
 const MultasPage = lazy(() =>
   import('@/features/multas/MultasPage').then((m) => ({ default: m.MultasPage })),
 );
-const QuejasListPage = lazy(() =>
-  import('@/features/quejas/QuejasListPage').then((m) => ({ default: m.QuejasListPage })),
+const AreaTrabajoQuerella = lazy(() =>
+  import('@/features/querellas/AreaTrabajoQuerella').then((m) => ({
+    default: m.AreaTrabajoQuerella,
+  })),
 );
-const NuevaQuejaPage = lazy(() =>
-  import('@/features/quejas/NuevaQuejaPage').then((m) => ({ default: m.NuevaQuejaPage })),
+const AreaTrabajoApelacionPage = lazy(() =>
+  import('@/features/apelaciones/AreaTrabajoApelacionPage').then((m) => ({
+    default: m.AreaTrabajoApelacionPage,
+  })),
+);
+const ApelacionDetailPage = lazy(() =>
+  import('@/features/apelaciones/ApelacionDetailPage').then((m) => ({
+    default: m.ApelacionDetailPage,
+  })),
+);
+const AreaTrabajoQueja = lazy(() =>
+  import('@/features/quejas/AreaTrabajoQueja').then((m) => ({ default: m.AreaTrabajoQueja })),
 );
 const QuejaDetailPage = lazy(() =>
   import('@/features/quejas/QuejaDetailPage').then((m) => ({ default: m.QuejaDetailPage })),
+);
+const ComparendosPage = lazy(() =>
+  import('@/features/comparendos/ComparendosPage').then((m) => ({ default: m.ComparendosPage })),
+);
+const ComparendoDetailPage = lazy(() =>
+  import('@/features/comparendos/ComparendoDetailPage').then((m) => ({ default: m.ComparendoDetailPage })),
+);
+const DocumentoComparendoPage = lazy(() =>
+  import('@/features/comparendos/documento/DocumentoComparendoPage').then((m) => ({ default: m.DocumentoComparendoPage })),
+);
+const LoginPage = lazy(() =>
+  import('@/features/auth/LoginPage').then((m) => ({ default: m.LoginPage })),
+);
+const RegisterPage = lazy(() =>
+  import('@/features/auth/RegisterPage').then((m) => ({ default: m.RegisterPage })),
+);
+const LandingPage = lazy(() =>
+  import('@/features/landing/LandingPage').then((m) => ({ default: m.LandingPage })),
+);
+const AnalisisPage = lazy(() =>
+  import('@/features/analisis/AnalisisPage').then((m) => ({ default: m.AnalisisPage })),
+);
+const AjustesPage = lazy(() =>
+  import('@/features/ajustes/AjustesPage').then((m) => ({ default: m.AjustesPage })),
+);
+const ConfiguracionDespachoPage = lazy(() =>
+  import('@/features/ajustes/ConfiguracionDespachoPage').then((m) => ({ default: m.ConfiguracionDespachoPage })),
+);
+const IntakePage = lazy(() =>
+  import('@/features/intake/IntakePage').then((m) => ({ default: m.IntakePage })),
+);
+const ActasFirmezaPage = lazy(() =>
+  import('@/features/actas/ActasFirmezaPage').then((m) => ({ default: m.ActasFirmezaPage })),
+);
+const ProntoPagoPage = lazy(() =>
+  import('@/features/pagos/ProntoPagoPage').then((m) => ({ default: m.ProntoPagoPage })),
+);
+const ConmutacionPage = lazy(() =>
+  import('@/features/pagos/ConmutacionPage').then((m) => ({ default: m.ConmutacionPage })),
+);
+const NormasPage = lazy(() =>
+  import('@/features/normas/NormasPage').then((m) => ({ default: m.NormasPage })),
+);
+const AsistentePage = lazy(() =>
+  import('@/features/asistente/AsistentePage').then((m) => ({ default: m.AsistentePage })),
+);
+const ChatGeneralPage = lazy(() =>
+  import('@/features/chat/ChatGeneralPage').then((m) => ({ default: m.ChatGeneralPage })),
+);
+
+// MVP pages (lazy loaded)
+const RadicadorPage = lazy(() =>
+  import('@/features/radicador/RadicadorPage').then((m) => ({ default: m.RadicadorPage })),
+);
+const RadicarDocumentoPage = lazy(() =>
+  import('@/features/radicador/RadicarDocumentoPage').then((m) => ({ default: m.RadicarDocumentoPage })),
 );
 
 function Cargando({ children }: { children: ReactNode }) {
@@ -51,28 +116,93 @@ function Cargando({ children }: { children: ReactNode }) {
 }
 
 export const router = createBrowserRouter([
+  // Página informativa pública de legaltech.com.co (migrada del Angular).
+  { path: '/', element: <Cargando><LandingPage /></Cargando> },
+  { path: '/login', element: <Cargando><LoginPage /></Cargando> },
+  { path: '/registro', element: <Cargando><RegisterPage /></Cargando> },
   {
-    path: '/',
-    element: <AppLayout />,
+    path: '/panel',
+    element: (
+      <RequireAuth>
+        <AppLayout />
+      </RequireAuth>
+    ),
     children: [
       { index: true, element: <Cargando><DashboardPage /></Cargando> },
-      { path: 'querellas', element: <Cargando><QuerellasListPage /></Cargando> },
-      { path: 'querellas/nueva', element: <Cargando><NuevaQuerellaPage /></Cargando> },
+      {
+        path: 'procesos',
+        element: (
+          <Cargando>
+            <BandejaProcesos
+              titulo="Mis procesos"
+              descripcion="Todos los expedientes del despacho — querellas, quejas, comparendos, actas y apelaciones."
+            />
+          </Cargando>
+        ),
+      },
+      {
+        path: 'querellas',
+        element: (
+          <Cargando>
+            <AreaTrabajoQuerella />
+          </Cargando>
+        ),
+      },
       { path: 'querellas/:id', element: <Cargando><QuerellaDetailPage /></Cargando> },
       {
         path: 'querellas/:id/documento/:tipo',
         element: <Cargando><DocumentoPage /></Cargando>,
       },
-      { path: 'quejas', element: <Cargando><QuejasListPage /></Cargando> },
-      { path: 'quejas/nueva', element: <Cargando><NuevaQuejaPage /></Cargando> },
-      { path: 'quejas/:id', element: <Cargando><QuejaDetailPage /></Cargando> },
-      { path: 'audiencias', element: <Cargando><AudienciasPage /></Cargando> },
-      { path: 'fallos', element: <EnConstruccion modulo="Fallos" /> },
+      // La queja es el expediente del comparendo impugnado y se trabaja con el
+      // mismo recorrido que la querella (shared/expediente).
       {
-        path: 'actas-firmeza',
-        element: <EnConstruccion modulo="Actas de firmeza" />,
+        path: 'quejas',
+        element: (
+          <Cargando>
+            <AreaTrabajoQueja />
+          </Cargando>
+        ),
       },
+      { path: 'quejas/:id', element: <Cargando><QuejaDetailPage /></Cargando> },
+      // Mismo recorrido que querella y queja (shared/expediente); el listado
+      // del despacho vive en Mis procesos, no aquí.
+      {
+        path: 'apelaciones',
+        element: (
+          <Cargando>
+            <AreaTrabajoApelacionPage />
+          </Cargando>
+        ),
+      },
+      { path: 'apelaciones/:id', element: <Cargando><ApelacionDetailPage /></Cargando> },
+      { path: 'comparendos', element: <Cargando><ComparendosPage /></Cargando> },
+      { path: 'comparendos/:id', element: <Cargando><ComparendoDetailPage /></Cargando> },
+      {
+        path: 'comparendos/:id/documento/:tipo',
+        element: <Cargando><DocumentoComparendoPage /></Cargando>,
+      },
+      { path: 'nuevo-caso', element: <Cargando><IntakePage /></Cargando> },
+      { path: 'actas-firmeza', element: <Cargando><ActasFirmezaPage /></Cargando> },
+      { path: 'pronto-pago', element: <Cargando><ProntoPagoPage /></Cargando> },
+      { path: 'conmutacion', element: <Cargando><ConmutacionPage /></Cargando> },
+      { path: 'ajustes', element: <Cargando><AjustesPage /></Cargando> },
+      { path: 'ajustes/despacho', element: <Cargando><ConfiguracionDespachoPage /></Cargando> },
+      // Diferidos a la V2: siguen montados (los enlaces guardados no se
+      // rompen y el código no se pierde) pero ya no aparecen en el menú, que
+      // se redujo a las siete entradas de dockItems.ts.
+      { path: 'audiencias', element: <Cargando><AudienciasPage /></Cargando> },
       { path: 'medidas-correctivas', element: <Cargando><MultasPage /></Cargando> },
+      { path: 'normas', element: <Cargando><NormasPage /></Cargando> },
+      { path: 'analisis', element: <Cargando><AnalisisPage /></Cargando> },
+      { path: 'radicador', element: <Cargando><RadicadorPage /></Cargando> },
+      { path: 'radicar/:tipo', element: <Cargando><RadicarDocumentoPage /></Cargando> },
+      { path: 'chat', element: <Cargando><ChatGeneralPage /></Cargando> },
+      // Demo del asistente con skills. Convive con /panel/chat mientras se evalúa.
+      { path: 'asistente', element: <Cargando><AsistentePage /></Cargando> },
+      // La cola de trabajo y los fallos proferidos son la misma bandeja con
+      // otro filtro; se redirigen para no romper enlaces guardados.
+      { path: 'cola', element: <Navigate to="/panel/procesos" replace /> },
+      { path: 'fallos', element: <Navigate to="/panel/procesos?fallo=1" replace /> },
     ],
   },
 ]);

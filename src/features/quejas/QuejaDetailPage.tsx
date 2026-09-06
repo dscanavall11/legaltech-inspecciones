@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Card,
@@ -15,6 +14,8 @@ import {
   Space,
 } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
+import { NormaMark } from '@/shared/ai/NormaMark';
+import { NORMA } from '@/shared/ai/identity';
 import dayjs from 'dayjs';
 import { useQueja } from './api';
 import {
@@ -25,9 +26,15 @@ import {
   type ActuacionQueja,
 } from './types';
 import { calcularTermino } from '@/shared/terminos/diasHabiles';
-import { CaseAssistant } from '@/shared/ai/CaseAssistant';
 import { SiguientePasoQueja } from './SiguientePasoQueja';
+import { DocumentosExpediente } from '@/shared/documentos/DocumentosExpediente';
+import { PruebasExpediente } from '@/shared/pruebas/PruebasExpediente';
+import { OrientacionesInspector } from '@/shared/orientaciones/OrientacionesInspector';
+import { EtapaProcesal } from '@/shared/components/EtapaProcesal';
+import { ETAPAS_QUEJA, ETAPA_QUEJA_ACTIVA } from '@/derecho';
 import { ELEVACION, PALETA } from '@/theme/theme';
+import { Dato } from '@/shared/ui/Dato';
+import { TEXTO } from '@/theme/escala';
 
 const { Title, Text } = Typography;
 
@@ -40,17 +47,6 @@ const COLOR_ACTUACION: Record<TipoActuacionQueja, string> = {
   sin_acuerdo: PALETA.rojo,
   archivo: PALETA.textoTenue,
 };
-
-function Campo({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div>
-      <div style={{ fontSize: 12, color: PALETA.textoTenue, marginBottom: 3 }}>
-        {label}
-      </div>
-      <div style={{ color: PALETA.texto }}>{children}</div>
-    </div>
-  );
-}
 
 function TerminoCard({
   fechaRadicacion,
@@ -76,7 +72,7 @@ function TerminoCard({
 
   return (
     <Card variant="borderless" style={{ boxShadow: ELEVACION.base }}>
-      <Text type="secondary" style={{ fontSize: 12, letterSpacing: 0.3 }}>
+      <Text type="secondary" style={{ fontSize: TEXTO.menor, letterSpacing: 0.3 }}>
         TÉRMINO PROCESAL
       </Text>
       <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginTop: 12 }}>
@@ -90,7 +86,7 @@ function TerminoCard({
               <div style={{ fontSize: 20, fontWeight: 700, color: PALETA.texto }}>
                 {cerrado || t.vencido ? 0 : t.diasRestantes}
               </div>
-              <div style={{ fontSize: 11, color: PALETA.textoTenue }}>días háb.</div>
+              <div style={{ fontSize: TEXTO.nota, color: PALETA.textoTenue }}>días háb.</div>
             </div>
           )}
         />
@@ -99,12 +95,12 @@ function TerminoCard({
             {semaforo.texto}
           </Tag>
           <div style={{ marginTop: 8 }}>
-            <div style={{ fontSize: 12, color: PALETA.textoTenue }}>Vence el</div>
+            <div style={{ fontSize: TEXTO.menor, color: PALETA.textoTenue }}>Vence el</div>
             <Text strong>{t.fechaVencimiento.format('D [de] MMMM, YYYY')}</Text>
           </div>
         </div>
       </div>
-      <div style={{ fontSize: 12, color: PALETA.textoTenue, marginTop: 12 }}>
+      <div style={{ fontSize: TEXTO.menor, color: PALETA.textoTenue, marginTop: 12 }}>
         {t.diasTranscurridos} de {diasTermino} días hábiles · cálculo sujeto a
         validación jurídica.
       </div>
@@ -132,8 +128,8 @@ export function QuejaDetailPage() {
         title="Queja no encontrada"
         subTitle="El expediente que buscas no existe o fue archivado."
         extra={
-          <Button type="primary" onClick={() => navigate('/quejas')}>
-            Volver a quejas
+          <Button type="primary" onClick={() => navigate('/panel/procesos')}>
+            Volver a mis procesos
           </Button>
         }
       />
@@ -149,31 +145,31 @@ export function QuejaDetailPage() {
       children: (
         <Row gutter={[24, 18]} style={{ marginTop: 4 }}>
           <Col xs={24} sm={12}>
-            <Campo label="Quejoso">{data.quejoso}</Campo>
+            <Dato label="Quejoso">{data.quejoso}</Dato>
           </Col>
           <Col xs={24} sm={12}>
-            <Campo label="Acusado">{data.acusado}</Campo>
+            <Dato label="Acusado">{data.acusado}</Dato>
           </Col>
           <Col xs={24} sm={12}>
-            <Campo label="Categoría">{CATEGORIA_QUEJA_LABEL[data.categoria]}</Campo>
+            <Dato label="Categoría">{CATEGORIA_QUEJA_LABEL[data.categoria]}</Dato>
           </Col>
           <Col xs={24} sm={12}>
-            <Campo label="Asunto">{data.asunto}</Campo>
+            <Dato label="Asunto">{data.asunto}</Dato>
           </Col>
           {data.descripcionHechos && (
             <Col xs={24}>
-              <Campo label="Descripción de los hechos">
+              <Dato label="Descripción de los hechos">
                 {data.descripcionHechos}
-              </Campo>
+              </Dato>
             </Col>
           )}
           <Col xs={24} sm={12}>
-            <Campo label="Fecha de radicación">
+            <Dato label="Fecha de radicación">
               {dayjs(data.fechaRadicacion).format('D [de] MMMM, YYYY')}
-            </Campo>
+            </Dato>
           </Col>
           <Col xs={24} sm={12}>
-            <Campo label="Término aplicable">{data.diasTermino} días hábiles</Campo>
+            <Dato label="Término aplicable">{data.diasTermino} días hábiles</Dato>
           </Col>
         </Row>
       ),
@@ -189,7 +185,7 @@ export function QuejaDetailPage() {
             children: (
               <div>
                 <Text strong>{a.titulo}</Text>
-                <div style={{ fontSize: 12, color: PALETA.textoTenue }}>
+                <div style={{ fontSize: TEXTO.menor, color: PALETA.textoTenue }}>
                   {dayjs(a.fecha).format('D [de] MMMM, YYYY')}
                 </div>
                 {a.descripcion && (
@@ -203,18 +199,41 @@ export function QuejaDetailPage() {
         />
       ),
     },
+    {
+      key: 'documentos',
+      label: 'Documentos',
+      children: <DocumentosExpediente caseId={data.id} />,
+    },
+    {
+      key: 'pruebas',
+      label: 'Pruebas',
+      children: <PruebasExpediente caseId={data.id} />,
+    },
+    {
+      key: 'orientaciones',
+      label: 'Orientaciones',
+      children: <OrientacionesInspector caseId={data.id} caseMetadataRaw={data.caseMetadataRaw} />,
+    },
   ];
 
   return (
     <div>
-      <Button
-        type="text"
-        icon={<ArrowLeftOutlined />}
-        onClick={() => navigate('/quejas')}
-        style={{ marginBottom: 10, paddingLeft: 0 }}
-      >
-        Volver a quejas
-      </Button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+        <Button
+          type="text"
+          icon={<ArrowLeftOutlined />}
+          onClick={() => navigate('/panel/procesos')}
+          style={{ marginBottom: 10, paddingLeft: 0 }}
+        >
+          Volver a mis procesos
+        </Button>
+        <Button
+          icon={<NormaMark size={17} />}
+          onClick={() => navigate('/panel/chat', { state: { radicado: data.radicado } })}
+        >
+          Preguntarle a {NORMA.nombre}
+        </Button>
+      </div>
 
       <Space align="center" size={10} wrap style={{ marginBottom: 2 }}>
         <Title level={2} style={{ margin: 0 }}>
@@ -224,14 +243,18 @@ export function QuejaDetailPage() {
           {ESTADO_QUEJA_LABEL[data.estado]}
         </Tag>
       </Space>
-      <div style={{ marginBottom: 20 }}>
-        <Text type="secondary" style={{ fontSize: 15 }}>
+      <div>
+        <Text type="secondary" style={{ fontSize: TEXTO.titulo }}>
           {data.asunto}
         </Text>
       </div>
 
+      <div style={{ marginBottom: 26 }}>
+        <EtapaProcesal etapas={[...ETAPAS_QUEJA]} activa={ETAPA_QUEJA_ACTIVA[data.estado]} />
+      </div>
+
       <div style={{ marginBottom: 24 }}>
-        <SiguientePasoQueja id={data.id} estado={data.estado} />
+        <SiguientePasoQueja queja={data} />
       </div>
 
       <Row gutter={[24, 24]}>
@@ -241,17 +264,11 @@ export function QuejaDetailPage() {
           </Card>
         </Col>
         <Col xs={24} lg={9}>
-          <Space direction="vertical" size={20} style={{ width: '100%' }}>
-            <TerminoCard
-              fechaRadicacion={data.fechaRadicacion}
-              diasTermino={data.diasTermino}
-              cerrado={cerrado}
-            />
-            <CaseAssistant
-              contexto={{ tipo: 'queja', id: data.id }}
-              radicado={data.radicado}
-            />
-          </Space>
+          <TerminoCard
+            fechaRadicacion={data.fechaRadicacion}
+            diasTermino={data.diasTermino}
+            cerrado={cerrado}
+          />
         </Col>
       </Row>
     </div>

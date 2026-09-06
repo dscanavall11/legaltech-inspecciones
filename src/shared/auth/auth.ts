@@ -1,8 +1,9 @@
 import { create } from 'zustand';
+import { DESPACHO } from '@/derecho';
 
 /**
  * Roles del despacho. Definir desde el día 1 evita reescrituras dolorosas
- * cuando se conecte la autenticación real con el backend.
+ * cuando el backend empiece a devolver roles reales.
  */
 export type Rol = 'inspector' | 'secretario' | 'admin';
 
@@ -13,22 +14,87 @@ export interface Usuario {
   despacho: string; // multi-despacho: cada usuario pertenece a una inspección
 }
 
-interface AuthState {
-  usuario: Usuario | null;
-  setUsuario: (u: Usuario | null) => void;
+/**
+ * Sesión persistida en sessionStorage bajo la clave 'authSession'.
+ * Mismo contrato que usaba el frontend Angular, para no tocar el backend.
+ */
+export interface Sesion {
+  status: string;
+  message: string;
+  username: string;
+  accessToken: string;
+  idToken: string;
+  refreshToken: string;
+  fullName?: string;
 }
 
-// Usuario simulado mientras no exista login real. Reemplazar al integrar el backend.
-const USUARIO_DEMO: Usuario = {
-  id: 'u-001',
-  nombre: 'Inspector de prueba',
-  rol: 'inspector',
-  despacho: 'Inspección 1A Distrital',
-};
+const SESSION_KEY = 'authSession';
+
+export function leerSesion(): Sesion | null {
+  const raw = sessionStorage.getItem(SESSION_KEY);
+  if (!raw) return null;
+  try {
+    const sesion = JSON.parse(raw) as Sesion;
+    return sesion?.accessToken ? sesion : null;
+  } catch {
+    return null;
+  }
+}
+
+export function guardarSesion(sesion: Sesion): void {
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify(sesion));
+}
+
+export function limpiarSesion(): void {
+  sessionStorage.removeItem(SESSION_KEY);
+}
+
+/** Token para el header Authorization; null si no hay sesión. */
+export function tokenActual(): string | null {
+  return leerSesion()?.accessToken ?? null;
+}
+
+/**
+ * El backend solo devuelve username (email) por ahora; nunca mostrar el email
+ * crudo en la UI: sin fullName, se presenta la parte local capitalizada
+ * ("diarc91@…" → "Diarc91").
+ */
+function nombreParaMostrar(sesion: Sesion): string {
+  const local = sesion.username.split('@')[0] ?? sesion.username;
+  const presentable = local.charAt(0).toUpperCase() + local.slice(1);
+  return sesion.fullName?.trim() || presentable;
+}
+
+function usuarioDesdeSesion(sesion: Sesion | null): Usuario | null {
+  if (!sesion) return null;
+  return {
+    id: sesion.username,
+    nombre: nombreParaMostrar(sesion),
+    rol: 'inspector',
+    despacho: DESPACHO.nombre,
+  };
+}
+
+interface AuthState {
+  sesion: Sesion | null;
+  usuario: Usuario | null;
+  iniciarSesion: (s: Sesion) => void;
+  cerrarSesion: () => void;
+}
+
+const sesionInicial = leerSesion();
 
 export const useAuth = create<AuthState>((set) => ({
-  usuario: USUARIO_DEMO,
-  setUsuario: (usuario) => set({ usuario }),
+  sesion: sesionInicial,
+  usuario: usuarioDesdeSesion(sesionInicial),
+  iniciarSesion: (sesion) => {
+    guardarSesion(sesion);
+    set({ sesion, usuario: usuarioDesdeSesion(sesion) });
+  },
+  cerrarSesion: () => {
+    limpiarSesion();
+    set({ sesion: null, usuario: null });
+  },
 }));
 
 /** Permisos derivados del rol. Centralizado para no esparcir condicionales. */

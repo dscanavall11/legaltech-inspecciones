@@ -4,32 +4,23 @@ import { sumarDiasHabiles } from '@/shared/terminos/diasHabiles';
 import { MULTA_LABEL, valorMulta, formatearPesos } from '@/shared/multas/multas';
 
 /**
- * Construcción del documento legal (fallo / acta de firmeza) por acápites.
+ * Construcción del documento legal (fallo / constancia de ejecutoria) por acápites.
  *
  * En producción esto lo genera el backend con la plantilla de cada inspección
  * y los modelos de IA (Spring AI). Aquí se arma una versión de demostración con
  * los datos del expediente para previsualizar la estructura.
  *
  * ⚠️ Contenido jurídico de muestra — pendiente de validación legal.
+ *
+ * `Acapite`/`DocumentoGenerado` ahora viven en shared/documentos/acapites
+ * (Task 18: DocumentoEditorPage genérico) — se re-exportan aquí para no
+ * romper a quejas/SiguientePasoQueja.tsx y querellas/SiguientePaso.tsx, que
+ * ya los importaban desde este módulo.
  */
-export type TipoDocumento = 'fallo' | 'acta' | 'citacion';
+export type { Acapite, DocumentoGenerado } from '@/shared/documentos/acapites';
+import type { DocumentoGenerado } from '@/shared/documentos/acapites';
 
-export interface Acapite {
-  id: string;
-  titulo: string;
-  /** Resumen de una línea para el sidebar. */
-  resumen: string;
-  /** Párrafos del cuerpo del documento. */
-  parrafos: string[];
-  /** Origen del contenido: plantilla fija o generado por IA. */
-  fuente: 'ia' | 'plantilla';
-}
-
-export interface DocumentoGenerado {
-  titulo: string;
-  inspeccion: string;
-  acapites: Acapite[];
-}
+export type TipoDocumento = 'fallo' | 'acta' | 'citacion' | 'constancia';
 
 const fmt = (f: string) => dayjs(f).format('D [de] MMMM [de] YYYY');
 
@@ -253,16 +244,28 @@ function documentoCitacion(q: QuerellaDetalle): DocumentoGenerado {
   };
 }
 
+// La constancia de ejecutoria es el mismo acto procesal que el acta de firmeza
+// (declara ejecutoriada la decisión); solo cambia el título del documento.
+function documentoConstancia(q: QuerellaDetalle): DocumentoGenerado {
+  return { ...documentoActa(q), titulo: 'Constancia de ejecutoria' };
+}
+
 export function construirDocumento(
   tipo: TipoDocumento,
   q: QuerellaDetalle,
 ): DocumentoGenerado {
   switch (tipo) {
+    case 'fallo':
+      return documentoFallo(q);
     case 'acta':
       return documentoActa(q);
     case 'citacion':
       return documentoCitacion(q);
+    case 'constancia':
+      return documentoConstancia(q);
+    // Esta pantalla es para piezas procesales determinísticas; ante un tipo
+    // desconocido se asume constancia, nunca un fallo (que va por /analisis con IA).
     default:
-      return documentoFallo(q);
+      return documentoConstancia(q);
   }
 }

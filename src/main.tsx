@@ -2,20 +2,33 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { App } from './App';
 import './index.css';
+import { resolveWorkspaceContext } from '@/shared/api/workspaceContext';
+import { useWorkspaceContextStore } from '@/store/workspaceContextStore';
 
 /**
- * Arranca la app. Si los mocks están activos (VITE_ENABLE_MOCKS=true),
- * inicia MSW antes de renderizar para que ninguna petición se escape al backend real.
+ * La capa de mocks (MSW) se eliminó: el backend real atiende todos los
+ * entornos. Esto solo desregistra el service worker que quedó instalado en
+ * los navegadores que sí llegaron a correr con mocks — sin esto seguiría
+ * interceptando peticiones y sirviendo datos inventados para siempre.
  */
-async function enableMocking() {
-  if (import.meta.env.VITE_ENABLE_MOCKS !== 'true') return;
-  const { worker } = await import('./mocks/browser');
-  return worker.start({
-    onUnhandledRequest: 'bypass', // deja pasar lo que no esté mockeado (assets, etc.)
-  });
+async function unregisterLegacyMockWorker() {
+  if (!('serviceWorker' in navigator)) {
+    return;
+  }
+  const registrations = await navigator.serviceWorker.getRegistrations();
+  await Promise.all(
+    registrations
+      .filter((reg) => reg.active?.scriptURL?.includes('mockServiceWorker'))
+      .map((reg) => reg.unregister()),
+  );
 }
 
-enableMocking().then(() => {
+// Microsite bootstrap: resuelve el workspace del subdominio actual antes de
+// renderizar. apiFetch adjunta X-Workspace-Context a partir de aca (ver
+// src/shared/api/client.ts).
+Promise.all([unregisterLegacyMockWorker(), resolveWorkspaceContext()]).then(([, context]) => {
+  useWorkspaceContextStore.getState().setContext(context);
+
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
       <App />

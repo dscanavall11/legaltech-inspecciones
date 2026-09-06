@@ -1,10 +1,8 @@
-import type { ReactNode } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Card,
   Tag,
   Typography,
-  Timeline,
   Tabs,
   Progress,
   Button,
@@ -13,42 +11,37 @@ import {
   Row,
   Col,
   Space,
+  Collapse,
 } from 'antd';
-import { ArrowLeftOutlined, FileTextOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined } from '@ant-design/icons';
+import { NormaMark } from '@/shared/ai/NormaMark';
+import { NORMA } from '@/shared/ai/identity';
 import dayjs from 'dayjs';
 import { useQuerella } from './api';
-import {
-  ESTADO_COLOR,
-  ESTADO_LABEL,
-  type Actuacion,
-  type TipoActuacion,
-} from './types';
+import { ESTADO_COLOR, ESTADO_LABEL } from './types';
 import { calcularTermino } from '@/shared/terminos/diasHabiles';
-import { CaseAssistant } from '@/shared/ai/CaseAssistant';
 import { SiguientePaso } from './SiguientePaso';
+import { LineaTiempoEstados } from './LineaTiempoEstados';
+import { DocumentosExpediente } from '@/shared/documentos/DocumentosExpediente';
+import { PruebasExpediente } from '@/shared/pruebas/PruebasExpediente';
+import { OrientacionesInspector } from '@/shared/orientaciones/OrientacionesInspector';
+import { PartesQuerellaForm } from './PartesQuerellaForm';
+import { AudienciaQuerella } from './AudienciaQuerella';
+import { AnalisisPage } from '@/features/analisis/AnalisisPage';
+import { EtapaProcesal } from '@/shared/components/EtapaProcesal';
+import { FlujoNavegable } from '@/shared/components/FlujoNavegable';
+import {
+  ETAPAS_QUERELLA,
+  ETAPA_QUERELLA_ACTIVA,
+  TODOS_LOS_ESTADOS_QUERELLA,
+  TRANSICIONES_QUERELLA,
+  siguientePaso,
+} from '@/derecho';
 import { ELEVACION, PALETA } from '@/theme/theme';
+import { Dato } from '@/shared/ui/Dato';
+import { TEXTO } from '@/theme/escala';
 
 const { Title, Text } = Typography;
-
-const COLOR_ACTUACION: Record<TipoActuacion, string> = {
-  radicacion: PALETA.azul,
-  auto: '#9aa0a6',
-  notificacion: PALETA.amarillo,
-  audiencia: '#9334e6',
-  fallo: PALETA.azulOscuro,
-  firmeza: PALETA.verde,
-};
-
-function Campo({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div>
-      <div style={{ fontSize: 12, color: PALETA.textoTenue, marginBottom: 3 }}>
-        {label}
-      </div>
-      <div style={{ color: PALETA.texto }}>{children}</div>
-    </div>
-  );
-}
 
 function TerminoCard({
   fechaRadicacion,
@@ -70,7 +63,7 @@ function TerminoCard({
 
   return (
     <Card variant="borderless" style={{ boxShadow: ELEVACION.base }}>
-      <Text type="secondary" style={{ fontSize: 12, letterSpacing: 0.3 }}>
+      <Text type="secondary" style={{ fontSize: TEXTO.menor, letterSpacing: 0.3 }}>
         TÉRMINO PROCESAL
       </Text>
       <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginTop: 12 }}>
@@ -84,7 +77,7 @@ function TerminoCard({
               <div style={{ fontSize: 20, fontWeight: 700, color: PALETA.texto }}>
                 {t.vencido ? 0 : t.diasRestantes}
               </div>
-              <div style={{ fontSize: 11, color: PALETA.textoTenue }}>días háb.</div>
+              <div style={{ fontSize: TEXTO.nota, color: PALETA.textoTenue }}>días háb.</div>
             </div>
           )}
         />
@@ -93,12 +86,12 @@ function TerminoCard({
             {semaforo.texto}
           </Tag>
           <div style={{ marginTop: 8 }}>
-            <div style={{ fontSize: 12, color: PALETA.textoTenue }}>Vence el</div>
+            <div style={{ fontSize: TEXTO.menor, color: PALETA.textoTenue }}>Vence el</div>
             <Text strong>{t.fechaVencimiento.format('D [de] MMMM, YYYY')}</Text>
           </div>
         </div>
       </div>
-      <div style={{ fontSize: 12, color: PALETA.textoTenue, marginTop: 12 }}>
+      <div style={{ fontSize: TEXTO.menor, color: PALETA.textoTenue, marginTop: 12 }}>
         {t.diasTranscurridos} de {diasTermino} días hábiles · cálculo sujeto a
         validación jurídica.
       </div>
@@ -126,7 +119,7 @@ export function QuerellaDetailPage() {
         title="Querella no encontrada"
         subTitle="El expediente que buscas no existe o fue archivado."
         extra={
-          <Button type="primary" onClick={() => navigate('/querellas')}>
+          <Button type="primary" onClick={() => navigate('/panel/querellas')}>
             Volver a querellas
           </Button>
         }
@@ -141,77 +134,94 @@ export function QuerellaDetailPage() {
       children: (
         <Row gutter={[24, 18]} style={{ marginTop: 4 }}>
           <Col xs={24} sm={12}>
-            <Campo label="Querellante">{data.querellante}</Campo>
+            <Dato label="Querellante">{data.querellante}</Dato>
           </Col>
           <Col xs={24} sm={12}>
-            <Campo label="Querellado">{data.querellado}</Campo>
+            <Dato label="Querellado">{data.querellado}</Dato>
           </Col>
           <Col xs={24}>
-            <Campo label="Asunto">{data.asunto}</Campo>
+            <Dato label="Asunto">{data.asunto}</Dato>
           </Col>
           <Col xs={24}>
-            <Campo label="Inmueble / dirección">
-              {data.direccionInmueble ?? '—'}
-            </Campo>
+            <Dato label="Inmueble / dirección">
+              {data.direccionInmueble ?? 'Sin registro'}
+            </Dato>
           </Col>
           <Col xs={24} sm={12}>
-            <Campo label="Fecha de radicación">
+            <Dato label="Fecha de radicación">
               {dayjs(data.fechaRadicacion).format('D [de] MMMM, YYYY')}
-            </Campo>
+            </Dato>
           </Col>
           <Col xs={24} sm={12}>
-            <Campo label="Término aplicable">{data.diasTermino} días hábiles</Campo>
+            <Dato label="Término aplicable">{data.diasTermino} días hábiles</Dato>
           </Col>
         </Row>
       ),
     },
     {
+      key: 'partes',
+      label: 'Partes',
+      children: <PartesQuerellaForm caseId={data.id} caseMetadataRaw={data.caseMetadataRaw} />,
+    },
+    {
       key: 'actuaciones',
       label: `Actuaciones (${data.actuaciones.length})`,
       children: (
-        <Timeline
-          style={{ marginTop: 12 }}
-          items={data.actuaciones.map((a: Actuacion) => ({
-            color: COLOR_ACTUACION[a.tipo],
-            children: (
-              <div>
-                <Text strong>{a.titulo}</Text>
-                <div style={{ fontSize: 12, color: PALETA.textoTenue }}>
-                  {dayjs(a.fecha).format('D [de] MMMM, YYYY')}
-                </div>
-                {a.descripcion && (
-                  <div style={{ marginTop: 2 }}>
-                    <Text type="secondary">{a.descripcion}</Text>
-                  </div>
-                )}
-              </div>
-            ),
-          }))}
+        <LineaTiempoEstados caseId={data.id} actuaciones={data.actuaciones} estadoActual={data.estado} />
+      ),
+    },
+    {
+      key: 'audiencia',
+      label: 'Audiencia',
+      children: (
+        <AudienciaQuerella
+          caseId={data.id}
+          radicado={data.radicado}
+          comportamiento={data.asunto}
+          caseMetadataRaw={data.caseMetadataRaw}
         />
       ),
     },
     {
       key: 'documentos',
       label: 'Documentos',
-      children: (
-        <Result
-          icon={<FileTextOutlined style={{ color: PALETA.textoTenue }} />}
-          subTitle="La gestión documental del expediente estará disponible pronto."
-        />
-      ),
+      children: <DocumentosExpediente caseId={data.id} />,
+    },
+    {
+      key: 'pruebas',
+      label: 'Pruebas',
+      children: <PruebasExpediente caseId={data.id} />,
+    },
+    {
+      key: 'orientaciones',
+      label: 'Orientaciones',
+      children: <OrientacionesInspector caseId={data.id} caseMetadataRaw={data.caseMetadataRaw} />,
+    },
+    {
+      key: 'fallo',
+      label: 'Proyecto de fallo',
+      children: <AnalisisPage caseId={data.id} embebido />,
     },
   ];
 
   return (
     <div>
-      <Button
-        type="text"
-        icon={<ArrowLeftOutlined />}
-        onClick={() => navigate('/querellas')}
-        style={{ marginBottom: 10, paddingLeft: 0 }}
-      >
-        Volver a querellas
-      </Button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+        <Button
+          type="text"
+          icon={<ArrowLeftOutlined />}
+          onClick={() => navigate('/panel/querellas')}
+          style={{ marginBottom: 10, paddingLeft: 0 }}
+        >
+          Volver a querellas
+        </Button>
+        <Button
+          icon={<NormaMark size={17} />}
+          onClick={() => navigate('/panel/chat', { state: { radicado: data.radicado } })}
+        >
+          Preguntarle a {NORMA.nombre}
+        </Button>
+      </div>
 
       <Space align="center" size={10} wrap style={{ marginBottom: 2 }}>
         <Title level={2} style={{ margin: 0 }}>
@@ -219,14 +229,44 @@ export function QuerellaDetailPage() {
         </Title>
         <Tag color={ESTADO_COLOR[data.estado]}>{ESTADO_LABEL[data.estado]}</Tag>
       </Space>
-      <div style={{ marginBottom: 20 }}>
-        <Text type="secondary" style={{ fontSize: 15 }}>
+      <div>
+        <Text type="secondary" style={{ fontSize: TEXTO.titulo }}>
           {data.asunto}
         </Text>
       </div>
 
+      <div style={{ marginBottom: 26 }}>
+        <EtapaProcesal etapas={[...ETAPAS_QUERELLA]} activa={ETAPA_QUERELLA_ACTIVA[data.estado]} />
+      </div>
+
+      <Collapse
+        defaultActiveKey={['mapa']}
+        style={{ marginBottom: 24, background: 'transparent', border: 'none' }}
+        items={[
+          {
+            key: 'mapa',
+            label: <Text strong>Mapa del trámite (todos los estados)</Text>,
+            children: (
+              <FlujoNavegable
+                id={data.id}
+                estadoActual={data.estado}
+                actuaciones={data.actuaciones}
+                todosLosEstados={TODOS_LOS_ESTADOS_QUERELLA}
+                transiciones={TRANSICIONES_QUERELLA}
+                etapas={ETAPAS_QUERELLA}
+                etapaActivaPorEstado={ETAPA_QUERELLA_ACTIVA}
+                estadoLabel={ESTADO_LABEL}
+                siguientePaso={siguientePaso}
+                descripcionMapa="Los 9 estados de la querella (proceso verbal abreviado, art. 223, Ley 1801/2016) y dónde está este expediente."
+              />
+            ),
+            style: { border: 'none', padding: 0 },
+          },
+        ]}
+      />
+
       <div style={{ marginBottom: 24 }}>
-        <SiguientePaso id={data.id} estado={data.estado} />
+        <SiguientePaso id={data.id} estado={data.estado} caseMetadata={data.caseMetadataRaw} caso={data} />
       </div>
 
       <Row gutter={[24, 24]}>
@@ -236,16 +276,10 @@ export function QuerellaDetailPage() {
           </Card>
         </Col>
         <Col xs={24} lg={9}>
-          <Space direction="vertical" size={20} style={{ width: '100%' }}>
-            <TerminoCard
-              fechaRadicacion={data.fechaRadicacion}
-              diasTermino={data.diasTermino}
-            />
-            <CaseAssistant
-              contexto={{ tipo: 'querella', id: data.id }}
-              radicado={data.radicado}
-            />
-          </Space>
+          <TerminoCard
+            fechaRadicacion={data.fechaRadicacion}
+            diasTermino={data.diasTermino}
+          />
         </Col>
       </Row>
     </div>

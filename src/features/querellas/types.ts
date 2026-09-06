@@ -1,29 +1,21 @@
+// Estos valores son el flujo real definido en el bundle OKF de convivencia y
+// policía (maquinas-estado.yaml) para caseType="querella" - el backend nunca
+// valida contra este enum, solo guarda el string que legalcase recibe.
 export type EstadoQuerella =
   | 'radicada'
   | 'en_tramite'
   | 'audiencia_programada'
   | 'fallo_emitido'
+  | 'apelado'
+  | 'confirmado'
+  | 'revocado'
   | 'en_firmeza'
   | 'archivada';
 
-export const ESTADO_LABEL: Record<EstadoQuerella, string> = {
-  radicada: 'Radicada',
-  en_tramite: 'En trámite',
-  audiencia_programada: 'Audiencia programada',
-  fallo_emitido: 'Fallo emitido',
-  en_firmeza: 'En firmeza',
-  archivada: 'Archivada',
-};
-
-// Colores de Tag (AntD) por estado — compartido entre listado y detalle.
-export const ESTADO_COLOR: Record<EstadoQuerella, string> = {
-  radicada: 'blue',
-  en_tramite: 'gold',
-  audiencia_programada: 'purple',
-  fallo_emitido: 'cyan',
-  en_firmeza: 'green',
-  archivada: 'default',
-};
+// Fuente única de etiquetas/colores de estado: shared/procesos/types.ts
+// (antes eran mapas propios de esta feature, hoy solo re-exportados para no
+// romper los imports existentes — ver hallazgo Important 6 del fix-round-1).
+export { ESTADO_LABEL, ESTADO_COLOR } from '@/shared/procesos/types';
 
 export interface Querella {
   id: string;
@@ -50,10 +42,21 @@ export interface Actuacion {
   tipo: TipoActuacion;
   titulo: string;
   descripcion?: string;
+  /** Código de estado al que corresponde esta actuación (para revisitar/retroceder). */
+  estadoCodigo?: string;
 }
 
 /** Detalle completo del expediente: la querella + su historial de actuaciones. */
 export interface QuerellaDetalle extends Querella {
   direccionInmueble?: string;
   actuaciones: Actuacion[];
+  /** Blob crudo de metadata (para fusionar antes de escribir cambios, ver SiguientePaso). Ausente en datos mock. */
+  caseMetadataRaw?: string | null;
+}
+
+/** Forma de caseMetadata para caseType="querella" - opaco para el backend. */
+export interface QuerellaMetadata {
+  asunto: string;
+  direccionInmueble?: string;
+  diasTermino: number;
 }

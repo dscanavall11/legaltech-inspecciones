@@ -6,23 +6,13 @@ export type EstadoQueja =
   | 'sin_acuerdo'
   | 'archivada';
 
-export const ESTADO_QUEJA_LABEL: Record<EstadoQueja, string> = {
-  radicada: 'Radicada',
-  en_tramite: 'En trámite',
-  conciliacion_programada: 'Conciliación programada',
-  conciliada: 'Conciliada',
-  sin_acuerdo: 'Sin acuerdo',
-  archivada: 'Archivada',
-};
-
-export const ESTADO_QUEJA_COLOR: Record<EstadoQueja, string> = {
-  radicada: 'blue',
-  en_tramite: 'gold',
-  conciliacion_programada: 'purple',
-  conciliada: 'green',
-  sin_acuerdo: 'volcano',
-  archivada: 'default',
-};
+// Fuente única de etiquetas/colores de estado: shared/procesos/types.ts
+// (antes eran mapas propios de esta feature, hoy solo re-exportados para no
+// romper los imports existentes — ver hallazgo Important 6 del fix-round-1).
+export {
+  ESTADO_LABEL as ESTADO_QUEJA_LABEL,
+  ESTADO_COLOR as ESTADO_QUEJA_COLOR,
+} from '@/shared/procesos/types';
 
 export type CategoriaQueja =
   | 'ruido'
@@ -75,4 +65,13 @@ export interface Queja {
 export interface QuejaDetalle extends Queja {
   descripcionHechos: string;
   actuaciones: ActuacionQueja[];
+  /** Blob crudo de metadata (para fusionar antes de escribir cambios). Ausente en datos mock. */
+  caseMetadataRaw?: string | null;
+}
+
+/** Forma de caseMetadata para caseType="queja" - opaco para el backend. */
+export interface QuejaMetadata {
+  asunto: string;
+  categoria: CategoriaQueja;
+  diasTermino: number;
 }

@@ -47,12 +47,14 @@ function FilaDocumento({
   onDescargar,
   onEliminar,
   eliminando,
+  readOnly,
 }: {
   doc: CaseDocument;
   onVer: () => void;
   onDescargar: () => void;
   onEliminar: () => void;
   eliminando: boolean;
+  readOnly: boolean;
 }) {
   const estilo = TYPE_STYLE[doc.fileType];
   return (
@@ -117,25 +119,28 @@ function FilaDocumento({
         />
       </Tooltip>
       {/* Se confirma porque no hay deshacer: el archivo y su gemelo Markdown
-          salen de S3, no van a una papelera. */}
-      <Popconfirm
-        title="Retirar del expediente"
-        description={`«${doc.fileName}» dejará de estar en el expediente y de pesar en el proyecto de fallo. No se puede deshacer.`}
-        okText="Retirar"
-        cancelText="Cancelar"
-        okButtonProps={{ danger: true, loading: eliminando }}
-        onConfirm={onEliminar}
-      >
-        <Tooltip title="Retirar del expediente">
-          <Button
-            type="text"
-            shape="circle"
-            danger
-            icon={<DeleteOutlined />}
-            aria-label={`Retirar ${doc.fileName} del expediente`}
-          />
-        </Tooltip>
-      </Popconfirm>
+          salen de S3, no van a una papelera. Este control muta el expediente,
+          así que no existe cuando el expediente está FINALIZADO. */}
+      {!readOnly && (
+        <Popconfirm
+          title="Retirar del expediente"
+          description={`«${doc.fileName}» dejará de estar en el expediente y de pesar en el proyecto de fallo. No se puede deshacer.`}
+          okText="Retirar"
+          cancelText="Cancelar"
+          okButtonProps={{ danger: true, loading: eliminando }}
+          onConfirm={onEliminar}
+        >
+          <Tooltip title="Retirar del expediente">
+            <Button
+              type="text"
+              shape="circle"
+              danger
+              icon={<DeleteOutlined />}
+              aria-label={`Retirar ${doc.fileName} del expediente`}
+            />
+          </Tooltip>
+        </Popconfirm>
+      )}
     </div>
   );
 }
@@ -146,7 +151,13 @@ function FilaDocumento({
  * piezas. Sin estado local que finja ser el expediente - todo viene del
  * backend real.
  */
-export function DocumentosExpediente({ caseId }: { caseId: string }) {
+export function DocumentosExpediente({
+  caseId,
+  readOnly = false,
+}: {
+  caseId: string;
+  readOnly?: boolean;
+}) {
   const { message } = App.useApp();
   const { data: documentos, isLoading, isError } = useCaseDocuments(caseId);
   const subir = useUploadCaseDocument(caseId);
@@ -210,6 +221,7 @@ export function DocumentosExpediente({ caseId }: { caseId: string }) {
             <FilaDocumento
               key={d.id}
               doc={d}
+              readOnly={readOnly}
               onVer={() => verDocumento(d)}
               onDescargar={() => descargarDocumento(d)}
               eliminando={eliminar.isPending}
@@ -227,37 +239,39 @@ export function DocumentosExpediente({ caseId }: { caseId: string }) {
         </div>
       )}
 
-      <div style={{ marginTop: 14 }}>
-        <Upload
-          multiple
-          accept={ACEPTA_EXPEDIENTE}
-          showUploadList={false}
-          beforeUpload={(file) => {
-            // El aviso es el punto: `accept` descartaba en silencio y el
-            // inspector veia que "no se deja cargar" sin que nada se lo dijera.
-            if (!esFormatoDeExpediente(file.name)) {
-              message.error(avisoDeRechazo([file]));
-              return false;
-            }
-            if (excedeElTope(file.size)) {
-              message.error(avisoDeTamano(file.name, file.size));
-              return false;
-            }
-            subir.mutate(file, {
-              onSuccess: () => message.success(`«${file.name}» incorporado al expediente.`),
-              onError: (e) =>
-                message.error(
-                  `No se pudo subir «${file.name}»: ${e instanceof Error ? e.message : 'error del servidor'}.`,
-                ),
-            });
-            return false; // subimos nosotros mismos via useUploadCaseDocument
-          }}
-        >
-          <Button icon={<PlusOutlined />} loading={subir.isPending}>
-            Incorporar documento
-          </Button>
-        </Upload>
-      </div>
+      {!readOnly && (
+        <div style={{ marginTop: 14 }}>
+          <Upload
+            multiple
+            accept={ACEPTA_EXPEDIENTE}
+            showUploadList={false}
+            beforeUpload={(file) => {
+              // El aviso es el punto: `accept` descartaba en silencio y el
+              // inspector veia que "no se deja cargar" sin que nada se lo dijera.
+              if (!esFormatoDeExpediente(file.name)) {
+                message.error(avisoDeRechazo([file]));
+                return false;
+              }
+              if (excedeElTope(file.size)) {
+                message.error(avisoDeTamano(file.name, file.size));
+                return false;
+              }
+              subir.mutate(file, {
+                onSuccess: () => message.success(`«${file.name}» incorporado al expediente.`),
+                onError: (e) =>
+                  message.error(
+                    `No se pudo subir «${file.name}»: ${e instanceof Error ? e.message : 'error del servidor'}.`,
+                  ),
+              });
+              return false; // subimos nosotros mismos via useUploadCaseDocument
+            }}
+          >
+            <Button icon={<PlusOutlined />} loading={subir.isPending}>
+              Incorporar documento
+            </Button>
+          </Upload>
+        </div>
+      )}
 
       <VisorLateral
         titulo={docEnVista?.fileName}

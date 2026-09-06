@@ -11,6 +11,7 @@ import {
   colorEstado,
   definicionDe,
   descripcionTermino,
+  estaFinalizado,
   ESTADOS_POST_FALLO,
   etiquetaEstado,
   TIPOS_PROCESO,
@@ -37,11 +38,18 @@ export interface BandejaProcesosProps {
   aviso?: string;
 }
 
-// Cerrado = ya no corre término: expediente FINALIZADO (ver ESTADOS_POST_FALLO).
-const ESTADOS_CERRADOS = ESTADOS_POST_FALLO;
+/**
+ * Cerrado = ya no corre término. Dos nociones distintas que se combinan sin
+ * fusionarse: el ciclo de vida técnico del expediente (`estaFinalizado`,
+ * FINALIZADO) y el catálogo de estados procesales post-fallo que aún usan
+ * comparendo/acta/apelación (`ESTADOS_POST_FALLO`). Ninguno reemplaza al otro.
+ */
+function esCerrado(estado: string): boolean {
+  return estaFinalizado(estado) || ESTADOS_POST_FALLO.includes(estado);
+}
 
 function ColumnaTermino({ fila }: { fila: FilaProceso }) {
-  const cerrado = ESTADOS_CERRADOS.includes(fila.estado);
+  const cerrado = esCerrado(fila.estado);
   const sinTermino = fila.diasTermino === undefined || fila.fechaRadicacion === '';
 
   return cerrado ? (

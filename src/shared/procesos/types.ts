@@ -186,11 +186,32 @@ export function colorEstado(codigo: string): string {
 }
 
 /**
- * Estados "cerrados" de la bandeja: hoy `estado` es el ciclo de vida real
- * (ACTIVO/FINALIZADO, ver CaseLifecycleStatus) -- FINALIZADO es el único
- * cerrado. También es el set usado por la columna Término (ver ColumnaTermino).
+ * Estados procesales/jurídicos posteriores al fallo, de los flujos que aún
+ * viven sobre `currentStateCode` (comparendo, acta de firmeza, apelación).
+ * Deliberadamente separado del ciclo de vida técnico del expediente
+ * (ACTIVO/FINALIZADO, ver CaseLifecycleStatus y `estaFinalizado` abajo):
+ * un expediente puede estar FINALIZADO sin haber pasado por ninguno de estos
+ * estados, y viceversa. No confundir ni fusionar ambas nociones.
  */
-export const ESTADOS_POST_FALLO = ['FINALIZADO'];
+export const ESTADOS_POST_FALLO = [
+  'fallo_emitido',
+  'en_firmeza',
+  'apelado',
+  'archivada',
+  'conciliada',
+  'confirmado',
+  'revocado',
+  'expedida',
+];
+
+/**
+ * true cuando el expediente ya cerró su ciclo de vida técnico (Fase 2/3,
+ * CaseLifecycleStatus.FINALIZADO) -- no dice nada sobre el estado procesal ni
+ * sustituye a ESTADOS_POST_FALLO, que es otro catálogo con otro propósito.
+ */
+export function estaFinalizado(estado: string): boolean {
+  return estado === 'FINALIZADO';
+}
 
 /** Fila de la bandeja: lo mínimo que se muestra de cualquier expediente. */
 export interface FilaProceso {

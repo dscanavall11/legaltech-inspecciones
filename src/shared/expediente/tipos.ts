@@ -17,7 +17,13 @@ export interface PasoExpediente {
    * comparte la caché con el lienzo, así que no cuesta una llamada de más.
    */
   Resumen?: (props: { caso: LegalCase }) => React.ReactNode;
-  render: (caso: LegalCase) => React.ReactNode;
+  /**
+   * `readOnly` es true cuando el expediente ya está FINALIZADO: el paso debe
+   * seguir permitiendo consultar (ver, descargar, imprimir) pero no mutar
+   * (crear, editar, subir, eliminar). Es responsabilidad de cada paso aplicar
+   * esto -- no hay un bloqueo global, porque eso también taparía la consulta.
+   */
+  render: (caso: LegalCase, ctx: { readOnly: boolean }) => React.ReactNode;
 }
 
 /** Los textos que cambian entre trámites en la pantalla de arranque. */

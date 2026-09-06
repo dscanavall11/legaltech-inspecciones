@@ -17,6 +17,8 @@ export interface OrientacionesInspectorProps {
   caseId: string;
   /** caseMetadata crudo del expediente: se fusiona, nunca se reemplaza entero. */
   caseMetadataRaw?: string | null;
+  /** El expediente está FINALIZADO: se puede seguir leyendo, no editando. */
+  readOnly?: boolean;
 }
 
 /**
@@ -25,7 +27,11 @@ export interface OrientacionesInspectorProps {
  * rotulado como instrucción del funcionario y no como hecho probado (ver
  * `orientacionesParaAnalisis` en ./types).
  */
-export function OrientacionesInspector({ caseId, caseMetadataRaw }: OrientacionesInspectorProps) {
+export function OrientacionesInspector({
+  caseId,
+  caseMetadataRaw,
+  readOnly = false,
+}: OrientacionesInspectorProps) {
   const { valor, setValor, estado } = useAutoguardadoMetadata<Orientaciones>({
     caseId,
     caseMetadataRaw,
@@ -51,6 +57,7 @@ export function OrientacionesInspector({ caseId, caseMetadataRaw }: Orientacione
         placeholder={EJEMPLOS}
         autoSize={{ minRows: 8, maxRows: 22 }}
         aria-label="Orientaciones del inspector"
+        readOnly={readOnly}
       />
 
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>

@@ -49,18 +49,19 @@ export function AreaTrabajoQueja() {
         titulo: 'Documentos',
         ayuda: 'El comparendo y el escrito de objeción. De aquí sale el análisis.',
         Resumen: ResumenDocumentos,
-        render: (caso) => <DocumentosExpediente caseId={caso.id} />,
+        render: (caso, { readOnly }) => <DocumentosExpediente caseId={caso.id} readOnly={readOnly} />,
       },
       {
         clave: 'datos',
         titulo: 'Datos del proceso',
         ayuda: 'Presunto infractor y comparendo impugnado (art. 223A, Ley 1801 de 2016).',
         Resumen: ResumenPartesQueja,
-        render: (caso) => (
+        render: (caso, { readOnly }) => (
           <PartesQuejaForm
             caseId={caso.id}
             caseMetadataRaw={caso.caseMetadata}
             autoExtraer={recienDeDocumentos}
+            readOnly={readOnly}
           />
         ),
       },
@@ -69,14 +70,14 @@ export function AreaTrabajoQueja() {
         titulo: 'Pruebas',
         ayuda: 'Cada pieza con quién la aporta y para qué. Se valoran en el aparte 5.',
         Resumen: ResumenPruebas,
-        render: (caso) => <PruebasExpediente caseId={caso.id} />,
+        render: (caso, { readOnly }) => <PruebasExpediente caseId={caso.id} readOnly={readOnly} />,
       },
       {
         clave: 'decision',
         titulo: 'Proyecto de decisión',
         ayuda: 'Sus instrucciones, el borrador, la revisión y la descarga en Word.',
         Resumen: ResumenFallo,
-        render: (caso) => (
+        render: (caso, { readOnly }) => (
           <>
             {/* La orientación era un paso aparte, pero es lo que el inspector le
                 dice a la IA antes de que redacte: pertenece a este mismo sitio. */}
@@ -85,9 +86,9 @@ export function AreaTrabajoQueja() {
               ayuda="Instrucciones y dudas del funcionario. Nunca hechos probados."
               style={{ marginBottom: ESPACIO.lg }}
             >
-              <OrientacionesInspector caseId={caso.id} caseMetadataRaw={caso.caseMetadata} />
+              <OrientacionesInspector caseId={caso.id} caseMetadataRaw={caso.caseMetadata} readOnly={readOnly} />
             </Bloque>
-            <AnalisisPage caseId={caso.id} embebido autoGenerar={recienDeDocumentos} />
+            <AnalisisPage caseId={caso.id} embebido autoGenerar={recienDeDocumentos} readOnly={readOnly} />
           </>
         ),
       },

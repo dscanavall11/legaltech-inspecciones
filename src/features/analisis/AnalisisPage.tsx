@@ -133,9 +133,16 @@ export interface AnalisisPageProps {
    * documentos, donde soltar los archivos ya expresó la intención.
    */
   autoGenerar?: boolean;
+  /** El expediente está FINALIZADO: se puede seguir consultando/exportando el fallo, no redactarlo ni proferirlo. */
+  readOnly?: boolean;
 }
 
-export function AnalisisPage({ caseId, embebido = false, autoGenerar = false }: AnalisisPageProps = {}) {
+export function AnalisisPage({
+  caseId,
+  embebido = false,
+  autoGenerar = false,
+  readOnly = false,
+}: AnalisisPageProps = {}) {
   const { message } = App.useApp();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -508,6 +515,7 @@ export function AnalisisPage({ caseId, embebido = false, autoGenerar = false }: 
               value={resolucionInspector}
               onChange={(e) => setResolucionInspector(e.target.value)}
               placeholder="Dicte su decisión sobre el punto debatido y su fundamento. Sirve de retroalimentación para afinar el análisis."
+              readOnly={readOnly}
             />
           </div>
         </div>
@@ -596,7 +604,7 @@ export function AnalisisPage({ caseId, embebido = false, autoGenerar = false }: 
               type="primary"
               icon={generando ? <Spin size="small" /> : <NormaMark size={16} />}
               block
-              disabled={generando || !caso}
+              disabled={generando || !caso || readOnly}
               onClick={() => void generarBorrador()}
             >
               {generando ? 'Generando borrador…' : hayBorrador ? 'Regenerar borrador con IA' : 'Generar borrador con IA'}
@@ -621,6 +629,7 @@ export function AnalisisPage({ caseId, embebido = false, autoGenerar = false }: 
                   value={datosFallo.numeroFallo}
                   onChange={(e) => setDatosFallo((d) => ({ ...d, numeroFallo: e.target.value }))}
                   placeholder="2026-0000"
+                  readOnly={readOnly}
                 />
               </div>
               <div>
@@ -635,6 +644,7 @@ export function AnalisisPage({ caseId, embebido = false, autoGenerar = false }: 
                   onChange={(d) =>
                     d && setDatosFallo((prev) => ({ ...prev, fechaFallo: d.format('YYYY-MM-DD') }))
                   }
+                  disabled={readOnly}
                 />
               </div>
             </div>
@@ -648,6 +658,7 @@ export function AnalisisPage({ caseId, embebido = false, autoGenerar = false }: 
                   setDatosFallo((d) => ({ ...d, medidaCorrectiva: e.target.value }))
                 }
                 placeholder="Multa General Tipo 2, o la medida pedagógica que corresponda"
+                readOnly={readOnly}
               />
               <Text type="secondary" style={{ fontSize: TEXTO.nota }}>
                 Va literal en la parte resolutiva. Es lo único del fallo que se ejecuta.
@@ -721,6 +732,7 @@ export function AnalisisPage({ caseId, embebido = false, autoGenerar = false }: 
                   value={borrador[campo]}
                   onChange={(e) => set(campo, e.target.value)}
                   placeholder="La IA redacta este aparte; usted lo revisa y ajusta."
+                  readOnly={readOnly}
                 />
               </div>
               );
@@ -750,7 +762,7 @@ export function AnalisisPage({ caseId, embebido = false, autoGenerar = false }: 
               size="large"
               block
               icon={<SafetyCertificateOutlined />}
-              disabled={!puedeProferir}
+              disabled={!puedeProferir || readOnly}
               loading={cambiarEstado.isPending || actualizarCampos.isPending}
               onClick={guardarYProferir}
               style={{ fontWeight: 600, marginTop: 14 }}

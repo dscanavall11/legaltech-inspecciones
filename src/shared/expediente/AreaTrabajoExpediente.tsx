@@ -204,14 +204,14 @@ export function AreaTrabajoExpediente({
                   showIcon
                   icon={<CheckCircleOutlined />}
                   message="Expediente finalizado — solo lectura"
-                  description="El contenido sigue disponible para consulta, pero ya no admite cambios. legalcase rechaza cualquier escritura sobre este expediente."
+                  description="Puede seguir consultando, viendo y descargando todo lo del expediente. legalcase rechaza cualquier intento de modificarlo (409)."
                   style={{ marginBottom: ESPACIO.md }}
                 />
               )}
 
-              <div style={soloLectura ? { pointerEvents: 'none', opacity: 0.75 } : undefined}>
-                {paso.render(caso)}
-              </div>
+              {/* Sin bloqueo global: cada paso decide qué deshabilitar via `readOnly`,
+                  para no tapar tambien las acciones de consulta (ver, descargar). */}
+              {paso.render(caso, { readOnly: soloLectura })}
 
               <footer
                 style={{

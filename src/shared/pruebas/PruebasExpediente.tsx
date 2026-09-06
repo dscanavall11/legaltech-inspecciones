@@ -56,11 +56,12 @@ const TYPE_STYLE: Record<EvidenceType, { icono: ReactNode; color: string; fondo:
 
 const TIPOS_CON_ARCHIVO_ESPERADO: EvidenceType[] = ['documento_publico', 'documento_privado', 'fotografia', 'video', 'audio', 'informe_policial', 'informe_tecnico', 'certificado'];
 
-function FilaPrueba({ prueba, onVer, onDescargar, onEliminar }: {
+function FilaPrueba({ prueba, onVer, onDescargar, onEliminar, readOnly }: {
   prueba: CaseEvidence;
   onVer: () => void;
   onDescargar: () => void;
   onEliminar: () => void;
+  readOnly: boolean;
 }) {
   const estilo = TYPE_STYLE[prueba.evidenceType];
   const esPdf = prueba.mimeType === 'application/pdf';
@@ -97,18 +98,20 @@ function FilaPrueba({ prueba, onVer, onDescargar, onEliminar }: {
           <Button type="text" shape="circle" icon={<DownloadOutlined />} onClick={onDescargar} aria-label={`Descargar ${prueba.identifier}`} />
         </Tooltip>
       )}
-      <Popconfirm
-        title={`¿Eliminar la prueba ${prueba.identifier}?`}
-        description="Esta acción no se puede deshacer."
-        okText="Eliminar"
-        okButtonProps={{ danger: true }}
-        cancelText="Cancelar"
-        onConfirm={onEliminar}
-      >
-        <Tooltip title="Eliminar">
-          <Button type="text" shape="circle" danger icon={<DeleteOutlined />} aria-label={`Eliminar ${prueba.identifier}`} />
-        </Tooltip>
-      </Popconfirm>
+      {!readOnly && (
+        <Popconfirm
+          title={`¿Eliminar la prueba ${prueba.identifier}?`}
+          description="Esta acción no se puede deshacer."
+          okText="Eliminar"
+          okButtonProps={{ danger: true }}
+          cancelText="Cancelar"
+          onConfirm={onEliminar}
+        >
+          <Tooltip title="Eliminar">
+            <Button type="text" shape="circle" danger icon={<DeleteOutlined />} aria-label={`Eliminar ${prueba.identifier}`} />
+          </Tooltip>
+        </Popconfirm>
+      )}
     </div>
   );
 }
@@ -130,7 +133,13 @@ function estadoInicialFormulario() {
  * S3 (legaltech-tools); el identificador legible lo asigna siempre el
  * servidor. Hermano de DocumentosExpediente, mismo patrón visual.
  */
-export function PruebasExpediente({ caseId }: { caseId: string }) {
+export function PruebasExpediente({
+  caseId,
+  readOnly = false,
+}: {
+  caseId: string;
+  readOnly?: boolean;
+}) {
   const { message } = App.useApp();
   const { data: pruebas, isLoading, isError } = useCaseEvidence(caseId);
   const registrar = useRegisterCaseEvidence(caseId);
@@ -207,6 +216,7 @@ export function PruebasExpediente({ caseId }: { caseId: string }) {
             <FilaPrueba
               key={p.id}
               prueba={p}
+              readOnly={readOnly}
               onVer={() => verPrueba(p)}
               onDescargar={() => descargarPrueba(p)}
               onEliminar={() => eliminar.mutate(p.id, { onError: () => message.error('No se pudo eliminar la prueba.') })}
@@ -215,11 +225,13 @@ export function PruebasExpediente({ caseId }: { caseId: string }) {
         </div>
       )}
 
-      <div style={{ marginTop: 14 }}>
-        <Button icon={<PlusOutlined />} onClick={() => setModalAbierto(true)}>
-          + AGREGAR PRUEBA
-        </Button>
-      </div>
+      {!readOnly && (
+        <div style={{ marginTop: 14 }}>
+          <Button icon={<PlusOutlined />} onClick={() => setModalAbierto(true)}>
+            + AGREGAR PRUEBA
+          </Button>
+        </div>
+      )}
 
       <Modal
         open={modalAbierto}

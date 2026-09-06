@@ -1,6 +1,6 @@
 import dayjs, { type Dayjs } from 'dayjs';
 import { calcularTermino } from '@/shared/terminos/diasHabiles';
-import { definicionDe, ESTADOS_POST_FALLO, type FilaProceso } from '@/shared/procesos/types';
+import { definicionDe, estaFinalizado, ESTADOS_POST_FALLO, type FilaProceso } from '@/shared/procesos/types';
 
 /**
  * Lo que el home puede afirmar con los datos que hay: término vencido, término
@@ -34,7 +34,8 @@ export interface CasoInactivo {
   diasSinMovimiento: number;
 }
 
-const abierto = (p: FilaProceso) => !ESTADOS_POST_FALLO.includes(p.estado);
+// Igual que esCerrado en BandejaProcesos: dos catálogos independientes, ninguno sustituye al otro.
+const abierto = (p: FilaProceso) => !estaFinalizado(p.estado) && !ESTADOS_POST_FALLO.includes(p.estado);
 const rutaDe = (p: FilaProceso) => definicionDe(p.tipo)?.ruta?.(p.id) ?? '/panel/procesos';
 
 /** Expedientes abiertos con término calculable, vencidos primero y luego por urgencia. */

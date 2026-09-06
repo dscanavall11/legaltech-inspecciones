@@ -10,7 +10,7 @@ import {
   type RutaComparendo,
   type TipoMulta,
 } from '@/derecho';
-import { CampoActa } from './CampoActa';
+import { Campo } from '@/shared/ui/Campo';
 import type { FormularioAcogida } from './formularioAcogida';
 
 /**
@@ -69,13 +69,13 @@ export const VIA_PRONTO_PAGO: ViaAcogida = {
   aplicaDescuento: true,
   totalLabel: 'Valor a pagar',
   camposPropios: (datos, set) => (
-    <CampoActa label="No. de recibo de cobro expedido">
+    <Campo label="No. de recibo de cobro expedido">
       <Input
         value={datos.documentoCobro}
         onChange={(e) => set('documentoCobro', e.target.value)}
         placeholder="RC-2026-000000"
       />
-    </CampoActa>
+    </Campo>
   ),
   generarActa: (datos) =>
     generarActaProntoPago({ ...comunes(datos), documentoCobro: datos.documentoCobro }),
@@ -93,24 +93,24 @@ export const VIA_CONMUTACION: ViaAcogida = {
   totalLabel: 'Valor de cobro si incumple la actividad',
   camposPropios: (datos, set) => (
     <>
-      <CampoActa label="Actividad / programa comunitario asignado">
+      <Campo label="Actividad / programa comunitario asignado">
         <Input value={datos.actividadAsignada} onChange={(e) => set('actividadAsignada', e.target.value)} />
-      </CampoActa>
-      <CampoActa label="Entidad u operador del programa">
+      </Campo>
+      <Campo label="Entidad u operador del programa">
         <Input
           value={datos.entidadPrograma}
           onChange={(e) => set('entidadPrograma', e.target.value)}
           placeholder="Secretaría de Gobierno Municipal…"
         />
-      </CampoActa>
-      <CampoActa label="Plazo para acreditar la actividad">
+      </Campo>
+      <Campo label="Plazo para acreditar la actividad">
         <DatePicker
           style={{ width: '100%' }}
           format="DD/MM/YYYY"
           value={dayjs(datos.fechaLimiteActividad)}
           onChange={(d) => d && set('fechaLimiteActividad', d.format('YYYY-MM-DD'))}
         />
-      </CampoActa>
+      </Campo>
     </>
   ),
   generarActa: (datos) =>

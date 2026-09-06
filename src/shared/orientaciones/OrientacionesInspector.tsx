@@ -5,6 +5,7 @@ import {
   useAutoguardadoMetadata,
 } from '@/shared/legalCases/useAutoguardadoMetadata';
 import { leerOrientaciones, type Orientaciones } from './types';
+import { TEXTO } from '@/theme/escala';
 
 const { Text } = Typography;
 const { TextArea } = Input;
@@ -53,11 +54,11 @@ export function OrientacionesInspector({ caseId, caseMetadataRaw }: Orientacione
       />
 
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-        <Text type={estado === 'error' ? 'danger' : 'secondary'} style={{ fontSize: 12 }}>
+        <Text type={estado === 'error' ? 'danger' : 'secondary'} style={{ fontSize: TEXTO.nota }}>
           {LEYENDA_AUTOGUARDADO[estado]}
         </Text>
         {valor.actualizadoEn && (
-          <Text type="secondary" style={{ fontSize: 12 }}>
+          <Text type="secondary" style={{ fontSize: TEXTO.nota }}>
             Última edición: {dayjs(valor.actualizadoEn).format('D [de] MMMM, YYYY [a las] HH:mm')}
           </Text>
         )}

@@ -22,6 +22,7 @@ import dayjs from 'dayjs';
 import { fechaLarga } from '@/shared/util/fechas';
 import { NormaMark } from '@/shared/ai/NormaMark';
 import { ELEVACION, PALETA } from '@/theme/theme';
+import { TEXTO } from '@/theme/escala';
 
 // Anexo aportado en el chat antes de radicar (prueba documental del caso).
 // Conserva el File real: sin él no hay nada que enviarle a /api/legal/recepcion.
@@ -90,7 +91,7 @@ function Burbuja({ m }: { m: ChatMessage }) {
           background: esAgente ? PALETA.superficie : PALETA.azul,
           color: esAgente ? PALETA.texto : '#ffffff',
           boxShadow: esAgente ? ELEVACION.base : 'none',
-          fontSize: 14,
+          fontSize: TEXTO.base,
           lineHeight: 1.55,
         }}
       >
@@ -121,7 +122,7 @@ function CampoLectura({
     <div style={{ marginBottom: 14 }}>
       <div
         style={{
-          fontSize: 10.5,
+          fontSize: TEXTO.nota,
           fontWeight: 600,
           letterSpacing: '0.08em',
           textTransform: 'uppercase' as const,
@@ -139,7 +140,7 @@ function CampoLectura({
           backgroundColor: destacado ? PALETA.azulSuave : '#f6f7f9',
           transition: 'background-color 1.6s ease',
           padding: '7px 14px 8px',
-          fontSize: 14,
+          fontSize: TEXTO.base,
           lineHeight: 1.5,
           color: esVacio ? PALETA.textoTenue : PALETA.texto,
         }}
@@ -232,10 +233,10 @@ export function IntakePage({ selector }: { selector?: ReactNode } = {}) {
         >
           {/* Encabezado del chat — ligero, sin barras */}
           <div style={{ padding: '20px 32px 6px', flexShrink: 0 }}>
-            <div style={{ fontSize: 16, fontWeight: 600, color: PALETA.texto, lineHeight: 1.2 }}>
+            <div style={{ fontSize: TEXTO.titulo, fontWeight: 600, color: PALETA.texto, lineHeight: 1.2 }}>
               Asistente de radicación
             </div>
-            <div style={{ fontSize: 12.5, color: PALETA.textoSuave, marginTop: 3 }}>
+            <div style={{ fontSize: TEXTO.menor, color: PALETA.textoSuave, marginTop: 3 }}>
               Cuénteme la situación: iré completando la ficha automáticamente
             </div>
           </div>
@@ -255,7 +256,7 @@ export function IntakePage({ selector }: { selector?: ReactNode } = {}) {
                 flexShrink: 0,
               }}
             >
-              <div style={{ fontSize: 13 }}>
+              <div style={{ fontSize: TEXTO.base }}>
                 <strong>Caso radicado:</strong> {casoRadicado.filingNumber} · estado{' '}
                 <strong>{casoRadicado.currentStateCode}</strong>
               </div>
@@ -309,7 +310,7 @@ export function IntakePage({ selector }: { selector?: ReactNode } = {}) {
                       background: PALETA.superficie,
                       borderRadius: 999,
                       padding: '5px 6px 5px 12px',
-                      fontSize: 12.5,
+                      fontSize: TEXTO.menor,
                       color: PALETA.texto,
                       boxShadow: ELEVACION.base,
                       maxWidth: 260,
@@ -378,7 +379,7 @@ export function IntakePage({ selector }: { selector?: ReactNode } = {}) {
                 }}
                 variant="borderless"
                 placeholder="Describa la situación o responda al asistente…"
-                style={{ resize: 'none', fontSize: 14, padding: '8px 0' }}
+                style={{ resize: 'none', fontSize: TEXTO.base, padding: '8px 0' }}
                 disabled={cargando}
               />
               <Button
@@ -423,7 +424,7 @@ export function IntakePage({ selector }: { selector?: ReactNode } = {}) {
             <div style={{ padding: '18px 24px 14px', flexShrink: 0 }}>
               <div
                 style={{
-                  fontSize: 10,
+                  fontSize: TEXTO.nota,
                   letterSpacing: '0.12em',
                   textTransform: 'uppercase' as const,
                   color: PALETA.textoTenue,
@@ -433,13 +434,13 @@ export function IntakePage({ selector }: { selector?: ReactNode } = {}) {
                 {DESPACHO.nombre} · {CNSCC.ley}
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 17, fontWeight: 600, color: PALETA.texto }}>
+                <span style={{ fontSize: TEXTO.seccion, fontWeight: 600, color: PALETA.texto }}>
                   Ficha de radicación
                 </span>
                 {draft.radicado && (
                   <span
                     style={{
-                      fontSize: 11,
+                      fontSize: TEXTO.nota,
                       fontWeight: 600,
                       background: PALETA.azulSuave,
                       color: PALETA.azulOscuro,
@@ -454,7 +455,7 @@ export function IntakePage({ selector }: { selector?: ReactNode } = {}) {
               </div>
               <div
                 style={{
-                  fontSize: 12,
+                  fontSize: TEXTO.menor,
                   color: PALETA.textoTenue,
                   marginTop: 4,
                 }}
@@ -539,7 +540,7 @@ export function IntakePage({ selector }: { selector?: ReactNode } = {}) {
                             color: PALETA.azulOscuro,
                             borderRadius: 999,
                             padding: '2px 10px',
-                            fontSize: 12,
+                            fontSize: TEXTO.menor,
                             marginRight: 6,
                             marginBottom: 4,
                           }}
@@ -560,7 +561,7 @@ export function IntakePage({ selector }: { selector?: ReactNode } = {}) {
                 <div style={{ marginBottom: 14 }}>
                   <div
                     style={{
-                      fontSize: 10.5,
+                      fontSize: TEXTO.nota,
                       fontWeight: 600,
                       letterSpacing: '0.08em',
                       textTransform: 'uppercase' as const,
@@ -582,7 +583,7 @@ export function IntakePage({ selector }: { selector?: ReactNode } = {}) {
                           background: '#f6f7f9',
                           borderRadius: 14,
                           padding: '8px 14px',
-                          fontSize: 13,
+                          fontSize: TEXTO.base,
                           color: PALETA.texto,
                         }}
                       >
@@ -597,7 +598,7 @@ export function IntakePage({ selector }: { selector?: ReactNode } = {}) {
                         >
                           {a.nombre}
                         </span>
-                        <span style={{ fontSize: 11.5, color: PALETA.textoTenue, flexShrink: 0 }}>
+                        <span style={{ fontSize: TEXTO.nota, color: PALETA.textoTenue, flexShrink: 0 }}>
                           {a.tamano}
                         </span>
                       </div>
@@ -613,7 +614,7 @@ export function IntakePage({ selector }: { selector?: ReactNode } = {}) {
               <div
                 style={{
                   textAlign: 'center' as const,
-                  fontSize: 12.5,
+                  fontSize: TEXTO.menor,
                   color: casoRadicado ? PALETA.verde : PALETA.textoTenue,
                   fontWeight: 500,
                   padding: '8px 0',

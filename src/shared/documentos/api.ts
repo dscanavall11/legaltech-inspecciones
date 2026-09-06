@@ -59,6 +59,22 @@ export function useUploadCaseDocument(caseId: string) {
   });
 }
 
+/**
+ * Saca el documento del expediente. No es solo quitarlo del listado: el
+ * servidor purga tambien el gemelo Markdown, que es lo que lee el analizador,
+ * asi que un documento retirado deja de pesar en el borrador del fallo.
+ */
+export function useDeleteCaseDocument(caseId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (documentId: string) =>
+      apiFetch<void>(`/tools/expedientes/${caseId}/documents/${documentId}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: documentsKeys.byCase(caseId) });
+    },
+  });
+}
+
 /** URL presignada de descarga (S3/MinIO), valida solo unos minutos. */
 export async function getCaseDocumentDownloadUrl(caseId: string, storageKey: string): Promise<string> {
   const { url } = await apiFetch<{ url: string }>(

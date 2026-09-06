@@ -18,6 +18,7 @@ import {
   type FilaProceso,
   type TipoProceso,
 } from './types';
+import { TEXTO } from '@/theme/escala';
 
 const { Title, Text } = Typography;
 
@@ -133,7 +134,7 @@ export function BandejaProcesos({
       key: 'radicado',
       width: 170,
       render: (v: string) => (
-        <span className="font-display" style={{ fontSize: 15 }}>
+        <span className="font-display" style={{ fontSize: TEXTO.titulo }}>
           {v}
         </span>
       ),

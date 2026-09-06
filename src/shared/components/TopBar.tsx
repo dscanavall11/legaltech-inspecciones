@@ -8,6 +8,7 @@ import { useAuth } from '@/shared/auth/auth';
 import { PALETA } from '@/theme/theme';
 import { glassChrome } from '@/theme/glass';
 import { usePrefersReducedTransparency } from '@/shared/hooks/usePrefersReducedTransparency';
+import { TEXTO } from '@/theme/escala';
 
 const { Text } = Typography;
 
@@ -25,7 +26,7 @@ function estiloEntradaSuperior(activa: boolean): React.CSSProperties {
     borderRadius: 10,
     border: 'none',
     cursor: 'pointer',
-    fontSize: 13.5,
+    fontSize: TEXTO.base,
     fontWeight: 500,
     background: activa ? 'var(--accent-light)' : 'transparent',
     color: activa ? PALETA.azul : PALETA.textoSuave,
@@ -82,17 +83,17 @@ export function TopBar() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: 16,
+            fontSize: TEXTO.titulo,
             flexShrink: 0,
           }}
         >
           L
         </span>
         <div style={{ lineHeight: 1.15 }}>
-          <div className="titulo-serif" style={{ fontSize: 17, color: PALETA.texto }}>
+          <div className="titulo-serif" style={{ fontSize: TEXTO.seccion, color: PALETA.texto }}>
             LegalTech <span style={{ color: PALETA.azul }}>Cloud</span>
           </div>
-          <div style={{ fontSize: 11, color: PALETA.textoTenue }}>{usuario?.despacho}</div>
+          <div style={{ fontSize: TEXTO.nota, color: PALETA.textoTenue }}>{usuario?.despacho}</div>
         </div>
       </Link>
 
@@ -148,7 +149,7 @@ export function TopBar() {
               <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 <Text strong>{usuario?.nombre}</Text>
               </div>
-              <Text type="secondary" style={{ fontSize: 12, textTransform: 'capitalize' }}>
+              <Text type="secondary" style={{ fontSize: TEXTO.menor, textTransform: 'capitalize' }}>
                 {usuario?.rol}
               </Text>
             </div>

@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Card,
@@ -39,19 +38,10 @@ import {
   siguientePaso,
 } from '@/derecho';
 import { ELEVACION, PALETA } from '@/theme/theme';
+import { Dato } from '@/shared/ui/Dato';
+import { TEXTO } from '@/theme/escala';
 
 const { Title, Text } = Typography;
-
-function Campo({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div>
-      <div style={{ fontSize: 12, color: PALETA.textoTenue, marginBottom: 3 }}>
-        {label}
-      </div>
-      <div style={{ color: PALETA.texto }}>{children}</div>
-    </div>
-  );
-}
 
 function TerminoCard({
   fechaRadicacion,
@@ -73,7 +63,7 @@ function TerminoCard({
 
   return (
     <Card variant="borderless" style={{ boxShadow: ELEVACION.base }}>
-      <Text type="secondary" style={{ fontSize: 12, letterSpacing: 0.3 }}>
+      <Text type="secondary" style={{ fontSize: TEXTO.menor, letterSpacing: 0.3 }}>
         TÉRMINO PROCESAL
       </Text>
       <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginTop: 12 }}>
@@ -87,7 +77,7 @@ function TerminoCard({
               <div style={{ fontSize: 20, fontWeight: 700, color: PALETA.texto }}>
                 {t.vencido ? 0 : t.diasRestantes}
               </div>
-              <div style={{ fontSize: 11, color: PALETA.textoTenue }}>días háb.</div>
+              <div style={{ fontSize: TEXTO.nota, color: PALETA.textoTenue }}>días háb.</div>
             </div>
           )}
         />
@@ -96,12 +86,12 @@ function TerminoCard({
             {semaforo.texto}
           </Tag>
           <div style={{ marginTop: 8 }}>
-            <div style={{ fontSize: 12, color: PALETA.textoTenue }}>Vence el</div>
+            <div style={{ fontSize: TEXTO.menor, color: PALETA.textoTenue }}>Vence el</div>
             <Text strong>{t.fechaVencimiento.format('D [de] MMMM, YYYY')}</Text>
           </div>
         </div>
       </div>
-      <div style={{ fontSize: 12, color: PALETA.textoTenue, marginTop: 12 }}>
+      <div style={{ fontSize: TEXTO.menor, color: PALETA.textoTenue, marginTop: 12 }}>
         {t.diasTranscurridos} de {diasTermino} días hábiles · cálculo sujeto a
         validación jurídica.
       </div>
@@ -144,26 +134,26 @@ export function QuerellaDetailPage() {
       children: (
         <Row gutter={[24, 18]} style={{ marginTop: 4 }}>
           <Col xs={24} sm={12}>
-            <Campo label="Querellante">{data.querellante}</Campo>
+            <Dato label="Querellante">{data.querellante}</Dato>
           </Col>
           <Col xs={24} sm={12}>
-            <Campo label="Querellado">{data.querellado}</Campo>
+            <Dato label="Querellado">{data.querellado}</Dato>
           </Col>
           <Col xs={24}>
-            <Campo label="Asunto">{data.asunto}</Campo>
+            <Dato label="Asunto">{data.asunto}</Dato>
           </Col>
           <Col xs={24}>
-            <Campo label="Inmueble / dirección">
+            <Dato label="Inmueble / dirección">
               {data.direccionInmueble ?? 'Sin registro'}
-            </Campo>
+            </Dato>
           </Col>
           <Col xs={24} sm={12}>
-            <Campo label="Fecha de radicación">
+            <Dato label="Fecha de radicación">
               {dayjs(data.fechaRadicacion).format('D [de] MMMM, YYYY')}
-            </Campo>
+            </Dato>
           </Col>
           <Col xs={24} sm={12}>
-            <Campo label="Término aplicable">{data.diasTermino} días hábiles</Campo>
+            <Dato label="Término aplicable">{data.diasTermino} días hábiles</Dato>
           </Col>
         </Row>
       ),
@@ -240,7 +230,7 @@ export function QuerellaDetailPage() {
         <Tag color={ESTADO_COLOR[data.estado]}>{ESTADO_LABEL[data.estado]}</Tag>
       </Space>
       <div>
-        <Text type="secondary" style={{ fontSize: 15 }}>
+        <Text type="secondary" style={{ fontSize: TEXTO.titulo }}>
           {data.asunto}
         </Text>
       </div>

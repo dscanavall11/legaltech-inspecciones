@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { contextHeaders } from '@/shared/api/client';
 import { DESPACHO } from '@/derecho';
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api';
+import { pedirRecepcion } from '@/shared/recepcion/api';
+import { leerCaseFiled, leerCaseUpdate, limpiarMarcadores } from '@/shared/recepcion/marcadores';
 
 export interface CasoParte {
   rol: string;
@@ -56,40 +55,6 @@ const DRAFT_INICIAL: CasoDraft = {
   observaciones: null,
 };
 
-const CASE_UPDATE_RE = /<case_update>([\s\S]*?)<\/case_update>/;
-const CASE_FILED_RE = /<case_filed>([\s\S]*?)<\/case_filed>/;
-
-function parseCaseUpdate(texto: string): Partial<CasoDraft> {
-  const match = CASE_UPDATE_RE.exec(texto);
-  if (!match) return {};
-  try {
-    return JSON.parse(match[1]) as Partial<CasoDraft>;
-  } catch {
-    return {};
-  }
-}
-
-// Solo aparece una vez que IntakeCaseCreationGate (legal) radicó el caso de
-// verdad en legalcase - ver recepcionRules.st y su contrato listoParaRadicar.
-function parseCaseFiled(texto: string): CasoRadicado | null {
-  const match = CASE_FILED_RE.exec(texto);
-  if (!match) return null;
-  try {
-    return JSON.parse(match[1]) as CasoRadicado;
-  } catch {
-    return null;
-  }
-}
-
-function limpiarMarcadores(texto: string): string {
-  let result = texto.replace(/<case_update>[\s\S]*?<\/case_update>/g, '');
-  result = result.replace(/<case_filed>[\s\S]*?<\/case_filed>/g, '');
-  // Remove any partial/open marker still being streamed (no closing tag yet)
-  result = result.replace(/<case_update>[\s\S]*/, '');
-  result = result.replace(/<case_filed>[\s\S]*/, '');
-  return result.trim();
-}
-
 export function useIntakeChat() {
   const [mensajes, setMensajes] = useState<ChatMessage[]>([
     {
@@ -130,23 +95,12 @@ export function useIntakeChat() {
       setCargando(true);
 
       try {
-        // legal's /api/legal/recepcion (intakeChat) is multipart (data part +
-        // optional files) and returns one ApiResponse<String> reply, not a
-        // token stream - no streaming endpoint exists in the real backend yet.
-        const body = new FormData();
-        body.append('data', texto.trim());
-        (archivos ?? []).forEach((archivo) => body.append('files', archivo, archivo.name));
-        const res = await fetch(`${API_BASE}/legal/recepcion`, {
-          method: 'POST',
-          headers: contextHeaders(),
-          body,
-        });
+        // Sin caseId: este ES el chat de radicacion, el unico que puede abrir
+        // el expediente cuando el agente marca listoParaRadicar.
+        const respuesta = await pedirRecepcion({ texto: texto.trim(), archivos });
 
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const { data: respuesta } = (await res.json()) as { data: string };
-
-        const actualiza = parseCaseUpdate(respuesta);
-        const radicado = parseCaseFiled(respuesta);
+        const actualiza = leerCaseUpdate<CasoDraft>(respuesta) ?? {};
+        const radicado = leerCaseFiled<CasoRadicado>(respuesta);
         const visible = limpiarMarcadores(respuesta);
 
         setMensajes((prev) => {

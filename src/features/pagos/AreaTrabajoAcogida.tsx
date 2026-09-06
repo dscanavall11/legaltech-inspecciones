@@ -21,7 +21,6 @@ import {
   type TipoMulta,
 } from '@/derecho';
 import {
-  COMPARENDOS_DEMO,
   parsearBdComparendos,
   type Comparendo,
   type ReporteImportacion,
@@ -34,10 +33,13 @@ import { PdfViewer } from '@/shared/documentos/PdfViewer';
 import { ReincidenciaCausalField } from '@/shared/components/ReincidenciaCausalField';
 import { ELEVACION, PALETA } from '@/theme/theme';
 import { useInspeccionStore } from '@/store/inspeccionStore';
-import { CampoActa, Tarjeta } from './CampoActa';
+import { Campo } from '@/shared/ui/Campo';
+import { Tarjeta } from '@/shared/ui/Tarjeta';
 import { datosInicialesAcogida, type FormularioAcogida } from './formularioAcogida';
 import { viaAdmiteTipo, type ViaAcogida } from './viaAcogida';
 import { VistaPreviaActa } from '@/shared/documentos/VistaPreviaActa';
+import { TEXTO } from '@/theme/escala';
+import { useComparendosStore } from '@/shared/comparendos/store';
 
 const { Title, Text } = Typography;
 
@@ -85,7 +87,7 @@ function DesgloseValor({
       {filas.map((f) => (
         <div
           key={f.etiqueta}
-          style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5, marginTop: 4 }}
+          style={{ display: 'flex', justifyContent: 'space-between', fontSize: TEXTO.base, marginTop: 4 }}
         >
           <Text type="secondary">{f.etiqueta}</Text>
           <Text>
@@ -121,7 +123,11 @@ export function AreaTrabajoAcogida({ via }: { via: ViaAcogida }) {
   const inspeccion = useInspeccionStore((s) => s.config);
   const [rutaCarga, setRutaCarga] = useState<RutaCarga>('pdf');
   const [datos, setDatos] = useState<FormularioAcogida>(datosInicialesAcogida);
-  const [bd, setBd] = useState<Comparendo[]>(COMPARENDOS_DEMO);
+  // La BD es una sola para toda la app y sobrevive al cambio de pantalla: antes
+  // cada página tenía su copia en useState y el .xlsx cargado aquí no existía
+  // en la queja de al lado.
+  const bd = useComparendosStore((s) => s.comparendos);
+  const setBd = useComparendosStore((s) => s.cargar);
   const [origenBd, setOrigenBd] = useState<'demo' | 'archivo'>('demo');
   const [extrayendo, setExtrayendo] = useState(false);
   const [camposExtraidos, setCamposExtraidos] = useState<(keyof Comparendo)[]>([]);
@@ -232,7 +238,7 @@ export function AreaTrabajoAcogida({ via }: { via: ViaAcogida }) {
         {via.titulo}
       </Title>
       <div style={{ marginBottom: 32, maxWidth: 760 }}>
-        <Text type="secondary" style={{ fontSize: 15, lineHeight: 1.6 }}>
+        <Text type="secondary" style={{ fontSize: TEXTO.titulo, lineHeight: 1.6 }}>
           {via.descripcion}
         </Text>
       </div>
@@ -402,62 +408,62 @@ export function AreaTrabajoAcogida({ via }: { via: ViaAcogida }) {
             <Text strong style={{ display: 'block', marginBottom: 14 }}>
               Datos del comparendo
             </Text>
-            <CampoActa label="No. comparendo">
+            <Campo label="No. comparendo">
               <Input value={datos.comparendo} onChange={(e) => set('comparendo', e.target.value)} placeholder="17-001-…" />
-            </CampoActa>
-            <CampoActa label="No. de acta / proceso">
+            </Campo>
+            <Campo label="No. de acta / proceso">
               <Input value={datos.proceso} onChange={(e) => set('proceso', e.target.value)} placeholder="2026-0000" />
-            </CampoActa>
-            <CampoActa label="Solicitado (infractor)">
+            </Campo>
+            <Campo label="Solicitado (infractor)">
               <Input value={datos.solicitado} onChange={(e) => set('solicitado', e.target.value)} />
-            </CampoActa>
+            </Campo>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 12 }}>
-              <CampoActa label="Cédula">
+              <Campo label="Cédula">
                 <Input value={datos.cedula} onChange={(e) => set('cedula', e.target.value)} />
-              </CampoActa>
-              <CampoActa label="Teléfono">
+              </Campo>
+              <Campo label="Teléfono">
                 <Input value={datos.telefono} onChange={(e) => set('telefono', e.target.value)} placeholder="NO APORTA" />
-              </CampoActa>
+              </Campo>
             </div>
-            <CampoActa label="Dirección">
+            <Campo label="Dirección">
               <Input value={datos.direccion} onChange={(e) => set('direccion', e.target.value)} />
-            </CampoActa>
+            </Campo>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 12 }}>
-              <CampoActa label="Fecha del comparendo">
+              <Campo label="Fecha del comparendo">
                 <DatePicker
                   style={{ width: '100%' }}
                   format="DD/MM/YYYY"
                   value={datos.fechaComparendo ? dayjs(datos.fechaComparendo) : null}
                   onChange={(d) => set('fechaComparendo', d ? d.format('YYYY-MM-DD') : '')}
                 />
-              </CampoActa>
-              <CampoActa label="Fecha del acta">
+              </Campo>
+              <Campo label="Fecha del acta">
                 <DatePicker
                   style={{ width: '100%' }}
                   format="DD/MM/YYYY"
                   value={dayjs(datos.fechaResolucion)}
                   onChange={(d) => d && set('fechaResolucion', d.format('YYYY-MM-DD'))}
                 />
-              </CampoActa>
+              </Campo>
             </div>
-            <CampoActa label="Artículo y numeral (Ley 1801)">
+            <Campo label="Artículo y numeral (Ley 1801)">
               <Input
                 value={datos.articuloNumeral}
                 onChange={(e) => set('articuloNumeral', e.target.value)}
                 placeholder="Artículo 140 Numeral 14"
               />
-            </CampoActa>
-            <CampoActa label="Procedencia (CAI)">
+            </Campo>
+            <Campo label="Procedencia (CAI)">
               <Input value={datos.solicitante} onChange={(e) => set('solicitante', e.target.value)} />
-            </CampoActa>
-            <CampoActa label="Hechos">
+            </Campo>
+            <Campo label="Hechos">
               <Input.TextArea
                 autoSize={{ minRows: 2, maxRows: 5 }}
                 value={datos.hechos}
                 onChange={(e) => set('hechos', e.target.value)}
               />
-            </CampoActa>
-            <CampoActa label="Multa general (art. 180)">
+            </Campo>
+            <Campo label="Multa general (art. 180)">
               <Select
                 style={{ width: '100%' }}
                 value={datos.tipoMulta}
@@ -467,7 +473,7 @@ export function AreaTrabajoAcogida({ via }: { via: ViaAcogida }) {
                   label: `Tipo ${t} (${MULTA_GENERAL[t].smdlv} SMDLV)`,
                 }))}
               />
-            </CampoActa>
+            </Campo>
 
             {!tipoAdmitido && via.restriccion && (
               <Alert
@@ -487,16 +493,16 @@ export function AreaTrabajoAcogida({ via }: { via: ViaAcogida }) {
               Despacho
             </Text>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 12 }}>
-              <CampoActa label="Municipio">
+              <Campo label="Municipio">
                 <Input value={datos.municipio} onChange={(e) => set('municipio', e.target.value)} />
-              </CampoActa>
-              <CampoActa label="Inspector">
+              </Campo>
+              <Campo label="Inspector">
                 <Input value={datos.inspectorNombre} onChange={(e) => set('inspectorNombre', e.target.value)} />
-              </CampoActa>
+              </Campo>
             </div>
-            <CampoActa label="Inspección">
+            <Campo label="Inspección">
               <Input value={datos.inspeccion} onChange={(e) => set('inspeccion', e.target.value)} />
-            </CampoActa>
+            </Campo>
 
             <div style={{ display: 'flex', gap: 10, marginTop: 6, flexWrap: 'wrap' }}>
               <Button
@@ -554,7 +560,7 @@ export function AreaTrabajoAcogida({ via }: { via: ViaAcogida }) {
               }}
             >
               <WalletOutlined style={{ fontSize: 40, marginBottom: 14, color: '#c9cdd3' }} />
-              <div style={{ fontSize: 15 }}>
+              <div style={{ fontSize: TEXTO.titulo }}>
                 {tipoAdmitido
                   ? 'Cargue el comparendo y complete los datos; el acta se redacta aquí en tiempo real.'
                   : 'Esta vía no procede para el tipo de multa cargado, así que no se redacta acta.'}

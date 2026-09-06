@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Alert, Button, Card, Typography } from 'antd';
 import { Sparkles } from 'lucide-react';
 import { PALETA } from '@/theme/theme';
+import { TEXTO } from '@/theme/escala';
 
 const { Text, Paragraph } = Typography;
 
@@ -60,7 +61,7 @@ export function ResumenLateral({
     >
       {!resumen && !cargando && !error && (
         <>
-          <Text type="secondary" style={{ fontSize: 13 }}>
+          <Text type="secondary" style={{ fontSize: TEXTO.base }}>
             Resumen rápido del documento, generado con IA.
           </Text>
           <Button block style={{ marginTop: 10 }} onClick={generar}>
@@ -70,7 +71,7 @@ export function ResumenLateral({
       )}
 
       {cargando && (
-        <Text type="secondary" style={{ fontSize: 13 }}>
+        <Text type="secondary" style={{ fontSize: TEXTO.base }}>
           Generando resumen…
         </Text>
       )}
@@ -90,10 +91,10 @@ export function ResumenLateral({
 
       {resumen && !cargando && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <Paragraph style={{ fontSize: 13.5, marginBottom: 0, whiteSpace: 'pre-wrap' }}>
+          <Paragraph style={{ fontSize: TEXTO.base, marginBottom: 0, whiteSpace: 'pre-wrap' }}>
             {resumen}
           </Paragraph>
-          <Text type="secondary" style={{ fontSize: 11 }}>
+          <Text type="secondary" style={{ fontSize: TEXTO.nota }}>
             Generado con IA. Verifica siempre contra el documento.
           </Text>
         </div>

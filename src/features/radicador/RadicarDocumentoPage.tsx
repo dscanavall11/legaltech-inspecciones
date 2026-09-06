@@ -14,10 +14,9 @@ import {
   FileOutlined,
   CloseOutlined,
   SendOutlined,
-  CheckCircleOutlined,
 } from '@ant-design/icons';
 import { NormaMark } from '@/shared/ai/NormaMark';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/shared/api/client';
 import { legalCasesKeys } from '@/shared/legalCases/api';
@@ -26,10 +25,10 @@ import { useInspeccionStore } from '@/store/inspeccionStore';
 import { PALETA, ELEVACION } from '@/theme/theme';
 import type { ReactNode } from 'react';
 import { useRadicacionIA, type RadicacionDraft } from './useRadicacionIA';
+import { TEXTO } from '@/theme/escala';
 
 const { Text } = Typography;
 
-type TipoRadicar = 'apelacion' | 'fallo';
 
 interface Anexo {
   id: string;
@@ -73,7 +72,7 @@ function Campo({
     <div style={{ marginBottom: 14 }}>
       <div
         style={{
-          fontSize: 10.5,
+          fontSize: TEXTO.nota,
           fontWeight: 600,
           letterSpacing: '0.08em',
           textTransform: 'uppercase',
@@ -100,7 +99,7 @@ function Campo({
             value={valor}
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder}
-            style={{ padding: 0, resize: 'none', fontSize: 14 }}
+            style={{ padding: 0, resize: 'none', fontSize: TEXTO.base }}
           />
         ) : (
           <Input
@@ -108,7 +107,7 @@ function Campo({
             value={valor}
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder}
-            style={{ padding: 0, fontSize: 14 }}
+            style={{ padding: 0, fontSize: TEXTO.base }}
           />
         )}
       </div>
@@ -117,23 +116,22 @@ function Campo({
 }
 
 /**
- * Radicación guiada por chat de Apelación y Fallo de 2ª instancia.
- * Replica la interfaz del radicador de quejas/querellas: chat a la izquierda,
- * ficha a la derecha que se completa en tiempo real. El humano aporta los
- * datos fácticos; la IA solo redacta la fundamentación (campo sustento).
+ * Radicación guiada por chat de la apelación. Replica la interfaz del
+ * radicador de quejas/querellas: chat a la izquierda, ficha a la derecha que
+ * se completa en tiempo real. El humano aporta los datos fácticos; la IA
+ * redacta la fundamentación (campo sustento).
+ *
+ * El fallo de segunda instancia no se radica aquí: lo profiere el superior
+ * jerárquico, no este despacho (ver tipoRadicacion.ts).
  */
-export function RadicarDocumentoPage({
-  tipo: tipoProp,
-  selector,
-}: { tipo?: TipoRadicar; selector?: ReactNode } = {}) {
+export function RadicarDocumentoPage({ selector }: { selector?: ReactNode } = {}) {
   const { message: msg } = App.useApp();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const location = useLocation();
-  const tipo = tipoProp ?? ((location.pathname.split('/').pop() ?? 'apelacion') as TipoRadicar);
+  const tipo = 'apelacion' as const;
 
   const { mensajes, draft, setDraft, cargando, recentFields, enviar, completoMinimo } =
-    useRadicacionIA(tipo);
+    useRadicacionIA();
 
   const [inputText, setInputText] = useState('');
   const [anexos, setAnexos] = useState<Anexo[]>([]);
@@ -141,14 +139,11 @@ export function RadicarDocumentoPage({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const titulo = tipo === 'apelacion' ? 'Apelación' : 'Fallo (2.ª instancia)';
-  const icono = tipo === 'apelacion' ? <FileOutlined /> : <CheckCircleOutlined />;
-  const colorIcono = tipo === 'apelacion' ? '#f9ab00' : '#9334e6';
-  const colorFondo = tipo === 'apelacion' ? '#fff8e1' : '#f3e8fd';
-  const terminoTexto =
-    tipo === 'apelacion'
-      ? '3 días hábiles (art. 223 num. 4 Ley 1801/2016)'
-      : 'Según resolución recurrida';
+  const titulo = 'Apelación';
+  const icono = <FileOutlined />;
+  const colorIcono = '#f9ab00';
+  const colorFondo = '#fff8e1';
+  const terminoTexto = '3 días hábiles (art. 223 num. 4 Ley 1801/2016)';
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -165,6 +160,28 @@ export function RadicarDocumentoPage({
     }));
     setAnexos((prev) => [...prev, ...nuevos]);
     if (fileInputRef.current) fileInputRef.current.value = '';
+    // Adjuntar YA es la petición: el inspector no tiene que escribir además
+    // "léelos". El agente responde con los datos que sacó del documento.
+    nuevos.forEach((a) => enviados.current.add(a.id));
+    void enviar(
+      `Adjunto ${nuevos.map((a) => a.nombre).join(', ')}. Léelos y extrae los datos del proceso.`,
+      nuevos.map((a) => a.file),
+    );
+  }
+
+  /**
+   * Envía el mensaje CON los anexos que todavía no ha visto el agente.
+   *
+   * Antes los adjuntos se quedaban en la pantalla: el inspector subía el
+   * escrito del recurso, el agente nunca lo recibía y la ficha seguía vacía
+   * sin que nada explicara por qué. Solo viajan una vez; repetirlos en cada
+   * mensaje sería pagar la lectura del mismo documento varias veces.
+   */
+  const enviados = useRef<Set<string>>(new Set());
+  async function enviarConAnexos(texto: string) {
+    const nuevos = anexos.filter((a) => !enviados.current.has(a.id));
+    nuevos.forEach((a) => enviados.current.add(a.id));
+    await enviar(texto, nuevos.map((a) => a.file));
   }
 
   function quitarAnexo(id: string) {
@@ -265,8 +282,8 @@ export function RadicarDocumentoPage({
               {icono}
             </div>
             <div>
-              <div style={{ fontSize: 16, fontWeight: 600, color: PALETA.texto }}>Asistente de radicación — {titulo}</div>
-              <div style={{ fontSize: 12.5, color: PALETA.textoSuave }}>
+              <div style={{ fontSize: TEXTO.titulo, fontWeight: 600, color: PALETA.texto }}>Asistente de radicación — {titulo}</div>
+              <div style={{ fontSize: TEXTO.menor, color: PALETA.textoSuave }}>
                 Cuénteme los hechos; iré completando la ficha automáticamente.
               </div>
             </div>
@@ -311,18 +328,18 @@ export function RadicarDocumentoPage({
                   const t = inputText.trim();
                   if (t) {
                     setInputText('');
-                    void enviar(t);
+                    void enviarConAnexos(t);
                   }
                 }
               }}
               variant="borderless"
               placeholder="Describa la situación o responda al asistente…"
-              style={{ resize: 'none', fontSize: 14, padding: '8px 0' }}
+              style={{ resize: 'none', fontSize: TEXTO.base, padding: '8px 0' }}
               disabled={cargando}
             />
             <Button type="primary" shape="circle" icon={<SendOutlined />} onClick={() => {
               const t = inputText.trim();
-              if (t) { setInputText(''); void enviar(t); }
+              if (t) { setInputText(''); void enviarConAnexos(t); }
             }} disabled={cargando || !inputText.trim()} style={{ flexShrink: 0 }} />
           </div>
         </div>
@@ -333,8 +350,8 @@ export function RadicarDocumentoPage({
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: PALETA.superficie, borderRadius: 24, boxShadow: ELEVACION.media, overflow: 'hidden' }}>
           {selector && <div style={{ padding: '18px 20px 4px', flexShrink: 0 }}>{selector}</div>}
           <div style={{ padding: '18px 24px 14px', flexShrink: 0 }}>
-            <div style={{ fontSize: 17, fontWeight: 600, color: PALETA.texto }}>Ficha de radicación</div>
-            <div style={{ fontSize: 12, color: PALETA.textoTenue, marginTop: 4, textTransform: 'capitalize' }}>
+            <div style={{ fontSize: TEXTO.seccion, fontWeight: 600, color: PALETA.texto }}>Ficha de radicación</div>
+            <div style={{ fontSize: TEXTO.menor, color: PALETA.textoTenue, marginTop: 4, textTransform: 'capitalize' }}>
               {titulo} · término {terminoTexto}
             </div>
           </div>
@@ -357,14 +374,14 @@ export function RadicarDocumentoPage({
 
             {anexos.length > 0 && (
               <div style={{ marginTop: 6 }}>
-                <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: PALETA.textoTenue, marginBottom: 6, paddingLeft: 14 }}>
+                <div style={{ fontSize: TEXTO.nota, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: PALETA.textoTenue, marginBottom: 6, paddingLeft: 14 }}>
                   Anexos ({anexos.length})
                 </div>
                 {anexos.map((a) => (
-                  <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#f6f7f9', borderRadius: 14, padding: '8px 14px', fontSize: 13, color: PALETA.texto, marginBottom: 6 }}>
+                  <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#f6f7f9', borderRadius: 14, padding: '8px 14px', fontSize: TEXTO.base, color: PALETA.texto, marginBottom: 6 }}>
                     {ICONO_ANEXO[a.tipo]}
                     <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.nombre}</span>
-                    <span style={{ fontSize: 11.5, color: PALETA.textoTenue }}>{a.tamano}</span>
+                    <span style={{ fontSize: TEXTO.nota, color: PALETA.textoTenue }}>{a.tamano}</span>
                     <Button type="text" size="small" shape="circle" icon={<CloseOutlined style={{ fontSize: 10 }} />} onClick={() => quitarAnexo(a.id)} />
                   </div>
                 ))}

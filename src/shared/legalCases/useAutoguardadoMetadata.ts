@@ -24,8 +24,18 @@ export function useAutoguardadoMetadata<T>(opts: {
   clave: string;
   /** Extrae el valor guardado del blob crudo. */
   leer: (raw: string | null | undefined) => T;
+  /**
+   * Se ejecuta cuando el valor quedó realmente persistido. Lo usa quien además
+   * de guardar en el blob tiene que proyectar el dato a una tabla propia
+   * (p. ej. las partes, que también viven en `case_parties`); así la
+   * proyección va atada al guardado y no a un segundo debounce que se
+   * desincroniza.
+   */
+  alGuardar?: (valor: T) => void;
 }): { valor: T; setValor: (v: T) => void; estado: EstadoAutoguardado } {
-  const { caseId, caseMetadataRaw, clave, leer } = opts;
+  const { caseId, caseMetadataRaw, clave, leer, alGuardar } = opts;
+  const alGuardarRef = useRef(alGuardar);
+  alGuardarRef.current = alGuardar;
   const actualizarCampos = useUpdateCaseFields();
 
   const remoto = useMemo(() => leer(caseMetadataRaw), [leer, caseMetadataRaw]);
@@ -58,6 +68,7 @@ export function useAutoguardadoMetadata<T>(opts: {
           onSuccess: () => {
             persistido.current = serializado;
             setError(false);
+            alGuardarRef.current?.(valor);
           },
           onError: () => setError(true),
         },

@@ -30,6 +30,7 @@ import { construirDocumento, type TipoDocumento } from './documento/acapites';
 import { documentoPdfBlob, nombreArchivoDocumento } from './documento/documentoPdf';
 import type { EstadoQuerella, QuerellaDetalle } from './types';
 import { PALETA } from '@/theme/theme';
+import { TEXTO } from '@/theme/escala';
 
 const { Text } = Typography;
 
@@ -155,7 +156,7 @@ export function SiguientePaso({
       >
         <Text
           type="secondary"
-          style={{ fontSize: 11, letterSpacing: '0.09em', fontWeight: 600 }}
+          style={{ fontSize: TEXTO.nota, letterSpacing: '0.09em', fontWeight: 600 }}
         >
           PRÓXIMA ACTUACIÓN
         </Text>

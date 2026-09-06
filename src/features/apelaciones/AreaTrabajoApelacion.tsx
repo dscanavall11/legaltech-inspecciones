@@ -11,7 +11,6 @@ import { descargarDocumentoLegalDocx } from '@/shared/documentos/documentoLegalD
 import { VistaPreviaActa } from '@/shared/documentos/VistaPreviaActa';
 import { sumarDiasHabiles } from '@/shared/terminos/diasHabiles';
 import { useInspeccionStore } from '@/store/inspeccionStore';
-import { PALETA } from '@/theme/theme';
 import { generarAutoApelacion } from './autoConcedeApelacion';
 import {
   CALIDADES,
@@ -23,33 +22,12 @@ import {
   VIAS,
   type RecursoApelacion,
 } from './recursoApelacion';
+import { Campo } from '@/shared/ui/Campo';
+import { Bloque } from '@/shared/ui/Bloque';
+import { TEXTO } from '@/theme/escala';
 
 const { Text } = Typography;
 const { TextArea } = Input;
-
-function Bloque({ children }: { children: React.ReactNode }) {
-  return (
-    <div
-      style={{
-        background: PALETA.superficie,
-        border: `1px solid ${PALETA.borde}`,
-        borderRadius: 16,
-        padding: '18px 20px',
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
-function Campo({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <div style={{ fontSize: 12, color: PALETA.textoSuave, marginBottom: 5 }}>{label}</div>
-      {children}
-    </div>
-  );
-}
 
 export interface AreaTrabajoApelacionProps {
   caseId: string;
@@ -120,10 +98,10 @@ export function AreaTrabajoApelacion({
       />
 
       <Bloque>
-        <Text strong style={{ display: 'block', fontSize: 15, marginBottom: 4 }}>
+        <Text strong style={{ display: 'block', fontSize: TEXTO.titulo, marginBottom: 4 }}>
           Cómo se interpuso el recurso
         </Text>
-        <Text type="secondary" style={{ display: 'block', fontSize: 12.5, marginBottom: 12 }}>
+        <Text type="secondary" style={{ display: 'block', fontSize: TEXTO.menor, marginBottom: 12 }}>
           La apelación suele venir en subsidio de la reposición, que se resuelve de inmediato en la
           audiencia (art. 223 num. 4).
         </Text>
@@ -133,13 +111,13 @@ export function AreaTrabajoApelacion({
           onChange={(v) => set('via', v as RecursoApelacion['via'])}
           options={VIAS.map((v) => ({ value: v.valor, label: v.label }))}
         />
-        <Text type="secondary" style={{ display: 'block', fontSize: 12, marginTop: 8 }}>
+        <Text type="secondary" style={{ display: 'block', fontSize: TEXTO.menor, marginTop: 8 }}>
           {VIAS.find((v) => v.valor === recurso.via)?.ayuda}
         </Text>
       </Bloque>
 
       <Bloque>
-        <Text strong style={{ display: 'block', fontSize: 15, marginBottom: 14 }}>
+        <Text strong style={{ display: 'block', fontSize: TEXTO.titulo, marginBottom: 14 }}>
           Quién apela
         </Text>
         <div style={{ display: 'grid', gap: 12 }}>
@@ -170,10 +148,10 @@ export function AreaTrabajoApelacion({
       </Bloque>
 
       <Bloque>
-        <Text strong style={{ display: 'block', fontSize: 15, marginBottom: 4 }}>
+        <Text strong style={{ display: 'block', fontSize: TEXTO.titulo, marginBottom: 4 }}>
           Oportunidad
         </Text>
-        <Text type="secondary" style={{ display: 'block', fontSize: 12.5, marginBottom: 14 }}>
+        <Text type="secondary" style={{ display: 'block', fontSize: TEXTO.menor, marginBottom: 14 }}>
           El único control de fondo que le toca al despacho. El recurso se solicita, concede y
           sustenta dentro de la misma audiencia; la ley no abre plazo posterior.
         </Text>
@@ -215,7 +193,7 @@ export function AreaTrabajoApelacion({
       </Bloque>
 
       <Bloque>
-        <Text strong style={{ display: 'block', fontSize: 15, marginBottom: 14 }}>
+        <Text strong style={{ display: 'block', fontSize: TEXTO.titulo, marginBottom: 14 }}>
           Qué se apela y ante quién
         </Text>
         <div style={{ display: 'grid', gap: 12 }}>
@@ -284,7 +262,7 @@ export function AreaTrabajoApelacion({
         >
           Descargar .docx
         </Button>
-        <Text type={estado === 'error' ? 'danger' : 'secondary'} style={{ fontSize: 12 }}>
+        <Text type={estado === 'error' ? 'danger' : 'secondary'} style={{ fontSize: TEXTO.menor }}>
           {LEYENDA_AUTOGUARDADO[estado]}
         </Text>
       </div>

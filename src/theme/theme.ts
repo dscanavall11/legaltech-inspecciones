@@ -1,6 +1,7 @@
 import type { ThemeConfig } from 'antd';
 import { theme as antdTheme } from 'antd';
 import { PALETA, ELEVACION } from './palette';
+import { RADIO } from './escala';
 
 export { PALETA, ELEVACION } from './palette';
 
@@ -35,15 +36,15 @@ export function buildTheme(opts: {
       fontFamily:
         "'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
       fontSize,
-      fontSizeHeading1: 28,
-      fontSizeHeading2: 22,
-      fontSizeHeading3: 18,
-      fontSizeHeading4: 15,
-      fontSizeHeading5: 13,
+      fontSizeHeading1: fontSize + 9,
+      fontSizeHeading2: fontSize + 7,
+      fontSizeHeading3: fontSize + 3,
+      fontSizeHeading4: fontSize + 1,
+      fontSizeHeading5: fontSize,
       lineHeight: 1.5,
-      borderRadius: 10,
-      borderRadiusLG: 12,
-      controlHeight: 36,
+      borderRadius: RADIO.control,
+      borderRadiusLG: RADIO.bloque,
+      controlHeight: 34,
       wireframe: false,
     },
     components: {
@@ -56,7 +57,7 @@ export function buildTheme(opts: {
       Menu: {
         itemBg: 'transparent',
         itemHeight: 38,
-        itemBorderRadius: 10,
+        itemBorderRadius: RADIO.control,
         itemSelectedBg: PALETA.azulSuave,
         itemSelectedColor: PALETA.azulOscuro,
         itemColor: PALETA.textoSuave,
@@ -67,9 +68,9 @@ export function buildTheme(opts: {
         itemActiveBg: PALETA.azulSuave,
       },
       Button: {
-        controlHeight: 38,
-        borderRadius: 10,
-        borderRadiusLG: 10,
+        controlHeight: 34,
+        borderRadius: RADIO.control,
+        borderRadiusLG: RADIO.control,
         fontWeight: 500,
         primaryShadow: 'none',
         defaultShadow: 'none',
@@ -79,8 +80,8 @@ export function buildTheme(opts: {
         defaultActiveBg: PALETA.azulSuave,
       },
       Card: {
-        borderRadiusLG: 16,
-        paddingLG: 18,
+        borderRadiusLG: RADIO.tarjeta,
+        paddingLG: 16,
         // Vidrio esmerilado: el blur y el borde de luz los pone index.css
         // (.ant-card); acá solo la translucidez del fondo.
         colorBgContainer: 'rgba(255, 255, 255, 0.66)',
@@ -89,7 +90,7 @@ export function buildTheme(opts: {
         boxShadowSecondary: ELEVACION.base,
       },
       Table: {
-        cellPaddingBlock: 10,
+        cellPaddingBlock: 8,
         colorBgContainer: 'transparent',
         headerBg: 'transparent',
         headerColor: PALETA.textoTenue,
@@ -99,18 +100,18 @@ export function buildTheme(opts: {
       },
       Tabs: { titleFontSize: fontSize },
       Input: {
-        borderRadius: 12,
-        controlHeight: 38,
+        borderRadius: RADIO.control,
+        controlHeight: 34,
         colorBgContainer: PALETA.superficie,
         colorBorder: PALETA.borde,
         activeShadow: `0 0 0 3px ${PALETA.azulSuave}`,
         hoverBorderColor: PALETA.azul,
-        paddingBlock: 7,
-        paddingInline: 14,
+        paddingBlock: 5,
+        paddingInline: 11,
       },
       Select: {
-        borderRadius: 12,
-        controlHeight: 38,
+        borderRadius: RADIO.control,
+        controlHeight: 34,
         colorBgContainer: PALETA.superficie,
         colorBorder: PALETA.borde,
         optionSelectedBg: PALETA.azulSuave,
@@ -120,8 +121,8 @@ export function buildTheme(opts: {
         controlOutline: PALETA.azulSuave,
       },
       DatePicker: {
-        borderRadius: 12,
-        controlHeight: 38,
+        borderRadius: RADIO.control,
+        controlHeight: 34,
         colorBgContainer: PALETA.superficie,
         colorBorder: PALETA.borde,
         activeShadow: `0 0 0 3px ${PALETA.azulSuave}`,
@@ -131,7 +132,7 @@ export function buildTheme(opts: {
       Checkbox: { borderRadiusSM: 6 },
       Radio: { buttonSolidCheckedBg: PALETA.azul },
       Segmented: {
-        borderRadius: 10,
+        borderRadius: RADIO.control,
         trackBg: '#eceae3',
         itemSelectedBg: PALETA.superficie,
         itemSelectedColor: PALETA.azul,
@@ -143,17 +144,17 @@ export function buildTheme(opts: {
         colorBgContainer: '#efede7',
         colorBorder: PALETA.borde,
       },
-      Modal: { borderRadiusLG: 16, contentBg: PALETA.superficie, boxShadow: ELEVACION.media },
-      Drawer: { borderRadiusLG: 16, boxShadow: ELEVACION.media },
-      Popover: { borderRadiusLG: 12, colorBgContainer: PALETA.superficie, boxShadow: ELEVACION.media },
-      Tooltip: { borderRadius: 8, colorBgContainer: 'rgba(32,33,36,0.92)', boxShadow: ELEVACION.base },
-      Dropdown: { borderRadiusLG: 12, colorBgContainer: PALETA.superficie, boxShadow: ELEVACION.media },
-      Descriptions: { itemPaddingBottom: 14, colonMarginRight: 0 },
-      Pagination: { borderRadius: 8, itemBg: PALETA.superficie, itemActiveBg: PALETA.azul },
+      Modal: { borderRadiusLG: RADIO.tarjeta, contentBg: PALETA.superficie, boxShadow: ELEVACION.media },
+      Drawer: { borderRadiusLG: RADIO.tarjeta, boxShadow: ELEVACION.media },
+      Popover: { borderRadiusLG: RADIO.bloque, colorBgContainer: PALETA.superficie, boxShadow: ELEVACION.media },
+      Tooltip: { borderRadius: RADIO.control, colorBgContainer: 'rgba(32,33,36,0.92)', boxShadow: ELEVACION.base },
+      Dropdown: { borderRadiusLG: RADIO.bloque, colorBgContainer: PALETA.superficie, boxShadow: ELEVACION.media },
+      Descriptions: { itemPaddingBottom: 10, colonMarginRight: 0 },
+      Pagination: { borderRadius: RADIO.control, itemBg: PALETA.superficie, itemActiveBg: PALETA.azul },
       Breadcrumb: { separatorColor: PALETA.textoTenue, linkColor: PALETA.textoSuave },
-      Alert: { borderRadiusLG: 12, colorBgContainer: PALETA.superficie, colorBorder: PALETA.borde },
+      Alert: { borderRadiusLG: RADIO.bloque, colorBgContainer: PALETA.superficie, colorBorder: PALETA.borde },
       Message: { colorBgContainer: PALETA.superficie, boxShadow: ELEVACION.media },
-      Notification: { borderRadiusLG: 12, colorBgContainer: PALETA.superficie, boxShadow: ELEVACION.media },
+      Notification: { borderRadiusLG: RADIO.bloque, colorBgContainer: PALETA.superficie, boxShadow: ELEVACION.media },
     },
   };
 }

@@ -39,6 +39,7 @@ import { generarBlobEjemploPlantilla, NOMBRE_PLANTILLA } from '@/shared/document
 import { VisorLateral } from '@/shared/documentos/VisorLateral';
 import { PALETA, ELEVACION } from '@/theme/theme';
 import { ChecklistVisual } from '@/shared/components/ChecklistVisual';
+import { TEXTO } from '@/theme/escala';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -91,7 +92,7 @@ function ItemCard({ item, children }: { item: ChecklistItemEstado; children: Rea
         >
           {ICONO_TIPO[item.tipo]}
         </div>
-        <Text strong style={{ flex: 1, fontSize: 14.5 }}>
+        <Text strong style={{ flex: 1, fontSize: TEXTO.titulo }}>
           {item.label}
         </Text>
         <EstadoIndicador hecho={item.hecho} />
@@ -341,7 +342,7 @@ export function ConfiguracionDespachoPage() {
           <Skeleton active paragraph={{ rows: 1 }} />
         ) : (
           <>
-            <Text strong style={{ fontSize: 13, display: 'block', marginBottom: 10 }}>
+            <Text strong style={{ fontSize: TEXTO.base, display: 'block', marginBottom: 10 }}>
               Progreso de configuración
             </Text>
             <ChecklistVisual
@@ -405,7 +406,7 @@ export function ConfiguracionDespachoPage() {
                             alignItems: 'center',
                             justifyContent: 'center',
                             color: PALETA.textoTenue,
-                            fontSize: 12,
+                            fontSize: TEXTO.menor,
                           }}
                         >
                           Sin membrete
@@ -442,7 +443,7 @@ export function ConfiguracionDespachoPage() {
               case 'plantillas-personalizadas':
                 return (
                   <ItemCard key={item.key} item={item}>
-                    <Paragraph type="secondary" style={{ fontSize: 12.5, marginBottom: 10 }}>
+                    <Paragraph type="secondary" style={{ fontSize: TEXTO.menor, marginBottom: 10 }}>
                       Nivel resuelto por documento: plantilla del inspector, si existe; si no, la de la oficina; si
                       no, la de sistema.
                     </Paragraph>

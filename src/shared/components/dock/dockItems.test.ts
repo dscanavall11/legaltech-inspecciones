@@ -13,10 +13,12 @@ describe('DOCK_ITEMS', () => {
 
   // El despacho numera el expediente del comparendo como "QUEJA {proceso}" (asi
   // sale impreso en las actas), y ahi es donde se tramita el proceso verbal
-  // abreviado del comparendo impugnado dentro de los tres dias.
+  // abreviado del comparendo impugnado dentro de los tres dias. Desde que la
+  // queja tiene area de trabajo propia, la entrada lleva a ese recorrido y no
+  // al listado de comparendos.
   it('Quejas es la entrada al expediente del comparendo impugnado', () => {
     const quejas = DOCK_ITEMS.find((item) => item.key === 'quejas');
-    expect(quejas?.ruta).toBe('/panel/comparendos');
+    expect(quejas?.ruta).toBe('/panel/quejas');
     expect(quejas?.ayuda).toMatch(/impugnad/i);
   });
 
@@ -48,7 +50,7 @@ describe('DOCK_ITEMS', () => {
 const ENTRADAS_DEL_MENU = [
   '/panel',
   '/panel/querellas',
-  '/panel/comparendos',
+  '/panel/quejas',
   '/panel/actas-firmeza',
   '/panel/conmutacion',
   '/panel/pronto-pago',

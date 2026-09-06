@@ -4,6 +4,7 @@ import {
   type DocumentoLegal,
 } from '@/derecho';
 import { ELEVACION, PALETA } from '@/theme/theme';
+import { TEXTO } from '@/theme/escala';
 
 /**
  * Previsualización en pantalla de un `DocumentoLegal`, con el mismo orden y
@@ -28,7 +29,7 @@ export function VistaPreviaActa({
         boxShadow: ELEVACION.media,
         padding: '46px 52px',
         fontFamily: "'Newsreader', Georgia, serif",
-        fontSize: 13.5,
+        fontSize: TEXTO.base,
         lineHeight: 1.65,
         color: '#1b1b1f',
       }}
@@ -45,7 +46,7 @@ export function VistaPreviaActa({
 
       <div style={{ textAlign: 'center', marginBottom: 18 }}>
         <div style={{ fontWeight: 600, letterSpacing: '0.04em' }}>{acta.entidad}</div>
-        <div style={{ fontWeight: 700, fontSize: 17, marginTop: 10 }}>{acta.tituloDocumento}</div>
+        <div style={{ fontWeight: 700, fontSize: TEXTO.seccion, marginTop: 10 }}>{acta.tituloDocumento}</div>
         <div style={{ marginTop: 2 }}>
           {acta.rotuloProceso ?? ROTULO_PROCESO_POR_DEFECTO} {acta.proceso}
         </div>
@@ -53,7 +54,7 @@ export function VistaPreviaActa({
       </div>
 
       {acta.epigrafe && (
-        <p style={{ textAlign: 'center', fontWeight: 600, fontSize: 12.5 }}>{acta.epigrafe}</p>
+        <p style={{ textAlign: 'center', fontWeight: 600, fontSize: TEXTO.menor }}>{acta.epigrafe}</p>
       )}
 
       {acta.tablaDatos.length > 0 && (
@@ -67,12 +68,12 @@ export function VistaPreviaActa({
                     fontWeight: 600,
                     whiteSpace: 'nowrap',
                     verticalAlign: 'top',
-                    fontSize: 12,
+                    fontSize: TEXTO.menor,
                   }}
                 >
                   {f.etiqueta}:
                 </td>
-                <td style={{ padding: '3px 0', fontSize: 12.5 }}>{f.valor}</td>
+                <td style={{ padding: '3px 0', fontSize: TEXTO.menor }}>{f.valor}</td>
               </tr>
             ))}
           </tbody>

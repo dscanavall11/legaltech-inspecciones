@@ -1,5 +1,6 @@
 import { TIPOS_RADICACION, type TipoRadicacion } from './tipoRadicacion';
 import { PALETA } from '@/theme/theme';
+import { TEXTO } from '@/theme/escala';
 
 /**
  * Selector de tipo de radicación: los 4 iconos reciclados en pequeño, arriba de
@@ -16,7 +17,7 @@ export function SelectorTipoRadicacion({
     <div>
       <div
         style={{
-          fontSize: 10,
+          fontSize: TEXTO.nota,
           letterSpacing: '0.12em',
           textTransform: 'uppercase',
           color: PALETA.textoTenue,
@@ -46,7 +47,7 @@ export function SelectorTipoRadicacion({
                 textAlign: 'left',
                 transition: 'background 0.2s ease, border-color 0.2s ease, color 0.2s ease',
                 fontWeight: activo ? 600 : 500,
-                fontSize: 12.5,
+                fontSize: TEXTO.menor,
               }}
             >
               <span
@@ -59,7 +60,7 @@ export function SelectorTipoRadicacion({
                   justifyContent: 'center',
                   background: activo ? '#ffffff' : '#eceef1',
                   color: t.color,
-                  fontSize: 14,
+                  fontSize: TEXTO.base,
                   flexShrink: 0,
                 }}
               >

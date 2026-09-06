@@ -1,10 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { contextHeaders } from '@/shared/api/client';
 import { DESPACHO } from '@/derecho';
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api';
-
-export type TipoRadicacionIA = 'apelacion' | 'fallo';
+import { pedirRecepcion, type ParteRecepcion } from '@/shared/recepcion/api';
+import { leerCaseUpdate, limpiarMarcadores, soloLoQueTrae } from '@/shared/recepcion/marcadores';
 
 export interface RadicacionDraft {
   radicadoOrigen: string;
@@ -28,56 +25,51 @@ const DRAFT_INICIAL: RadicacionDraft = {
   fundamentos: '',
 };
 
-const CASE_UPDATE_RE = /<case_update>([\s\S]*?)<\/case_update>/;
-
-function parseCaseUpdate(texto: string): Partial<RadicacionDraft> {
-  const match = CASE_UPDATE_RE.exec(texto);
-  if (!match) return {};
-  try {
-    const raw = JSON.parse(match[1]) as Record<string, unknown>;
-    // El agente unificado de recepción emite "partes" como arreglo de objetos;
-    // la ficha de recursos las muestra como una sola línea de texto.
-    const partes = Array.isArray(raw.partes)
-      ? raw.partes
-          .map((p) => {
-            const parte = p as { nombre?: string; rol?: string };
-            return [parte.nombre, parte.rol ? `(${parte.rol})` : ''].filter(Boolean).join(' ');
-          })
-          .join(', ')
-      : (raw.partes as string | undefined);
-    const campos: Partial<RadicacionDraft> = {
-      radicadoOrigen: raw.radicadoOrigen as string | undefined,
-      partes: partes || undefined,
-      fechaDecision: raw.fechaDecision as string | undefined,
-      sustento: raw.sustento as string | undefined,
-      fundamentos: raw.fundamentos as string | undefined,
-    };
-    return Object.fromEntries(
-      Object.entries(campos).filter(([, v]) => v !== undefined && v !== null && v !== ''),
-    ) as Partial<RadicacionDraft>;
-  } catch {
-    return {};
-  }
-}
-
-function limpiarMarcadores(texto: string): string {
-  let result = texto.replace(/<case_update>[\s\S]*?<\/case_update>/g, '');
-  result = result.replace(/<case_update>[\s\S]*/, '');
-  return result.trim();
+/** El `<case_update>` del agente, con las claves propias del recurso. */
+interface CaseUpdateRecurso {
+  radicadoOrigen?: string;
+  partes?: ParteRecepcion[] | string;
+  fechaDecision?: string;
+  sustento?: string;
+  fundamentos?: string;
 }
 
 /**
- * Hook de chat guiado para radicar Apelación y Fallo de 2ª instancia.
- * Replica el patrón de useIntakeChat (streaming + <case_update>) pero con
- * los campos propios de estos trámites. HITL: el humano aporta los datos
- * fácticos; la IA solo redacta la fundamentación jurídica (campo sustento).
+ * El agente devuelve las partes como arreglo de objetos; la ficha del recurso
+ * las muestra en una sola línea.
  */
-export function useRadicacionIA(tipo: TipoRadicacionIA) {
-  const titulo = tipo === 'apelacion' ? 'apelación' : 'fallo de segunda instancia';
+const partesEnUnaLinea = (partes: CaseUpdateRecurso['partes']): string | undefined =>
+  Array.isArray(partes)
+    ? partes
+        .map((p) => [p.nombre, p.rol ? `(${p.rol})` : ''].filter(Boolean).join(' '))
+        .filter((linea) => linea.trim().length > 0)
+        .join(', ')
+    : partes;
+
+function camposDeLaRespuesta(respuesta: string): Partial<RadicacionDraft> {
+  const bruto = leerCaseUpdate<CaseUpdateRecurso>(respuesta);
+  if (!bruto) return {};
+  return soloLoQueTrae<RadicacionDraft>({
+    radicadoOrigen: bruto.radicadoOrigen,
+    partes: partesEnUnaLinea(bruto.partes),
+    fechaDecision: bruto.fechaDecision,
+    sustento: bruto.sustento,
+    fundamentos: bruto.fundamentos,
+  } as RadicacionDraft);
+}
+
+/**
+ * Chat guiado para radicar la apelación. Habla con el mismo agente de
+ * recepción que el chat de querellas y quejas —mismo protocolo de marcadores,
+ * en `shared/recepcion`— y lo que cambia es la ficha que se llena.
+ *
+ * HITL: el humano aporta los hechos; la IA redacta la fundamentación jurídica.
+ */
+export function useRadicacionIA() {
   const [mensajes, setMensajes] = useState<ChatMessageIA[]>([
     {
       rol: 'agente',
-      texto: `Buenos días. Soy el asistente de radicación de la ${DESPACHO.nombre}. Voy a ayudarle a redactar la ${titulo}. Cuénteme los hechos: ¿cuál es el radicado de la decisión de primera instancia y quiénes son las partes?`,
+      texto: `Buenos días. Soy el asistente de radicación de la ${DESPACHO.nombre}. Voy a ayudarle a radicar la apelación. Adjunte el escrito del recurso y la decisión apelada, o cuénteme los hechos: ¿cuál es el radicado de la decisión de primera instancia y quiénes son las partes?`,
     },
   ]);
   const [draft, setDraft] = useState<RadicacionDraft>(DRAFT_INICIAL);
@@ -100,7 +92,7 @@ export function useRadicacionIA(tipo: TipoRadicacionIA) {
   }, []);
 
   const enviar = useCallback(
-    async (texto: string) => {
+    async (texto: string, archivos?: File[]) => {
       if (!texto.trim() || cargando) return;
 
       setMensajes((prev) => [
@@ -111,21 +103,15 @@ export function useRadicacionIA(tipo: TipoRadicacionIA) {
       setCargando(true);
 
       try {
-        // Chat único de radicación: /legal/recepcion (multipart) atiende
-        // querellas, quejas, actas Y recursos — el <case_update> trae las
-        // claves de recurso (radicadoOrigen, sustento, ...) cuando aplica.
-        const formData = new FormData();
-        formData.append('data', `[Trámite: ${tipo}] ${texto.trim()}`);
-        const res = await fetch(`${API_BASE}/legal/recepcion`, {
-          method: 'POST',
-          headers: contextHeaders(),
-          body: formData,
+        // Los adjuntos VIAJAN. Antes se quedaban en la pantalla: el inspector
+        // subía el escrito del recurso, el agente nunca lo veía y la ficha
+        // seguía vacía sin que nada explicara por qué.
+        const respuesta = await pedirRecepcion({
+          texto: `[Trámite: apelacion] ${texto.trim()}`,
+          archivos,
         });
 
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const { data: respuesta } = (await res.json()) as { data: string };
-
-        const actualiza = parseCaseUpdate(respuesta);
+        const actualiza = camposDeLaRespuesta(respuesta);
         const visible = limpiarMarcadores(respuesta);
         setMensajes((prev) => {
           const copia = [...prev];
@@ -150,7 +136,7 @@ export function useRadicacionIA(tipo: TipoRadicacionIA) {
         setCargando(false);
       }
     },
-    [cargando, flashFields, tipo],
+    [cargando, flashFields],
   );
 
   const completoMinimo =

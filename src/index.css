@@ -689,3 +689,39 @@ h3.ant-typography,
   background: #c2bfb5;
   background-clip: content-box;
 }
+
+/* ── Área de trabajo del expediente ──────────────────────────────────────────
+   Un tercio para el índice de pasos, dos tercios para el paso activo. Por
+   debajo de 1024 px no caben dos columnas útiles: el riel pasa a ser una fila
+   de pastillas desplazable sobre el lienzo, que es lo que sí cabe en tableta. */
+@media (max-width: 1023px) {
+  .area-trabajo {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .area-trabajo > aside {
+    position: static !important;
+  }
+  .area-trabajo nav[aria-label='Pasos del expediente'] {
+    display: flex !important;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: thin;
+  }
+  .area-trabajo nav[aria-label='Pasos del expediente'] .riel-paso {
+    width: auto !important;
+    flex: 0 0 auto;
+  }
+  /* El resumen se cae: en horizontal solo cabe el número y el título. */
+  .area-trabajo .riel-paso > span:last-child > span:last-child {
+    display: none !important;
+  }
+}
+
+.riel-paso:hover:not(:disabled) {
+  background: var(--surface-2) !important;
+}
+.riel-paso:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 1px;
+}

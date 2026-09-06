@@ -14,6 +14,7 @@ import {
   type FilaProceso,
 } from '@/shared/procesos/types';
 import { PALETA } from '@/theme/palette';
+import { TEXTO } from '@/theme/escala';
 
 const TODOS = 'todos';
 
@@ -229,7 +230,7 @@ const estilos: Record<string, React.CSSProperties> = {
     borderRadius: 10,
     background: 'transparent',
     color: PALETA.texto,
-    fontSize: 13,
+    fontSize: TEXTO.base,
     fontFamily: 'inherit',
     cursor: 'pointer',
   },
@@ -255,7 +256,7 @@ const estilos: Record<string, React.CSSProperties> = {
     background: 'transparent',
     borderRadius: 8,
     padding: '6px 8px',
-    fontSize: 12.5,
+    fontSize: TEXTO.menor,
     fontFamily: 'inherit',
     color: PALETA.textoSuave,
     cursor: 'pointer',
@@ -277,7 +278,7 @@ const estilos: Record<string, React.CSSProperties> = {
     outline: 'none',
     background: 'transparent',
     fontFamily: 'inherit',
-    fontSize: 12.5,
+    fontSize: TEXTO.menor,
     color: PALETA.texto,
   },
   select: {
@@ -286,12 +287,12 @@ const estilos: Record<string, React.CSSProperties> = {
     padding: '5px 6px',
     background: 'transparent',
     fontFamily: 'inherit',
-    fontSize: 12.5,
+    fontSize: TEXTO.menor,
     color: PALETA.texto,
   },
   scroll: { flex: 1, overflowY: 'auto', padding: '6px 10px 18px' },
   grupoLabel: {
-    fontSize: 11,
+    fontSize: TEXTO.nota,
     letterSpacing: '0.07em',
     textTransform: 'uppercase',
     color: PALETA.textoTenue,
@@ -314,13 +315,13 @@ const estilos: Record<string, React.CSSProperties> = {
   itemTitulo: {
     flex: 1,
     minWidth: 0,
-    fontSize: 13,
+    fontSize: TEXTO.base,
     color: PALETA.texto,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
-  itemHora: { fontSize: 11, color: PALETA.textoTenue, flexShrink: 0 },
+  itemHora: { fontSize: TEXTO.nota, color: PALETA.textoTenue, flexShrink: 0 },
   itemCaso: {
     display: 'flex',
     flexDirection: 'column',
@@ -336,13 +337,13 @@ const estilos: Record<string, React.CSSProperties> = {
     fontFamily: 'inherit',
   },
   casoLinea: { display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'space-between' },
-  casoRadicado: { fontSize: 13, fontWeight: 600, color: PALETA.texto },
+  casoRadicado: { fontSize: TEXTO.base, fontWeight: 600, color: PALETA.texto },
   casoPartes: {
-    fontSize: 11.5,
+    fontSize: TEXTO.nota,
     color: PALETA.textoSuave,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
-  textoTenue: { color: PALETA.textoTenue, fontSize: 13 },
+  textoTenue: { color: PALETA.textoTenue, fontSize: TEXTO.base },
 };

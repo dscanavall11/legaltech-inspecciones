@@ -9,6 +9,7 @@ import { HERRAMIENTAS, motivoNoDisponible, type ClaveHerramienta, type Herramien
 import { PanelDocumento, PanelMultas, PanelNorma } from './paneles';
 import { PanelContador, PanelEtapa, PanelGrafo } from './panelesCaso';
 import type { Artefacto } from './skills';
+import { TEXTO } from '@/theme/escala';
 
 interface Props {
   abiertas: ClaveHerramienta[];
@@ -229,7 +230,7 @@ const estilos: Record<string, React.CSSProperties> = {
     padding: '13px 16px',
     borderBottom: `1px solid ${PALETA.borde}`,
   },
-  tituloColumna: { fontSize: 13, fontWeight: 600, color: PALETA.texto },
+  tituloColumna: { fontSize: TEXTO.base, fontWeight: 600, color: PALETA.texto },
   agregarBtn: {
     display: 'inline-flex',
     alignItems: 'center',
@@ -239,7 +240,7 @@ const estilos: Record<string, React.CSSProperties> = {
     borderRadius: 999,
     background: 'transparent',
     color: PALETA.texto,
-    fontSize: 12.5,
+    fontSize: TEXTO.menor,
     fontFamily: 'inherit',
     cursor: 'pointer',
   },
@@ -270,8 +271,8 @@ const estilos: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
   },
   opcionBloqueada: { color: PALETA.textoTenue, cursor: 'not-allowed' },
-  opcionNombre: { display: 'block', fontSize: 13, fontWeight: 600 },
-  opcionMotivo: { display: 'block', fontSize: 11.5, color: PALETA.textoSuave, lineHeight: 1.4 },
+  opcionNombre: { display: 'block', fontSize: TEXTO.base, fontWeight: 600 },
+  opcionMotivo: { display: 'block', fontSize: TEXTO.nota, color: PALETA.textoSuave, lineHeight: 1.4 },
   scroll: { flex: 1, overflowY: 'auto', padding: '12px 14px 24px' },
   tarjeta: {
     border: `1px solid ${PALETA.borde}`,
@@ -286,7 +287,7 @@ const estilos: Record<string, React.CSSProperties> = {
     padding: '8px 10px',
     background: 'rgba(0,0,0,0.02)',
   },
-  tarjetaTitulo: { flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: PALETA.texto },
+  tarjetaTitulo: { flex: 1, minWidth: 0, fontSize: TEXTO.base, fontWeight: 600, color: PALETA.texto },
   tarjetaCuerpo: { padding: '10px 12px 14px' },
   plegarBtn: {
     border: 'none',
@@ -304,5 +305,5 @@ const estilos: Record<string, React.CSSProperties> = {
     padding: 4,
     display: 'inline-flex',
   },
-  tenue: { color: PALETA.textoSuave, fontSize: 12.5, lineHeight: 1.55, margin: 0 },
+  tenue: { color: PALETA.textoSuave, fontSize: TEXTO.menor, lineHeight: 1.55, margin: 0 },
 };

@@ -1,6 +1,7 @@
 import { Alert, Input, Select, Typography } from 'antd';
 import { INCREMENTO_LABEL, type CausalIncremento } from '@/derecho';
 import { PALETA } from '@/theme/theme';
+import { TEXTO } from '@/theme/escala';
 
 const { Text } = Typography;
 
@@ -30,7 +31,7 @@ export function ReincidenciaCausalField({
     <div>
       <div
         style={{
-          fontSize: 12,
+          fontSize: TEXTO.menor,
           fontWeight: 600,
           letterSpacing: '0.05em',
           textTransform: 'uppercase',
@@ -68,7 +69,7 @@ export function ReincidenciaCausalField({
         </>
       )}
       {!requiereEvidencia && (
-        <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 6 }}>
+        <Text type="secondary" style={{ fontSize: TEXTO.menor, display: 'block', marginTop: 6 }}>
           Sin causal marcada, el acta deja constancia motivada de que no procede incremento.
         </Text>
       )}

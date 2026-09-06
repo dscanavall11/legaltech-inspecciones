@@ -15,6 +15,7 @@ import type { EstadoQuerella } from '@/features/querellas/types';
 import { PALETA } from '@/theme/theme';
 import { glassChrome, glassBackdrop } from '@/theme/glass';
 import { usePrefersReducedTransparency } from '@/shared/hooks/usePrefersReducedTransparency';
+import { TEXTO } from '@/theme/escala';
 
 const { Title, Text } = Typography;
 
@@ -31,7 +32,7 @@ const ghostBtnStyle: CSSProperties = {
   border: `1px solid ${PALETA.borde}`,
   background: PALETA.superficie,
   cursor: 'pointer',
-  fontSize: 13,
+  fontSize: TEXTO.base,
   color: PALETA.textoSuave,
 };
 
@@ -40,7 +41,7 @@ const primaryBtnStyle: CSSProperties = {
   borderRadius: 10,
   border: 'none',
   cursor: 'pointer',
-  fontSize: 13,
+  fontSize: TEXTO.base,
   fontWeight: 600,
   color: '#fff',
   background: PALETA.azul,
@@ -138,7 +139,7 @@ export function AudienciasPage() {
           <Title level={3} style={{ margin: 0 }}>
             Audiencias
           </Title>
-          <Text type="secondary" style={{ fontSize: 13.5 }}>
+          <Text type="secondary" style={{ fontSize: TEXTO.base }}>
             {casoSeleccionado
               ? 'Ahora selecciona un día en el calendario para agendar este caso.'
               : 'Calendario de audiencias — agenda los casos sin fecha desde la lista.'}
@@ -165,7 +166,7 @@ export function AudienciasPage() {
           <div
             style={{
               padding: '0 14px',
-              fontSize: 13.5,
+              fontSize: TEXTO.base,
               fontWeight: 600,
               minWidth: 128,
               textAlign: 'center',
@@ -209,7 +210,7 @@ export function AudienciasPage() {
                 key={d}
                 style={{
                   textAlign: 'center',
-                  fontSize: 11,
+                  fontSize: TEXTO.nota,
                   fontWeight: 600,
                   textTransform: 'uppercase',
                   color: PALETA.textoTenue,
@@ -253,7 +254,7 @@ export function AudienciasPage() {
                     e.currentTarget.style.background = esHoy ? PALETA.azulSuave : 'transparent';
                   }}
                 >
-                  <span style={{ fontSize: 13, fontWeight: esHoy ? 700 : 500, color: esHoy ? PALETA.azulOscuro : PALETA.texto }}>
+                  <span style={{ fontSize: TEXTO.base, fontWeight: esHoy ? 700 : 500, color: esHoy ? PALETA.azulOscuro : PALETA.texto }}>
                     {dia.date()}
                   </span>
                   <span style={{ display: 'flex', gap: 2 }}>
@@ -268,12 +269,12 @@ export function AudienciasPage() {
         </Card>
 
         <Card variant="borderless" style={{ flex: '0 1 300px', minWidth: 260 }}>
-          <Text strong style={{ fontSize: 14 }}>
+          <Text strong style={{ fontSize: TEXTO.base }}>
             Casos sin audiencia programada
           </Text>
           <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
             {casosSinAudiencia.length === 0 ? (
-              <Text type="secondary" style={{ fontSize: 12.5 }}>
+              <Text type="secondary" style={{ fontSize: TEXTO.menor }}>
                 No hay casos pendientes por agendar.
               </Text>
             ) : (
@@ -293,12 +294,12 @@ export function AudienciasPage() {
                       transition: 'background 150ms ease, border-color 150ms ease',
                     }}
                   >
-                    <div style={{ fontSize: 12.5, fontWeight: 600, color: PALETA.texto }}>
+                    <div style={{ fontSize: TEXTO.menor, fontWeight: 600, color: PALETA.texto }}>
                       Radicado {q.radicado}
                     </div>
                     <div
                       style={{
-                        fontSize: 11.5,
+                        fontSize: TEXTO.nota,
                         color: PALETA.textoSuave,
                         marginTop: 2,
                         overflow: 'hidden',
@@ -354,13 +355,13 @@ export function AudienciasPage() {
                 boxShadow: '0 12px 32px rgba(32,33,36,.18)',
               }}
             >
-              <Text strong style={{ fontSize: 15 }}>
+              <Text strong style={{ fontSize: TEXTO.titulo }}>
                 {diaSeleccionado.format('D [de] MMMM')}
               </Text>
 
               {caso ? (
                 <div style={{ marginTop: 14 }}>
-                  <div style={{ fontSize: 12.5, color: PALETA.textoSuave, marginBottom: 10 }}>
+                  <div style={{ fontSize: TEXTO.menor, color: PALETA.textoSuave, marginBottom: 10 }}>
                     Agendar audiencia para <strong>Radicado {caso.radicado}</strong> — {caso.asunto}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
@@ -369,7 +370,7 @@ export function AudienciasPage() {
                       type="time"
                       value={hora}
                       onChange={(e) => setHora(e.target.value)}
-                      style={{ border: `1px solid ${PALETA.borde}`, borderRadius: 10, padding: '6px 10px', fontSize: 13.5 }}
+                      style={{ border: `1px solid ${PALETA.borde}`, borderRadius: 10, padding: '6px 10px', fontSize: TEXTO.base }}
                     />
                   </div>
                   <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
@@ -390,8 +391,8 @@ export function AudienciasPage() {
                       <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <CheckCircleOutlined style={{ color: PALETA.verde }} />
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 13, fontWeight: 600 }}>{a.asunto}</div>
-                          <div style={{ fontSize: 11.5, color: PALETA.textoSuave }}>
+                          <div style={{ fontSize: TEXTO.base, fontWeight: 600 }}>{a.asunto}</div>
+                          <div style={{ fontSize: TEXTO.nota, color: PALETA.textoSuave }}>
                             {a.querellante} contra {a.querellado}
                           </div>
                         </div>
@@ -418,6 +419,6 @@ const navSegmentStyle: CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  fontSize: 13,
+  fontSize: TEXTO.base,
   color: PALETA.textoSuave,
 };

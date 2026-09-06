@@ -5,6 +5,7 @@ import dayjs from 'dayjs';
 import { useChangeCaseState } from '@/shared/legalCases/api';
 import { ESTADO_LABEL, type Actuacion, type EstadoQuerella } from './types';
 import { PALETA } from '@/theme/theme';
+import { TEXTO } from '@/theme/escala';
 
 const { Text } = Typography;
 
@@ -59,11 +60,11 @@ export function LineaTiempoEstados({
       children: (
         <div>
           <div style={{ fontWeight: 500, color: PALETA.texto }}>{a.titulo}</div>
-          <div style={{ fontSize: 12, color: PALETA.textoTenue }}>
+          <div style={{ fontSize: TEXTO.menor, color: PALETA.textoTenue }}>
             {dayjs(a.fecha).format('D [de] MMMM, YYYY · h:mm a')}
           </div>
           {a.descripcion && (
-            <Text type="secondary" style={{ fontSize: 12 }}>
+            <Text type="secondary" style={{ fontSize: TEXTO.menor }}>
               {a.descripcion}
             </Text>
           )}

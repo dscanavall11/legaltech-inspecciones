@@ -28,6 +28,14 @@ import { useCaseEvidence, useRegisterCaseEvidence, useDeleteCaseEvidence } from 
 import { getCaseDocumentDownloadUrl } from '@/shared/documentos/api';
 import { VisorLateral } from '@/shared/documentos/VisorLateral';
 import { PALETA } from '@/theme/theme';
+import { RADIO, TEXTO } from '@/theme/escala';
+import {
+  ACEPTA_EXPEDIENTE,
+  avisoDeRechazo,
+  avisoDeTamano,
+  esFormatoDeExpediente,
+  excedeElTope,
+} from '@/shared/documentos/formatos';
 
 const { Text } = Typography;
 
@@ -58,11 +66,11 @@ function FilaPrueba({ prueba, onVer, onDescargar, onEliminar }: {
   const esPdf = prueba.mimeType === 'application/pdf';
   return (
     <div
-      style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px', borderRadius: 16, transition: 'background 0.2s ease' }}
+      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: RADIO.bloque, transition: 'background 0.2s ease' }}
       onMouseEnter={(e) => (e.currentTarget.style.background = '#f7f9fc')}
       onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
     >
-      <div style={{ width: 42, height: 42, borderRadius: 13, background: estilo.fondo, color: estilo.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 19, flexShrink: 0 }}>
+      <div style={{ width: 36, height: 36, borderRadius: RADIO.control, background: estilo.fondo, color: estilo.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: TEXTO.seccion, flexShrink: 0 }}>
         {estilo.icono}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -71,9 +79,9 @@ function FilaPrueba({ prueba, onVer, onDescargar, onEliminar }: {
           <span style={{ color: PALETA.texto, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {EVIDENCE_TYPE_LABEL[prueba.evidenceType]}
           </span>
-          {prueba.hasFile && <PaperClipOutlined style={{ color: PALETA.textoTenue, fontSize: 12 }} />}
+          {prueba.hasFile && <PaperClipOutlined style={{ color: PALETA.textoTenue, fontSize: TEXTO.nota }} />}
         </div>
-        <div style={{ fontSize: 12, color: PALETA.textoTenue }}>
+        <div style={{ fontSize: TEXTO.nota, color: PALETA.textoTenue }}>
           {prueba.contributor ? EVIDENCE_CONTRIBUTOR_LABEL[prueba.contributor] : 'Aportante sin registrar'}
           {prueba.date ? ` · ${dayjs(prueba.date).format('D [de] MMMM, YYYY')}` : ''}
           {prueba.description ? ` · ${prueba.description}` : ''}
@@ -257,10 +265,18 @@ export function PruebasExpediente({ caseId }: { caseId: string }) {
             rows={2}
           />
           <Upload
-            accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.doc,.docx,.mp3,.wav,.mp4"
+            accept={ACEPTA_EXPEDIENTE}
             showUploadList={formulario.file !== null}
             fileList={formulario.file ? [{ uid: '1', name: formulario.file.name, status: 'done' }] : []}
             beforeUpload={(file) => {
+              if (!esFormatoDeExpediente(file.name)) {
+                message.error(avisoDeRechazo([file]));
+                return false;
+              }
+              if (excedeElTope(file.size)) {
+                message.error(avisoDeTamano(file.name, file.size));
+                return false;
+              }
               setFormulario((f) => ({ ...f, file }));
               return false;
             }}
@@ -269,7 +285,7 @@ export function PruebasExpediente({ caseId }: { caseId: string }) {
             <Button icon={<PaperClipOutlined />}>Adjuntar archivo (opcional)</Button>
           </Upload>
           {formulario.evidenceType && TIPOS_CON_ARCHIVO_ESPERADO.includes(formulario.evidenceType) && !formulario.file && (
-            <Text type="secondary" style={{ fontSize: 12 }}>
+            <Text type="secondary" style={{ fontSize: TEXTO.nota }}>
               Este tipo de prueba normalmente lleva un archivo adjunto.
             </Text>
           )}

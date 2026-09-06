@@ -36,6 +36,7 @@ import { useInspeccionStore } from '@/store/inspeccionStore';
 import { useTokenUsageSummary } from './api';
 import { PALETA, ELEVACION } from '@/theme/theme';
 import { FontSizeControl } from '@/shared/components/FontSizeControl';
+import { TEXTO } from '@/theme/escala';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -141,16 +142,16 @@ export function AjustesPage() {
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0,
-            fontSize: 16,
+            fontSize: TEXTO.titulo,
           }}
         >
           <FileProtectOutlined />
         </div>
         <div style={{ flex: 1 }}>
-          <Text strong style={{ fontSize: 14.5 }}>
+          <Text strong style={{ fontSize: TEXTO.titulo }}>
             Configuración del despacho
           </Text>
-          <Text type="secondary" style={{ fontSize: 12.5, display: 'block' }}>
+          <Text type="secondary" style={{ fontSize: TEXTO.menor, display: 'block' }}>
             Checklist de datos, membrete, cuenta de recaudo y plantillas propias del despacho.
           </Text>
         </div>
@@ -165,7 +166,7 @@ export function AjustesPage() {
               <SettingOutlined style={{ marginRight: 8, color: PALETA.azul }} />
               Ajustes de la inspección
             </Title>
-            <Text type="secondary" style={{ fontSize: 13, display: 'block', marginBottom: 18 }}>
+            <Text type="secondary" style={{ fontSize: TEXTO.base, display: 'block', marginBottom: 18 }}>
               Estos datos aparecen en las actas y documentos que genera el despacho.
             </Text>
 
@@ -201,7 +202,7 @@ export function AjustesPage() {
             </Button>
 
             <Divider style={{ margin: '20px 0 14px' }} />
-            <Text style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: PALETA.textoTenue }}>
+            <Text style={{ fontSize: TEXTO.nota, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: PALETA.textoTenue }}>
               Accesibilidad
             </Text>
             <div style={{ marginTop: 8 }}>
@@ -219,7 +220,7 @@ export function AjustesPage() {
               </Title>
               <Tag color="blue">Gratuito</Tag>
             </div>
-            <Text type="secondary" style={{ fontSize: 13 }}>
+            <Text type="secondary" style={{ fontSize: TEXTO.base }}>
               Consumo de IA general (chat con {NORMA.nombre}, RAG + OKF) este mes.
             </Text>
 
@@ -233,14 +234,14 @@ export function AjustesPage() {
                   format={() => `${porcentajeUso}%`}
                 />
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
-                  <Text style={{ fontSize: 13 }}>
+                  <Text style={{ fontSize: TEXTO.base }}>
                     <strong>{uso.totalTokens.toLocaleString('es-CO')}</strong> tokens usados
                   </Text>
-                  <Text type="secondary" style={{ fontSize: 13 }}>
+                  <Text type="secondary" style={{ fontSize: TEXTO.base }}>
                     de {uso.limiteTokens.toLocaleString('es-CO')} incluidos
                   </Text>
                 </div>
-                <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 4, textTransform: 'capitalize' }}>
+                <Text type="secondary" style={{ fontSize: TEXTO.menor, display: 'block', marginTop: 4, textTransform: 'capitalize' }}>
                   Periodo {uso.periodo}
                 </Text>
               </div>
@@ -251,7 +252,7 @@ export function AjustesPage() {
             )}
 
             <Divider style={{ margin: '20px 0 14px' }} />
-            <Text style={{ fontSize: 13, lineHeight: 1.6 }}>
+            <Text style={{ fontSize: TEXTO.base, lineHeight: 1.6 }}>
               El plan gratuito incluye{' '}
               <strong>{uso ? `${uso.limiteTokens.toLocaleString('es-CO')} tokens al mes` : 'un límite mensual de tokens'}</strong>{' '}
               de IA general (chat, resúmenes, consultas jurídicas). El radicador, los borradores de fallo y el
@@ -285,16 +286,16 @@ export function AjustesPage() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0,
-                    fontSize: 15,
+                    fontSize: TEXTO.titulo,
                   }}
                 >
                   {p.icono}
                 </div>
                 <div>
-                  <Text strong style={{ fontSize: 14 }}>
+                  <Text strong style={{ fontSize: TEXTO.base }}>
                     {p.titulo}
                   </Text>
-                  <Paragraph type="secondary" style={{ fontSize: 13, marginBottom: 0, marginTop: 2 }}>
+                  <Paragraph type="secondary" style={{ fontSize: TEXTO.base, marginBottom: 0, marginTop: 2 }}>
                     {p.texto}
                   </Paragraph>
                 </div>
@@ -329,14 +330,14 @@ export function AjustesPage() {
                       maxWidth: '75%',
                       padding: '8px 12px',
                       borderRadius: 12,
-                      fontSize: 13.5,
+                      fontSize: TEXTO.base,
                       background: m.rol === 'usuario' ? PALETA.azul : '#efede7',
                       color: m.rol === 'usuario' ? '#fff' : PALETA.texto,
                       whiteSpace: 'pre-wrap',
                     }}
                   >
                     {m.contenido || (
-                      <Text type="secondary" italic style={{ fontSize: 13 }}>
+                      <Text type="secondary" italic style={{ fontSize: TEXTO.base }}>
                         Escribiendo…
                       </Text>
                     )}

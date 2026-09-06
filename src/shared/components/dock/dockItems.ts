@@ -83,7 +83,7 @@ export const DOCK_SECTIONS: DockSection[] = [
         label: 'Quejas',
         ayuda: 'Comparendo impugnado',
         iconKey: 'quejas',
-        ruta: '/panel/comparendos',
+        ruta: '/panel/quejas',
         color: AZUL,
       },
     ],

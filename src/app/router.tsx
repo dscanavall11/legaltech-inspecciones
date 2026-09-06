@@ -28,10 +28,18 @@ const AreaTrabajoQuerella = lazy(() =>
     default: m.AreaTrabajoQuerella,
   })),
 );
+const AreaTrabajoApelacionPage = lazy(() =>
+  import('@/features/apelaciones/AreaTrabajoApelacionPage').then((m) => ({
+    default: m.AreaTrabajoApelacionPage,
+  })),
+);
 const ApelacionDetailPage = lazy(() =>
   import('@/features/apelaciones/ApelacionDetailPage').then((m) => ({
     default: m.ApelacionDetailPage,
   })),
+);
+const AreaTrabajoQueja = lazy(() =>
+  import('@/features/quejas/AreaTrabajoQueja').then((m) => ({ default: m.AreaTrabajoQueja })),
 );
 const QuejaDetailPage = lazy(() =>
   import('@/features/quejas/QuejaDetailPage').then((m) => ({ default: m.QuejaDetailPage })),
@@ -145,20 +153,24 @@ export const router = createBrowserRouter([
         path: 'querellas/:id/documento/:tipo',
         element: <Cargando><DocumentoPage /></Cargando>,
       },
-      // Quejas ya no es una sección: sus trámites subieron al riel como
-      // entradas propias. El expediente de una queja se abre desde Mis
-      // procesos, y el listado redirige allí para no romper enlaces guardados.
-      { path: 'quejas', element: <Navigate to="/panel/procesos" replace /> },
+      // La queja es el expediente del comparendo impugnado y se trabaja con el
+      // mismo recorrido que la querella (shared/expediente).
+      {
+        path: 'quejas',
+        element: (
+          <Cargando>
+            <AreaTrabajoQueja />
+          </Cargando>
+        ),
+      },
       { path: 'quejas/:id', element: <Cargando><QuejaDetailPage /></Cargando> },
+      // Mismo recorrido que querella y queja (shared/expediente); el listado
+      // del despacho vive en Mis procesos, no aquí.
       {
         path: 'apelaciones',
         element: (
           <Cargando>
-            <BandejaProcesos
-              tipo="apelacion"
-              titulo="Apelaciones"
-              descripcion="Recursos contra las medidas correctivas de este despacho. Aquí se concede la alzada y se remite; quien la resuelve es el superior jerárquico."
-            />
+            <AreaTrabajoApelacionPage />
           </Cargando>
         ),
       },

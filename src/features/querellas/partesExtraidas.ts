@@ -1,45 +1,38 @@
-import { PARTE_VACIA, type PartesQuerella } from './partes';
+import type { PartesQuerella } from './partes';
+import {
+  buscarPorCasilla,
+  etiquetasPropuestas,
+  fusionarParte,
+  sinUbicar,
+  texto,
+  type ParteExtraida,
+  type Vocabulario,
+} from '@/shared/partes/rolesExtraidos';
+
+export type { ParteExtraida };
 
 /**
- * Una parte del proceso leída de los documentos. Espejo de
- * ComplaintResponse.ExtractedParty en el servicio legal, que es
- * deliberadamente genérico: `role` es texto libre porque ese servicio no sabe
- * de querellas.
- *
- * Un campo vacío significa "no consta en los documentos", no "no se sabe":
- * el prompt prohíbe deducir e inventar, porque este dato acaba identificando
- * a una persona dentro de una decisión firmada.
- */
-export interface ParteExtraida {
-  role?: string;
-  fullName?: string;
-  identificationType?: string;
-  identificationNumber?: string;
-  capacity?: string;
-}
-
-const texto = (v?: string) => (v ?? '').trim();
-
-/**
- * Traduce el rol libre que devuelve el analizador al vocabulario de la
+ * El rol libre que devuelve el analizador, traducido al vocabulario de la
  * querella. Esta correspondencia es negocio de inspecciones y por eso vive
- * aquí, en la feature, y no en el contrato del servicio.
- *
- * Se aceptan varias grafías porque el rol viene del documento tal cual, y un
- * acta escribe "presunto infractor" donde otra escribe "querellado".
+ * aquí, en la feature, y no en el contrato del servicio ni en el módulo
+ * compartido que hace el emparejamiento.
  */
-const ROLES: Record<'querellante' | 'querellado', readonly string[]> = {
-  querellante: ['querellante', 'demandante', 'accionante', 'quejoso', 'plaintiff'],
-  querellado: ['querellado', 'presunto infractor', 'infractor', 'demandado', 'accionado', 'defendant'],
+const VOCABULARIO: Vocabulario<'querellante' | 'querellado'> = {
+  querellante: ['querellant', 'demandant', 'accionant', 'quejos', 'denunciant', 'plaintiff'],
+  querellado: [
+    'querellad',
+    'infractor',
+    'demandad',
+    'accionad',
+    'denunciad',
+    'investigad',
+    'defendant',
+  ],
 };
 
-function buscarPorRol(
-  partes: readonly ParteExtraida[],
-  rol: keyof typeof ROLES,
-): ParteExtraida | undefined {
-  const aceptados = ROLES[rol];
-  return partes.find((p) => aceptados.includes(texto(p.role).toLowerCase()));
-}
+/** Partes que el analizador leyó pero cuyo rol no cae en ninguna casilla. */
+export const partesSinUbicar = (extraidas: readonly ParteExtraida[] | undefined): string[] =>
+  sinUbicar(extraidas, VOCABULARIO);
 
 /**
  * Vuelca lo extraído sobre la ficha **sin pisar lo que el inspector ya
@@ -52,46 +45,33 @@ export function fusionarExtraidas(
 ): PartesQuerella {
   if (!extraidas || extraidas.length === 0) return actuales;
 
-  const rellenar = (actual: string, propuesto?: string) =>
-    actual.trim().length > 0 ? actual : texto(propuesto);
-
-  const querellante = buscarPorRol(extraidas, 'querellante');
-  const querellado = buscarPorRol(extraidas, 'querellado');
+  const querellante = buscarPorCasilla(extraidas, VOCABULARIO, 'querellante');
+  const querellado = buscarPorCasilla(extraidas, VOCABULARIO, 'querellado');
 
   return {
     ...actuales,
-    querellante: {
-      ...PARTE_VACIA,
-      ...actuales.querellante,
-      nombre: rellenar(actuales.querellante.nombre, querellante?.fullName),
-      identificacion: rellenar(
-        actuales.querellante.identificacion,
-        querellante?.identificationNumber,
-      ),
-    },
-    querellado: {
-      ...PARTE_VACIA,
-      ...actuales.querellado,
-      nombre: rellenar(actuales.querellado.nombre, querellado?.fullName),
-      identificacion: rellenar(actuales.querellado.identificacion, querellado?.identificationNumber),
-    },
-    calidadQuerellante: rellenar(actuales.calidadQuerellante, querellante?.capacity),
+    querellante: fusionarParte(actuales.querellante, querellante),
+    querellado: fusionarParte(actuales.querellado, querellado),
+    calidadQuerellante:
+      actuales.calidadQuerellante.trim().length > 0
+        ? actuales.calidadQuerellante
+        : texto(querellante?.capacity),
   };
 }
 
 /** Qué campos vienen de la máquina y el inspector todavía no ha confirmado. */
 export function camposPorVerificar(extraidas: readonly ParteExtraida[] | undefined): string[] {
   if (!extraidas || extraidas.length === 0) return [];
-  const querellante = buscarPorRol(extraidas, 'querellante');
-  const querellado = buscarPorRol(extraidas, 'querellado');
+  const querellante = buscarPorCasilla(extraidas, VOCABULARIO, 'querellante');
+  const querellado = buscarPorCasilla(extraidas, VOCABULARIO, 'querellado');
 
-  return [
-    [querellante?.fullName, 'nombre del querellante'] as const,
-    [querellante?.identificationNumber, 'identificación del querellante'] as const,
-    [querellante?.capacity, 'calidad en que actúa'] as const,
-    [querellado?.fullName, 'nombre del querellado'] as const,
-    [querellado?.identificationNumber, 'identificación del querellado'] as const,
-  ]
-    .filter(([valor]) => texto(valor).length > 0)
-    .map(([, etiqueta]) => etiqueta);
+  return etiquetasPropuestas([
+    [querellante?.fullName, 'nombre del querellante'],
+    [querellante?.identificationNumber, 'identificación del querellante'],
+    [querellante?.address, 'dirección del querellante'],
+    [querellante?.capacity, 'calidad en que actúa'],
+    [querellado?.fullName, 'nombre del querellado'],
+    [querellado?.identificationNumber, 'identificación del querellado'],
+    [querellado?.address, 'dirección del querellado'],
+  ]);
 }

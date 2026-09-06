@@ -17,6 +17,7 @@ import { DockItemBoton } from './DockItemBoton';
 import { PALETA } from '@/theme/palette';
 import { glassChrome } from '@/theme/glass';
 import { usePrefersReducedTransparency } from '@/shared/hooks/usePrefersReducedTransparency';
+import { TEXTO } from '@/theme/escala';
 
 /** Ancho del riel. AppLayout compensa este mismo valor con su paddingLeft. */
 export const ANCHO_RIEL = 228;
@@ -79,7 +80,7 @@ export function Dock() {
           {section.titulo && (
             <div
               style={{
-                fontSize: 10.5,
+                fontSize: TEXTO.nota,
                 fontWeight: 700,
                 letterSpacing: '0.08em',
                 textTransform: 'uppercase',

@@ -1,4 +1,7 @@
-import { parseCaseMetadata } from '@/shared/legalCases/types';
+import { parseCaseMetadata, type CaseParty } from '@/shared/legalCases/types';
+import { faltantesDeParte, PARTE_VACIA, type DatosParte } from '@/shared/partes/parte';
+
+export { PARTE_VACIA, rotuloParte, type DatosParte } from '@/shared/partes/parte';
 
 /**
  * Sujetos procesales de la querella. Son DOS, no uno: el art. 2.2.8.18.3.3 del
@@ -12,17 +15,6 @@ import { parseCaseMetadata } from '@/shared/legalCases/types';
  * calidad en que actúa el querellante— vive en `caseMetadata`, el mismo blob
  * opaco donde ya están orientaciones y datos del fallo. Sin migración.
  */
-export interface DatosParte {
-  nombre: string;
-  tipoIdentificacion: string;
-  identificacion: string;
-  direccion: string;
-  telefono: string;
-  correo: string;
-  /** Opcional: el art. 2.2.8.18.4.3 no exige abogado y prohíbe alegar falta de defensa técnica por no tenerlo. */
-  apoderado: string;
-}
-
 export interface PartesQuerella {
   querellante: DatosParte;
   querellado: DatosParte;
@@ -36,16 +28,6 @@ export interface PartesQuerella {
   inmuebleDireccion: string;
   matriculaInmobiliaria: string;
 }
-
-export const PARTE_VACIA: DatosParte = {
-  nombre: '',
-  tipoIdentificacion: 'CC',
-  identificacion: '',
-  direccion: '',
-  telefono: '',
-  correo: '',
-  apoderado: '',
-};
 
 export const PARTES_VACIAS: PartesQuerella = {
   querellante: { ...PARTE_VACIA },
@@ -86,26 +68,38 @@ export function leerPartes(caseMetadataRaw: string | null | undefined): PartesQu
  * en vez de dejar que el documento salga con un sujeto procesal vacío.
  */
 export function faltantesParaFallo(partes: PartesQuerella): string[] {
-  const sinNombre = (p: DatosParte) => p.nombre.trim().length === 0;
-  const sinIdentificacion = (p: DatosParte) => p.identificacion.trim().length === 0;
   return [
-    ...(sinNombre(partes.querellante) ? ['Nombre del querellante'] : []),
-    ...(sinIdentificacion(partes.querellante) ? ['Identificación del querellante'] : []),
+    ...faltantesDeParte('querellante', partes.querellante),
     ...(partes.calidadQuerellante.trim().length === 0
       ? ['Calidad en que actúa el querellante (art. 2.2.8.18.4.1)']
       : []),
-    ...(sinNombre(partes.querellado) ? ['Nombre del querellado'] : []),
-    ...(sinIdentificacion(partes.querellado) ? ['Identificación del querellado'] : []),
+    ...faltantesDeParte('querellado', partes.querellado),
   ];
 }
 
-/** Nombre para el encabezado del fallo; nunca inventa uno. */
-export function rotuloParte(parte: DatosParte): string {
-  const nombre = parte.nombre.trim();
-  const id = parte.identificacion.trim();
-  return nombre.length === 0
-    ? 'No identificado'
-    : id.length === 0
-      ? nombre
-      : `${nombre}, ${parte.tipoIdentificacion} ${id}`;
+
+/**
+ * La ficha, traducida a los sujetos procesales que guarda legalcase.
+ *
+ * `case_parties` solo tiene rol, tipo y número de documento y nombre: el resto
+ * de la ficha (contacto, apoderado, calidad) se queda en `caseMetadata`. No es
+ * duplicación, son dos lecturas distintas del mismo dato — de `case_parties`
+ * leen Mis procesos, el encabezado del fallo y el seudonimizador del servicio
+ * legal, que no saben nada de querellas.
+ *
+ * Una parte sin nombre no se envía: legalcase la rechazaría (columna NOT NULL)
+ * y media parte no es una parte.
+ */
+export function aCaseParties(partes: PartesQuerella): CaseParty[] {
+  return ([
+    ['querellante', partes.querellante],
+    ['querellado', partes.querellado],
+  ] as const)
+    .filter(([, parte]) => parte.nombre.trim().length > 0)
+    .map(([partyRole, parte]) => ({
+      partyRole,
+      identificationType: parte.tipoIdentificacion,
+      identificationNumber: parte.identificacion.trim(),
+      fullName: parte.nombre.trim(),
+    }));
 }

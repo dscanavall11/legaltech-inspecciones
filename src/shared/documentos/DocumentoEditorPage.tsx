@@ -29,6 +29,7 @@ import { useUploadCaseDocument } from './api';
 import { useChangeCaseState, useUpdateCaseFields } from '@/shared/legalCases/api';
 import { parseCaseMetadata, buildCaseMetadata } from '@/shared/legalCases/types';
 import { ELEVACION, PALETA } from '@/theme/theme';
+import { TEXTO } from '@/theme/escala';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -335,10 +336,10 @@ export function DocumentoEditorPage({
             }}
           >
             <div style={{ textAlign: 'center', marginBottom: 36 }}>
-              <div style={{ fontSize: 13, letterSpacing: 1, color: '#444' }}>REPÚBLICA DE COLOMBIA</div>
+              <div style={{ fontSize: TEXTO.base, letterSpacing: 1, color: '#444' }}>REPÚBLICA DE COLOMBIA</div>
               <div style={{ fontWeight: 700, marginTop: 4 }}>{encabezado}</div>
-              <div style={{ marginTop: 18, fontWeight: 700, fontSize: 17, textTransform: 'uppercase' }}>{titulo}</div>
-              <div style={{ fontSize: 13, color: '#444', marginTop: 4 }}>Radicado N.º {radicado}</div>
+              <div style={{ marginTop: 18, fontWeight: 700, fontSize: TEXTO.seccion, textTransform: 'uppercase' }}>{titulo}</div>
+              <div style={{ fontSize: TEXTO.base, color: '#444', marginTop: 4 }}>Radicado N.º {radicado}</div>
             </div>
 
             {acapitesEfectivos.map((a, i) => {
@@ -362,7 +363,7 @@ export function DocumentoEditorPage({
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span style={{ fontWeight: 700 }}>{a.titulo}</span>
                       {tieneCambios && (
-                        <Tag color="gold" style={{ marginRight: 0, fontSize: 11 }}>
+                        <Tag color="gold" style={{ marginRight: 0, fontSize: TEXTO.nota }}>
                           Editado
                         </Tag>
                       )}
@@ -382,7 +383,7 @@ export function DocumentoEditorPage({
                       autoSize={{ minRows: 3 }}
                       value={ediciones[a.id] ?? textoAcapite(a)}
                       onChange={(e) => setEdiciones((prev) => ({ ...prev, [a.id]: e.target.value }))}
-                      style={{ fontFamily: 'Georgia, "Times New Roman", serif', fontSize: 14.5 }}
+                      style={{ fontFamily: 'Georgia, "Times New Roman", serif', fontSize: TEXTO.titulo }}
                     />
                   ) : (
                     a.parrafos.map((p, pIdx) => (
@@ -400,7 +401,7 @@ export function DocumentoEditorPage({
                 marginTop: 48,
                 paddingTop: 16,
                 borderTop: '1px solid #ddd',
-                fontSize: 13,
+                fontSize: TEXTO.base,
                 color: '#444',
               }}
             >
@@ -428,7 +429,7 @@ export function DocumentoEditorPage({
             texto={acapitesEfectivos.map((a) => `${a.titulo}\n${a.parrafos.join('\n')}`).join('\n\n')}
             onGenerarResumen={generarResumen}
           />
-          <Text type="secondary" style={{ fontSize: 12, letterSpacing: 0.3, padding: '0 8px 6px' }}>
+          <Text type="secondary" style={{ fontSize: TEXTO.menor, letterSpacing: 0.3, padding: '0 8px 6px' }}>
             ACÁPITES DEL DOCUMENTO
           </Text>
           {acapitesEfectivos.map((a) => (
@@ -467,7 +468,7 @@ export function DocumentoEditorPage({
                   </Tooltip>
                 )}
               </div>
-              <div style={{ fontSize: 12, color: PALETA.textoTenue, marginTop: 2 }}>{a.resumen}</div>
+              <div style={{ fontSize: TEXTO.menor, color: PALETA.textoTenue, marginTop: 2 }}>{a.resumen}</div>
             </button>
           ))}
         </aside>

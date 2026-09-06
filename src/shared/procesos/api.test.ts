@@ -13,12 +13,14 @@ function caso(over: Partial<LegalCase> = {}): LegalCase {
     venueCity: 'Manizales',
     evidenceAssessment: null,
     legalReasoning: null,
-    currentStateCode: 'radicada',
     caseMetadata: null,
     background: null,
     ruling: null,
     parties: [],
     stateHistory: [],
+    status: 'ACTIVO',
+    finalizedAt: null,
+    finalizedReason: null,
     ...over,
   };
 }
@@ -90,15 +92,20 @@ describe('legalCaseAFila', () => {
     expect(fila.parteA).toBe('No identificado');
   });
 
-  it('solo marca fallo cuando hay estado post-decisión Y motivación guardada', () => {
-    const sinMotivacion = legalCaseAFila(caso({ currentStateCode: 'fallo_emitido' }));
-    const conMotivacion = legalCaseAFila(
-      caso({ currentStateCode: 'fallo_emitido', legalReasoning: 'Se resuelve...' }),
+  it('marca fallo solo cuando hay motivación guardada, sin importar el ciclo de vida', () => {
+    const sinMotivacion = legalCaseAFila(caso({ status: 'FINALIZADO' }));
+    const conMotivacionActivo = legalCaseAFila(caso({ legalReasoning: 'Se resuelve...' }));
+    const conMotivacionFinalizado = legalCaseAFila(
+      caso({ status: 'FINALIZADO', legalReasoning: 'Se resuelve...' }),
     );
-    const motivacionSinEstado = legalCaseAFila(caso({ legalReasoning: 'Borrador' }));
     expect(sinMotivacion.tieneFallo).toBe(false);
-    expect(conMotivacion.tieneFallo).toBe(true);
-    expect(motivacionSinEstado.tieneFallo).toBe(false);
+    expect(conMotivacionActivo.tieneFallo).toBe(true);
+    expect(conMotivacionFinalizado.tieneFallo).toBe(true);
+  });
+
+  it('el estado de la fila refleja el ciclo de vida real (ACTIVO/FINALIZADO)', () => {
+    expect(legalCaseAFila(caso({ status: 'ACTIVO' })).estado).toBe('ACTIVO');
+    expect(legalCaseAFila(caso({ status: 'FINALIZADO' })).estado).toBe('FINALIZADO');
   });
 
   it('lee asunto y término de caseMetadata cuando existen', () => {

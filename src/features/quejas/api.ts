@@ -39,7 +39,7 @@ function legalCaseToQueja(caso: LegalCase): QuejaDetalle {
 
   return {
     id: caso.id,
-    radicado: caso.filingNumber,
+    radicado: caso.filingNumber ?? 'Sin radicar',
     quejoso: nombrePorRol(caso, 'quejoso'),
     acusado: nombrePorRol(caso, 'acusado'),
     asunto: meta.asunto ?? caso.background?.reliefSought ?? 'Sin asunto registrado',

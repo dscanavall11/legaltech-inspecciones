@@ -25,13 +25,20 @@ export interface PartesQuerellaFormProps {
   caseMetadataRaw?: string | null;
   /** El expediente se acaba de abrir soltando documentos: se leen sin pedirlo. */
   autoExtraer?: boolean;
+  /** El expediente está FINALIZADO: no hay nada que consultar aquí aparte de los datos ya guardados. */
+  readOnly?: boolean;
 }
 
 /**
  * Los dos sujetos procesales de la querella. Se autoguarda en
  * `caseMetadata.partes`, igual que las orientaciones y los datos del fallo.
  */
-export function PartesQuerellaForm({ caseId, caseMetadataRaw, autoExtraer }: PartesQuerellaFormProps) {
+export function PartesQuerellaForm({
+  caseId,
+  caseMetadataRaw,
+  autoExtraer,
+  readOnly = false,
+}: PartesQuerellaFormProps) {
   const reemplazarPartes = useReplaceCaseParties();
   const {
     valor: partes,
@@ -51,6 +58,10 @@ export function PartesQuerellaForm({ caseId, caseMetadataRaw, autoExtraer }: Par
   const faltantes = faltantesParaFallo(partes);
 
   return (
+    // Este paso es solo formulario -- sin acciones de consulta propias -- así
+    // que un <fieldset disabled> basta para bloquear la mutación sin tocar
+    // cada campo. Ver shared/expediente/tipos.ts sobre por qué no hay bloqueo global.
+    <fieldset disabled={readOnly} style={{ border: 'none', margin: 0, padding: 0 }}>
     <Space direction="vertical" size={ESPACIO.md} style={{ width: '100%' }}>
       <ExtraerDeDocumentos
         caseId={caseId}
@@ -136,5 +147,6 @@ export function PartesQuerellaForm({ caseId, caseMetadataRaw, autoExtraer }: Par
         {LEYENDA_AUTOGUARDADO[estado]}
       </Text>
     </Space>
+    </fieldset>
   );
 }

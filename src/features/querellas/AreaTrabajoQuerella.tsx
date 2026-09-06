@@ -38,18 +38,19 @@ export function AreaTrabajoQuerella() {
         titulo: 'Documentos',
         ayuda: 'Lo que hay en el expediente. De aquí sale el análisis.',
         Resumen: ResumenDocumentos,
-        render: (caso) => <DocumentosExpediente caseId={caso.id} />,
+        render: (caso, { readOnly }) => <DocumentosExpediente caseId={caso.id} readOnly={readOnly} />,
       },
       {
         clave: 'datos',
         titulo: 'Datos del proceso',
         ayuda: 'Querellante, querellado y calidad en que actúa (art. 2.2.8.18.4.1).',
         Resumen: ResumenPartesQuerella,
-        render: (caso) => (
+        render: (caso, { readOnly }) => (
           <PartesQuerellaForm
             caseId={caso.id}
             caseMetadataRaw={caso.caseMetadata}
             autoExtraer={recienDeDocumentos}
+            readOnly={readOnly}
           />
         ),
       },
@@ -58,14 +59,14 @@ export function AreaTrabajoQuerella() {
         titulo: 'Pruebas',
         ayuda: 'Cada pieza con quién la aporta y para qué. Se valoran en el aparte 5.',
         Resumen: ResumenPruebas,
-        render: (caso) => <PruebasExpediente caseId={caso.id} />,
+        render: (caso, { readOnly }) => <PruebasExpediente caseId={caso.id} readOnly={readOnly} />,
       },
       {
         clave: 'fallo',
         titulo: 'Proyecto de fallo',
         ayuda: 'Sus instrucciones, el borrador, la revisión y la descarga en Word.',
         Resumen: ResumenFallo,
-        render: (caso) => (
+        render: (caso, { readOnly }) => (
           <>
             {/* La orientación era un paso aparte, pero es lo que el inspector le
                 dice a la IA antes de que redacte: pertenece a este mismo sitio. */}
@@ -74,9 +75,9 @@ export function AreaTrabajoQuerella() {
               ayuda="Instrucciones y dudas del funcionario. Nunca hechos probados."
               style={{ marginBottom: ESPACIO.lg }}
             >
-              <OrientacionesInspector caseId={caso.id} caseMetadataRaw={caso.caseMetadata} />
+              <OrientacionesInspector caseId={caso.id} caseMetadataRaw={caso.caseMetadata} readOnly={readOnly} />
             </Bloque>
-            <AnalisisPage caseId={caso.id} embebido autoGenerar={recienDeDocumentos} />
+            <AnalisisPage caseId={caso.id} embebido autoGenerar={recienDeDocumentos} readOnly={readOnly} />
           </>
         ),
       },

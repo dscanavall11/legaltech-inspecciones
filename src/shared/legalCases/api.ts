@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/shared/api/client';
-import type { CaseParty, CreateLegalCaseInput, LegalCase, PagedResponse } from './types';
+import type { CaseLifecycleStatus, CaseParty, CreateLegalCaseInput, LegalCase, PagedResponse } from './types';
 
 export const legalCasesKeys = {
   all: ['legal-cases'] as const,
@@ -11,6 +11,8 @@ export const legalCasesKeys = {
 export interface LegalCasesQuery {
   caseType?: string;
   state?: string;
+  /** ACTIVO/FINALIZADO (Fase 2/3). Ausente = ambos - ver "Mis procesos". */
+  status?: CaseLifecycleStatus;
   search?: string;
   page?: number;
   size?: number;
@@ -26,6 +28,7 @@ export function useLegalCases(query: LegalCasesQuery = {}) {
       if (query.search) params.set('search', query.search);
       if (query.caseType) params.set('caseType', query.caseType);
       if (query.state) params.set('state', query.state);
+      if (query.status) params.set('status', query.status);
       params.set('page', String(query.page ?? 0));
       params.set('size', String(query.size ?? 50));
       if (query.sortBy) params.set('sortBy', query.sortBy);
@@ -53,6 +56,31 @@ export function useCreateLegalCase() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: legalCasesKeys.all });
+    },
+  });
+}
+
+export interface FinalizeCaseInput {
+  id: string;
+  reason?: string;
+}
+
+/**
+ * Cierra el contexto operativo del expediente (ACTIVO -> FINALIZADO). legalcase
+ * rechaza cualquier escritura posterior con 409 -- esto es la accion explicita del
+ * boton "Finalizar proceso", no una decision juridica de archivo.
+ */
+export function useFinalizeCase() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, reason }: FinalizeCaseInput) =>
+      apiFetch<LegalCase>(`/legal-cases/${id}/finalize`, {
+        method: 'POST',
+        body: JSON.stringify({ reason }),
+      }),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: legalCasesKeys.all });
+      queryClient.invalidateQueries({ queryKey: legalCasesKeys.detalle(variables.id) });
     },
   });
 }

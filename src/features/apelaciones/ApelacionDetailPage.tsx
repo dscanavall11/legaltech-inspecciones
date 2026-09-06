@@ -58,7 +58,7 @@ export function ApelacionDetailPage() {
       children: (
         <AreaTrabajoApelacion
           caseId={data.id}
-          radicado={data.filingNumber}
+          radicado={data.filingNumber ?? 'Sin radicar'}
           comportamiento={comportamiento}
           caseMetadataRaw={data.caseMetadata}
         />

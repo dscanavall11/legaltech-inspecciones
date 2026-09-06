@@ -1,25 +1,29 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/shared/api/client';
-import type { CaseDocument } from './types';
+import { documentTypeFromFileName, type CaseDocument, type CaseDocumentOrigin } from './types';
 
+/** Shape real de CaseDocumentDTO (legalcase, Querellas Fase 1) - ver ExpedienteController en orchestrator. */
 interface CaseDocumentDTO {
   id: number;
-  fileName: string;
-  fileType: CaseDocument['fileType'];
-  origin: CaseDocument['origin'];
-  date: string;
-  fileSize: string | null;
-  storageKey: string;
+  originalFileName: string;
+  documentType: string;
+  contributingParty: string | null;
+  origin: string | null;
+  uploadDate: string | null;
+  sourceReference: string | null;
+  storageKey: string | null;
 }
 
 function toCaseDocument(dto: CaseDocumentDTO): CaseDocument {
   return {
     id: String(dto.id),
-    fileName: dto.fileName,
-    fileType: dto.fileType,
-    origin: dto.origin,
-    date: dto.date,
-    fileSize: dto.fileSize,
+    fileName: dto.originalFileName,
+    // documentType de legalcase es la categoría jurídica (SPEC_QUERELLAS.md §3), no el
+    // formato del archivo - el ícono/estilo de la UI se deriva del nombre, no de ese campo.
+    fileType: documentTypeFromFileName(dto.originalFileName),
+    origin: (dto.origin as CaseDocumentOrigin | null) ?? null,
+    date: dto.uploadDate,
+    fileSize: null,
     storageKey: dto.storageKey,
   };
 }

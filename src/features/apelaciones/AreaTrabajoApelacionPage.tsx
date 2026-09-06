@@ -54,7 +54,7 @@ export function AreaTrabajoApelacionPage() {
         render: (caso) => (
           <AreaTrabajoApelacion
             caseId={caso.id}
-            radicado={caso.filingNumber}
+            radicado={caso.filingNumber ?? 'Sin radicar'}
             comportamiento={comportamientoDe(caso)}
             caseMetadataRaw={caso.caseMetadata}
           />

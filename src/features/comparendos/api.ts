@@ -55,7 +55,7 @@ function legalCaseToComparendo(caso: LegalCase): ComparendoDetalle {
 
   return {
     id: caso.id,
-    radicado: caso.filingNumber,
+    radicado: caso.filingNumber ?? 'Sin radicar',
     numeroComparendo: meta.numeroComparendo ?? 'Sin número',
     infractor: nombrePorRol(caso, 'infractor'),
     cedula: meta.cedula ?? idPorRol(caso, 'infractor'),

@@ -1,20 +1,12 @@
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Alert, App, Button, Empty, Select, Skeleton, Tag, Typography, Upload } from 'antd';
-import { LeftOutlined, LoadingOutlined, RightOutlined } from '@ant-design/icons';
+import { Alert, App, Button, Empty, Select, Skeleton, Tag, Typography } from 'antd';
+import { CheckCircleOutlined, LeftOutlined, LoadingOutlined, RightOutlined } from '@ant-design/icons';
 import { FolderPlus } from 'lucide-react';
-import { apiFetch } from '@/shared/api/client';
 import { useProcesos } from '@/shared/procesos/api';
 import { ESTADO_COLOR, ESTADO_LABEL } from '@/shared/procesos/types';
-import { useCreateLegalCase, useLegalCase } from '@/shared/legalCases/api';
+import { useCreateLegalCase, useFinalizeCase, useLegalCase } from '@/shared/legalCases/api';
 import { useInspeccionStore } from '@/store/inspeccionStore';
-import { abreElExpediente } from './seleccionDocumentos';
-import {
-  ACEPTA_EXPEDIENTE,
-  avisoDeRechazo,
-  avisoDeTamano,
-  separarPorFormato,
-} from '@/shared/documentos/formatos';
 import { ELEVACION, PALETA } from '@/theme/theme';
 import { ESPACIO, RADIO, RELLENO, TEXTO } from '@/theme/escala';
 import { RielPasos } from './RielPasos';
@@ -57,20 +49,21 @@ export function AreaTrabajoExpediente({
   const [searchParams, setSearchParams] = useSearchParams();
   const casoId = searchParams.get('caso') ?? '';
 
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const inspeccion = useInspeccionStore((s) => s.config);
   const crearCaso = useCreateLegalCase();
-  const [subiendo, setSubiendo] = useState(false);
-  const [recienDeDocumentos, marcarRecienDeDocumentos] = useState(false);
+  const finalizarCaso = useFinalizeCase();
+  const [creando, setCreando] = useState(false);
 
-  const pasos = useMemo(
-    () => construirPasos({ recienDeDocumentos }),
-    [construirPasos, recienDeDocumentos],
-  );
+  // El expediente ya no se crea al soltar el primer documento: "Nueva querella"
+  // crea el caso de una vez y navega a el, asi que nunca hay un momento con
+  // trabajo "recien hecho" que auto-dispare un analisis de IA sobre un caso vacio.
+  const pasos = useMemo(() => construirPasos({ recienDeDocumentos: false }), [construirPasos]);
   const activo = Math.min(Math.max(Number(searchParams.get('paso') ?? 0), 0), pasos.length - 1);
 
   const { data: expedientes, isLoading: cargandoLista } = useProcesos({ caseType });
   const { data: caso, isLoading: cargandoCaso } = useLegalCase(casoId);
+  const soloLectura = caso?.status === 'FINALIZADO';
 
   const opciones = useMemo(
     () =>
@@ -85,25 +78,17 @@ export function AreaTrabajoExpediente({
     setSearchParams(id ? { caso: id, paso: String(paso) } : {}, { replace: true });
   };
 
-  const elegir = (id: string) => {
-    marcarRecienDeDocumentos(false);
-    ir(id);
-  };
+  const elegir = (id: string) => ir(id);
 
   /**
-   * Soltar los documentos ES el primer paso: de un tirón abre el expediente y
-   * los sube. El expediente se crea aquí y no al aprobar porque los documentos
-   * se guardan colgados de un caso: sin él no hay dónde ponerlos y el trabajo
-   * viviría en la memoria del navegador. El radicado lo asigna legalcase.
+   * "Nueva querella" crea el expediente real de una vez, antes de que exista
+   * ningún documento -- no espera a que se suelte el primer archivo. Así nunca
+   * hay un expediente "a medio hacer" viviendo solo en el navegador: desde el
+   * primer clic todo (documentos, hechos, pruebas) cuelga de un caseId real y
+   * persistido. El radicado y el fallo se completan después, cuando existan.
    */
-  const empezarConDocumentos = async (seleccion: File[]) => {
-    const { admitidos: archivos, rechazados, pesados } = separarPorFormato(seleccion);
-    if (rechazados.length > 0) message.error(avisoDeRechazo(rechazados));
-    // El tope se comprueba aqui y no solo en el servidor: alli el rechazo vuelve
-    // como un 413 sin cuerpo y el inspector solo ve "no se pudo subir".
-    pesados.forEach((a) => message.error(avisoDeTamano(a.name, a.size)));
-    if (archivos.length === 0) return;
-    setSubiendo(true);
+  const crearNueva = async () => {
+    setCreando(true);
     try {
       const nuevo = await crearCaso.mutateAsync({
         caseType,
@@ -111,47 +96,36 @@ export function AreaTrabajoExpediente({
         judicialOfficeId: inspeccion.inspeccion || 'Inspección de Convivencia y Paz',
         venueCity: inspeccion.municipio || '',
       });
-
-      const subidas = await Promise.allSettled(
-        archivos.map((archivo) => {
-          const body = new FormData();
-          body.append('file', archivo, archivo.name);
-          return apiFetch(`/tools/expedientes/${nuevo.id}/documents`, { method: 'POST', body });
-        }),
-      );
-      const fallidas = subidas.filter((s) => s.status === 'rejected').length;
-
       ir(nuevo.id);
-
-      // Solo se analiza si entró algo. Analizar un expediente vacío no falla
-      // limpio: el analizador no encuentra nada, los agentes no coinciden y el
-      // inspector recibe un "no hubo consenso" que le hace buscar el problema en
-      // el caso cuando estaba en la subida.
-      marcarRecienDeDocumentos(fallidas < archivos.length);
-
-      if (fallidas === archivos.length) {
-        message.error(
-          `Expediente ${nuevo.filingNumber} abierto, pero ningún documento se pudo subir. Cárguelos en el paso 1; sin ellos no hay nada que analizar.`,
-        );
-      } else if (fallidas > 0) {
-        message.warning(
-          `Expediente ${nuevo.filingNumber} abierto, pero ${fallidas} de ${archivos.length} documentos no se pudieron subir. Vuelva a cargarlos en el paso 1.`,
-        );
-      } else {
-        message.success(
-          `Expediente ${nuevo.filingNumber} abierto con ${archivos.length} documento(s). Ya está en Mis procesos.`,
-        );
-      }
     } catch (e) {
-      // El motivo se dice, no se esconde. "No se pudo abrir el expediente" a
-      // secas obligaba a leer los logs del contenedor para saber si era el
-      // tamaño del archivo, la sesión o un servicio caído.
       message.error(
         `No se pudo abrir el expediente: ${e instanceof Error ? e.message : 'error inesperado'}.`,
       );
     } finally {
-      setSubiendo(false);
+      setCreando(false);
     }
+  };
+
+  const finalizar = () => {
+    if (!casoId) return;
+    modal.confirm({
+      title: 'Finalizar proceso',
+      content:
+        'El expediente queda en solo lectura y disponible en Mis procesos. No se puede deshacer desde aquí.',
+      okText: 'Finalizar',
+      cancelText: 'Cancelar',
+      okButtonProps: { danger: true },
+      onOk: () =>
+        finalizarCaso.mutateAsync(
+          { id: casoId },
+          {
+            onError: (e) =>
+              message.error(
+                `No se pudo finalizar: ${e instanceof Error ? e.message : 'error del servidor'}.`,
+              ),
+          },
+        ),
+    });
   };
 
   const paso = pasos[activo];
@@ -165,6 +139,8 @@ export function AreaTrabajoExpediente({
         cargandoLista={cargandoLista}
         casoId={casoId}
         onElegir={elegir}
+        onFinalizar={finalizar}
+        finalizando={finalizarCaso.isPending}
       />
 
       <div
@@ -196,9 +172,9 @@ export function AreaTrabajoExpediente({
               opciones={opciones}
               cargandoLista={cargandoLista}
               casoId={casoId}
-              subiendo={subiendo}
+              creando={creando}
               onElegir={elegir}
-              onSoltar={empezarConDocumentos}
+              onNuevaQuerella={crearNueva}
             />
           ) : cargandoCaso ? (
             <Skeleton active paragraph={{ rows: 8 }} />
@@ -210,7 +186,9 @@ export function AreaTrabajoExpediente({
               description="Verifique la conexión e intente de nuevo."
             />
           ) : (
-            <>
+            // key={casoId}: fuerza el remount de todo el paso al cambiar de expediente
+            // (o crear uno nuevo) -- ningun useState local de un paso sobrevive al cambio.
+            <div key={casoId}>
               <header style={{ marginBottom: ESPACIO.lg }}>
                 <Text strong style={{ fontSize: TEXTO.seccion, display: 'block' }}>
                   {paso.titulo}
@@ -220,7 +198,20 @@ export function AreaTrabajoExpediente({
                 </Text>
               </header>
 
-              {paso.render(caso)}
+              {soloLectura && (
+                <Alert
+                  type="warning"
+                  showIcon
+                  icon={<CheckCircleOutlined />}
+                  message="Expediente finalizado — solo lectura"
+                  description="Puede seguir consultando, viendo y descargando todo lo del expediente. legalcase rechaza cualquier intento de modificarlo (409)."
+                  style={{ marginBottom: ESPACIO.md }}
+                />
+              )}
+
+              {/* Sin bloqueo global: cada paso decide qué deshabilitar via `readOnly`,
+                  para no tapar tambien las acciones de consulta (ver, descargar). */}
+              {paso.render(caso, { readOnly: soloLectura })}
 
               <footer
                 style={{
@@ -248,7 +239,7 @@ export function AreaTrabajoExpediente({
                   <RightOutlined />
                 </Button>
               </footer>
-            </>
+            </div>
           )}
         </section>
       </div>
@@ -271,13 +262,17 @@ function Cabecera({
   cargandoLista,
   casoId,
   onElegir,
+  onFinalizar,
+  finalizando,
 }: {
   textos: TextosExpediente;
-  caso?: { filingNumber: string; currentStateCode: string };
+  caso?: { filingNumber: string | null; status: 'ACTIVO' | 'FINALIZADO' };
   opciones: { value: string; label: string }[];
   cargandoLista: boolean;
   casoId: string;
   onElegir: (id: string) => void;
+  onFinalizar: () => void;
+  finalizando: boolean;
 }) {
   return (
     <div
@@ -301,11 +296,16 @@ function Cabecera({
       {caso && (
         <div style={{ display: 'flex', gap: ESPACIO.sm, alignItems: 'center', flexWrap: 'wrap' }}>
           <span className="font-mono" style={{ fontSize: TEXTO.menor, color: PALETA.textoSuave }}>
-            {caso.filingNumber}
+            {caso.filingNumber ?? 'Sin radicar'}
           </span>
-          <Tag color={ESTADO_COLOR[caso.currentStateCode] ?? 'blue'} style={{ margin: 0 }}>
-            {ESTADO_LABEL[caso.currentStateCode] ?? caso.currentStateCode}
+          <Tag color={ESTADO_COLOR[caso.status] ?? 'blue'} style={{ margin: 0 }}>
+            {ESTADO_LABEL[caso.status] ?? caso.status}
           </Tag>
+          {caso.status === 'ACTIVO' && (
+            <Button size="small" onClick={onFinalizar} loading={finalizando}>
+              Finalizar proceso
+            </Button>
+          )}
           <Select
             showSearch
             allowClear
@@ -336,54 +336,52 @@ function Arranque({
   opciones,
   cargandoLista,
   casoId,
-  subiendo,
+  creando,
   onElegir,
-  onSoltar,
+  onNuevaQuerella,
 }: {
   textos: TextosExpediente;
   opciones: { value: string; label: string }[];
   cargandoLista: boolean;
   casoId: string;
-  subiendo: boolean;
+  creando: boolean;
   onElegir: (id: string) => void;
-  onSoltar: (archivos: File[]) => void;
+  onNuevaQuerella: () => void;
 }) {
   return (
     <div style={{ display: 'grid', gap: ESPACIO.lg, maxWidth: 620, margin: '0 auto' }}>
-      <Upload.Dragger
-        multiple
-        disabled={subiendo}
-        showUploadList={false}
-        accept={ACEPTA_EXPEDIENTE}
-        beforeUpload={(archivo, seleccion) => {
-          if (abreElExpediente(archivo, seleccion)) onSoltar(seleccion as File[]);
-          return false; // la subida la hacemos nosotros, contra el caso recién creado
+      <button
+        type="button"
+        disabled={creando}
+        onClick={onNuevaQuerella}
+        style={{
+          border: `1px dashed ${PALETA.borde}`,
+          borderRadius: RADIO.bloque,
+          background: 'var(--surface-1)',
+          cursor: creando ? 'default' : 'pointer',
+          padding: `${ESPACIO.xl}px ${ESPACIO.lg}px`,
+          textAlign: 'center',
         }}
-        style={{ borderRadius: RADIO.bloque, background: 'var(--surface-1)' }}
       >
-        <div style={{ padding: `${ESPACIO.xl}px ${ESPACIO.lg}px`, textAlign: 'center' }}>
-          {subiendo ? (
-            <LoadingOutlined style={{ fontSize: 24, color: PALETA.azul }} />
-          ) : (
-            <FolderPlus size={24} strokeWidth={1.6} color={PALETA.azul} />
-          )}
-          <div style={{ fontSize: TEXTO.titulo, fontWeight: 500, marginTop: ESPACIO.sm }}>
-            {subiendo ? 'Abriendo el expediente…' : 'Empezar desde los documentos'}
-          </div>
-          <div
-            style={{
-              fontSize: TEXTO.menor,
-              color: PALETA.textoSuave,
-              lineHeight: 1.5,
-              marginTop: ESPACIO.xs,
-            }}
-          >
-            {textos.documentosEsperados}
-            <br />
-            Se radica solo, con los documentos dentro, y queda en Mis procesos.
-          </div>
+        {creando ? (
+          <LoadingOutlined style={{ fontSize: 24, color: PALETA.azul }} />
+        ) : (
+          <FolderPlus size={24} strokeWidth={1.6} color={PALETA.azul} />
+        )}
+        <div style={{ fontSize: TEXTO.titulo, fontWeight: 500, marginTop: ESPACIO.sm }}>
+          {creando ? 'Abriendo el expediente…' : 'Nueva querella'}
         </div>
-      </Upload.Dragger>
+        <div
+          style={{
+            fontSize: TEXTO.menor,
+            color: PALETA.textoSuave,
+            lineHeight: 1.5,
+            marginTop: ESPACIO.xs,
+          }}
+        >
+          Abre un expediente nuevo, completamente vacío. {textos.documentosEsperados}
+        </div>
+      </button>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: ESPACIO.md }}>
         <span style={{ flex: 1, height: 1, background: PALETA.borde }} />

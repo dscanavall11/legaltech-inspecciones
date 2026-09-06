@@ -105,6 +105,9 @@ export function definicionDe(tipo: string): DefinicionTipoProceso | undefined {
  * inventarle un nombre.
  */
 export const ESTADO_LABEL: Record<string, string> = {
+  // Ciclo de vida real (Fase 2/3) -- lo unico que legalcase expone hoy.
+  ACTIVO: 'Activo',
+  FINALIZADO: 'Finalizado',
   radicada: 'Radicada',
   en_tramite: 'En trámite',
   audiencia_programada: 'Audiencia programada',
@@ -140,6 +143,8 @@ export const ESTADO_LABEL: Record<string, string> = {
 };
 
 export const ESTADO_COLOR: Record<string, string> = {
+  ACTIVO: 'blue',
+  FINALIZADO: 'default',
   radicada: 'blue',
   en_tramite: 'gold',
   audiencia_programada: 'purple',
@@ -181,9 +186,12 @@ export function colorEstado(codigo: string): string {
 }
 
 /**
- * Estados posteriores a la decisión: el expediente ya tiene fallo proferido
- * o quedó cerrado por conciliación/2ª instancia/acta expedida. También es
- * el set de "cerrado" para la columna Término (ver ColumnaTermino).
+ * Estados procesales/jurídicos posteriores al fallo, de los flujos que aún
+ * viven sobre `currentStateCode` (comparendo, acta de firmeza, apelación).
+ * Deliberadamente separado del ciclo de vida técnico del expediente
+ * (ACTIVO/FINALIZADO, ver CaseLifecycleStatus y `estaFinalizado` abajo):
+ * un expediente puede estar FINALIZADO sin haber pasado por ninguno de estos
+ * estados, y viceversa. No confundir ni fusionar ambas nociones.
  */
 export const ESTADOS_POST_FALLO = [
   'fallo_emitido',
@@ -195,6 +203,15 @@ export const ESTADOS_POST_FALLO = [
   'revocado',
   'expedida',
 ];
+
+/**
+ * true cuando el expediente ya cerró su ciclo de vida técnico (Fase 2/3,
+ * CaseLifecycleStatus.FINALIZADO) -- no dice nada sobre el estado procesal ni
+ * sustituye a ESTADOS_POST_FALLO, que es otro catálogo con otro propósito.
+ */
+export function estaFinalizado(estado: string): boolean {
+  return estado === 'FINALIZADO';
+}
 
 /** Fila de la bandeja: lo mínimo que se muestra de cualquier expediente. */
 export interface FilaProceso {
@@ -250,7 +267,7 @@ export function legalCaseAFila(caso: LegalCase): FilaProceso {
   return {
     id: caso.id,
     tipo: caso.caseType,
-    radicado: caso.filingNumber,
+    radicado: caso.filingNumber ?? 'Sin radicar',
     parteA: nombrePorRol(caso, rolesA),
     parteB: nombrePorRol(caso, rolesB),
     asunto:
@@ -258,11 +275,13 @@ export function legalCaseAFila(caso: LegalCase): FilaProceso {
       caso.background?.reliefSought ??
       caso.background?.allegedFacts ??
       'Sin asunto registrado',
-    estado: caso.currentStateCode,
+    estado: caso.status,
     fechaRadicacion: historia[0]?.changedAt ?? caso.createdAt ?? '',
-    fechaUltimoMovimiento: historia[historia.length - 1]?.changedAt ?? caso.createdAt ?? '',
+    fechaUltimoMovimiento: historia[historia.length - 1]?.changedAt ?? caso.finalizedAt ?? caso.createdAt ?? '',
     diasTermino,
     diasTerminoPresuntivo: meta.diasTermino === undefined && diasTermino !== undefined,
-    tieneFallo: ESTADOS_POST_FALLO.includes(caso.currentStateCode) && Boolean(caso.legalReasoning),
+    // legalcase no expone fecha de fallo por separado hoy: con legalReasoning guardado ya
+    // hay un fallo redactado, independiente de si el expediente ya se finalizo o no.
+    tieneFallo: Boolean(caso.legalReasoning),
   };
 }

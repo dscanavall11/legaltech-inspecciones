@@ -19,7 +19,9 @@ const INSTRUCCION =
 /** Baja los PDF del expediente para poder leerlos aquí, sin pasar por el modelo. */
 async function pdfsDelExpediente(caseId: string): Promise<File[]> {
   const documentos = await apiFetch<CaseDocument[]>(`/tools/expedientes/${caseId}/documents`);
-  const pdfs = documentos.filter((d) => /\.pdf$/i.test(d.fileName));
+  const pdfs = documentos.filter(
+    (d): d is CaseDocument & { storageKey: string } => Boolean(d.storageKey) && /\.pdf$/i.test(d.fileName),
+  );
 
   const bajados = await Promise.allSettled(
     pdfs.map(async (d) => {

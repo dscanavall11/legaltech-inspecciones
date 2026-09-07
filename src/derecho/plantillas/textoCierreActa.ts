@@ -51,7 +51,7 @@ export function generarTextoCierreActa(d: DatosCierreActa): SegmentoCierre[] | n
     N(', '),
     B('DECLARA LA FIRMEZA'),
     N(' de la multa general '),
-    B(`tipo ${d.tipoMulta}`),
+    B(String(d.tipoMulta)),
   ];
 
   if (d.causal === 'ninguna') return [...inicio, N('.')];

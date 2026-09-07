@@ -16,7 +16,7 @@ describe('generarTextoCierreActa — plantilla determinística exacta suministra
       'Una vez cumplido el término establecido en el literal e) del Artículo 223A de la Ley 1801, ' +
         'ante la no objeción de la medida correctiva de multa por parte del (la) ciudadano(a) ANDRÉS FELIPE CÁRDENAS AGUIRRE, ' +
         'el despacho mediante acta Nro. 2026-12371 de fecha siete (07) de septiembre de dos mil veintiséis (2026), ' +
-        'DECLARA LA FIRMEZA de la multa general tipo 4.',
+        'DECLARA LA FIRMEZA de la multa general 4.',
     );
   });
 
@@ -26,7 +26,7 @@ describe('generarTextoCierreActa — plantilla determinística exacta suministra
       'Una vez cumplido el término establecido en el literal e) del Artículo 223A de la Ley 1801, ' +
         'ante la no objeción de la medida correctiva de multa por parte del (la) ciudadano(a) ANDRÉS FELIPE CÁRDENAS AGUIRRE, ' +
         'el despacho mediante acta Nro. 2026-12371 de fecha siete (07) de septiembre de dos mil veintiséis (2026), ' +
-        'DECLARA LA FIRMEZA de la multa general tipo 4, la cual, de conformidad con lo dispuesto en los literales i) y j) ' +
+        'DECLARA LA FIRMEZA de la multa general 4, la cual, de conformidad con lo dispuesto en los literales i) y j) ' +
         'del artículo Ibídem, se incrementa en un 50% por reincidencia.',
     );
   });
@@ -37,7 +37,7 @@ describe('generarTextoCierreActa — plantilla determinística exacta suministra
       'Una vez cumplido el término establecido en el literal e) del Artículo 223A de la Ley 1801, ' +
         'ante la no objeción de la medida correctiva de multa por parte del (la) ciudadano(a) ANDRÉS FELIPE CÁRDENAS AGUIRRE, ' +
         'el despacho mediante acta Nro. 2026-12371 de fecha siete (07) de septiembre de dos mil veintiséis (2026), ' +
-        'DECLARA LA FIRMEZA de la multa general tipo 4, la cual, de conformidad con lo dispuesto en los literales i) y j) ' +
+        'DECLARA LA FIRMEZA de la multa general 4, la cual, de conformidad con lo dispuesto en los literales i) y j) ' +
         'del artículo Ibídem, se incrementa en un 75% por reincidencia en el mismo comportamiento dentro del mismo año.',
     );
   });
@@ -49,7 +49,7 @@ describe('generarTextoCierreActa — plantilla determinística exacta suministra
   it('marca en negrilla exactamente NOMBRE, QUEJA, FECHA_ACTA, "DECLARA LA FIRMEZA", TIPO_MULTA y el porcentaje', () => {
     const segmentos = generarTextoCierreActa({ ...BASE, causal: 'reiteracion_dentro_del_anio' })!;
     const negrilla = segmentos.filter((s) => s.negrilla).map((s) => s.texto);
-    expect(negrilla).toEqual(['ANDRÉS FELIPE CÁRDENAS AGUIRRE', '2026-12371', 'siete (07) de septiembre de dos mil veintiséis (2026)', 'DECLARA LA FIRMEZA', 'tipo 4', '75%']);
+    expect(negrilla).toEqual(['ANDRÉS FELIPE CÁRDENAS AGUIRRE', '2026-12371', 'siete (07) de septiembre de dos mil veintiséis (2026)', 'DECLARA LA FIRMEZA', '4', '75%']);
   });
 
   it('reutiliza exactamente el nombre/queja/tipo/causal recibidos — no vuelve a pedir ni recalcula nada', () => {
@@ -57,6 +57,6 @@ describe('generarTextoCierreActa — plantilla determinística exacta suministra
     const texto = textoCierrePlano(generarTextoCierreActa(otro)!);
     expect(texto).toContain('OTRO NOMBRE');
     expect(texto).toContain('2026-1');
-    expect(texto).toContain('tipo 2');
+    expect(texto).toContain('DECLARA LA FIRMEZA de la multa general 2.');
   });
 });

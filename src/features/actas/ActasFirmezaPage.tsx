@@ -44,6 +44,7 @@ import { VistaPreviaActa } from '@/shared/documentos/VistaPreviaActa';
 import { descargarDocumentoLegalDocx } from '@/shared/documentos/documentoLegalDocx';
 import { ExpedientePrevioButton } from '@/shared/documentos/ExpedientePrevioButton';
 import { DescargarExpedienteOficialButton } from '@/shared/documentos/DescargarExpedienteOficialButton';
+import { DescargarActaFirmezaOficialButton } from '@/shared/documentos/DescargarActaFirmezaOficialButton';
 import { ReincidenciaCausalField } from '@/shared/components/ReincidenciaCausalField';
 import { PdfViewer } from '@/shared/documentos/PdfViewer';
 import { ELEVACION, PALETA } from '@/theme/theme';
@@ -755,6 +756,26 @@ export function ActasFirmezaPage() {
               >
                 Descargar .docx
               </Button>
+              <DescargarActaFirmezaOficialButton
+                disabled={!acta || apelo}
+                registro={{
+                  proceso: datos.proceso,
+                  comparendo: datos.comparendo,
+                  articuloNumeral: datos.articuloNumeral,
+                  solicitante: datos.solicitante,
+                  solicitado: datos.solicitado,
+                  cedula: datos.cedula,
+                  direccion: datos.direccion,
+                  telefono: datos.telefono,
+                  fechaComparendo: datos.fechaComparendo,
+                  fechaResolucion: datos.fechaResolucion,
+                  lugar: datos.lugar,
+                  hechos: datos.hechos,
+                  tipoMulta: datos.tipoMulta,
+                  liquidacion: liq,
+                  apelo,
+                }}
+              />
               <Button
                 size="large"
                 icon={<PrinterOutlined />}

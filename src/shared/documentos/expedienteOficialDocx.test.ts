@@ -1,74 +1,51 @@
 import { describe, it, expect } from 'vitest';
-import { Document, Packer, Paragraph, TextRun } from 'docx';
 import JSZip from 'jszip';
 import { generarExpedienteOficialDocxBlob } from './expedienteOficialDocx';
 
-/**
- * Fixture SOLO de prueba: un .docx mínimo con tags `{TAG}`, construido en
- * memoria para validar el mecanismo de reemplazo (`patchDocument`). No es la
- * plantilla real del despacho — esa (EXPEDIENTE PLANTILLA.docx) debe cargarse
- * en public/plantillas/expediente-oficial.docx antes de generar documentos
- * reales; ver expedienteOficialDocx.ts.
- */
-async function construirFixtureDocx(): Promise<ArrayBuffer> {
-  const doc = new Document({
-    sections: [
-      {
-        children: [
-          new Paragraph({
-            children: [new TextRun({ text: 'MUNICIPIO DE PRUEBA — texto fijo que no debe cambiar', bold: true })],
-          }),
-          new Paragraph({ children: [new TextRun('Presunto infractor: {PRESUNTO_INFRACTOR}')] }),
-          new Paragraph({ children: [new TextRun('Cédula: {CEDULA}')] }),
-          new Paragraph({ children: [new TextRun('Hechos: {HECHOS}')] }),
-        ],
-      },
-    ],
-  });
-  const buffer = await Packer.toBuffer(doc);
-  return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+/** Fixture mínimo de prueba con la estructura real de un campo MERGEFIELD de Word — no es la plantilla real del despacho. */
+function docxConCampoMerge(nombre: string, resultadoCacheado: string): Promise<ArrayBuffer> {
+  const documentXml =
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+    `<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p>` +
+    `<w:r><w:fldChar w:fldCharType="begin"/></w:r>` +
+    `<w:r><w:instrText xml:space="preserve"> MERGEFIELD ${nombre} </w:instrText></w:r>` +
+    `<w:r><w:fldChar w:fldCharType="separate"/></w:r>` +
+    `<w:r><w:t>${resultadoCacheado}</w:t></w:r>` +
+    `<w:r><w:fldChar w:fldCharType="end"/></w:r>` +
+    `</w:p></w:body></w:document>`;
+
+  const zip = new JSZip();
+  zip.file(
+    '[Content_Types].xml',
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"/>',
+  );
+  zip.file('word/document.xml', documentXml);
+  return zip.generateAsync({ type: 'arraybuffer' });
 }
 
-async function textoPlanoDelDocx(blob: Blob): Promise<string> {
-  const buffer = await blob.arrayBuffer();
-  const zip = await JSZip.loadAsync(buffer);
-  const documentXml = await zip.file('word/document.xml')?.async('string');
-  if (!documentXml) throw new Error('document.xml no encontrado en el .docx generado');
-  return documentXml;
-}
-
-describe('generarExpedienteOficialDocxBlob — reemplaza tags en el DOCX real, no reconstruye el documento', () => {
-  it('sustituye cada tag por su valor y conserva el texto fijo de la plantilla', async () => {
-    const plantilla = await construirFixtureDocx();
-    const blob = await generarExpedienteOficialDocxBlob(plantilla, {
-      PRESUNTO_INFRACTOR: 'ANDRÉS FELIPE CÁRDENAS AGUIRRE',
-      CEDULA: '1002500001',
-      HECHOS: 'Hechos de prueba tomados exactamente de la fuente.',
+describe('generarExpedienteOficialDocxBlob — delega en el motor de MERGEFIELD y reporta campos sin dato', () => {
+  it('sustituye el campo y no reporta faltantes cuando el mapa cubre todos los campos de la plantilla', async () => {
+    const plantilla = await docxConCampoMerge('Solicitado', 'NOMBRE DE EJEMPLO ANTERIOR');
+    const { blob, camposSinDato } = await generarExpedienteOficialDocxBlob(plantilla, {
+      Solicitado: 'CIUDADANO DE PRUEBA',
     });
 
+    expect(camposSinDato).toEqual([]);
     expect(blob.size).toBeGreaterThan(0);
-    const xml = await textoPlanoDelDocx(blob);
 
-    expect(xml).toContain('ANDRÉS FELIPE CÁRDENAS AGUIRRE');
-    expect(xml).toContain('1002500001');
-    expect(xml).toContain('Hechos de prueba tomados exactamente de la fuente.');
-    expect(xml).toContain('MUNICIPIO DE PRUEBA');
-
-    // Los tags ya reemplazados no deben seguir apareciendo literalmente.
-    expect(xml).not.toContain('{PRESUNTO_INFRACTOR}');
-    expect(xml).not.toContain('{CEDULA}');
-    expect(xml).not.toContain('{HECHOS}');
+    const zip = await JSZip.loadAsync(await blob.arrayBuffer());
+    const xml = await zip.file('word/document.xml')!.async('string');
+    expect(xml).toContain('CIUDADANO DE PRUEBA');
+    expect(xml).not.toContain('NOMBRE DE EJEMPLO ANTERIOR');
   });
 
-  it('no inventa valores: un tag sin dato queda vacío, no se rellena con texto genérico', async () => {
-    const plantilla = await construirFixtureDocx();
-    const blob = await generarExpedienteOficialDocxBlob(plantilla, {
-      PRESUNTO_INFRACTOR: '',
-      CEDULA: '1002500001',
-      HECHOS: 'Hechos.',
-    });
-    const xml = await textoPlanoDelDocx(blob);
-    expect(xml).toContain('Presunto infractor: ');
-    expect(xml).not.toContain('{PRESUNTO_INFRACTOR}');
+  it('reporta como "sin dato" un campo de la plantilla que el mapa no cubre, y lo deja en blanco (no inventa)', async () => {
+    const plantilla = await docxConCampoMerge('Cedula_solicitado', '1000000000');
+    const { camposSinDato, blob } = await generarExpedienteOficialDocxBlob(plantilla, {});
+
+    expect(camposSinDato).toEqual(['Cedula_solicitado']);
+    const zip = await JSZip.loadAsync(await blob.arrayBuffer());
+    const xml = await zip.file('word/document.xml')!.async('string');
+    expect(xml).not.toContain('1000000000');
   });
 });

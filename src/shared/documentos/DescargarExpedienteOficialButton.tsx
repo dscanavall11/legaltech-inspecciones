@@ -1,12 +1,11 @@
 import { useState } from 'react';
-import { Alert, Button, DatePicker, Modal, Select, Space, App } from 'antd';
-import { FileWordOutlined, FolderOpenOutlined } from '@ant-design/icons';
+import { Alert, Button, DatePicker, Modal, Space, App } from 'antd';
+import { FileWordOutlined } from '@ant-design/icons';
 import dayjs, { type Dayjs } from 'dayjs';
 import {
   camposFaltantesExpedienteOficial,
   mapearCamposExpedienteOficial,
   nombreArchivoExpedienteOficial,
-  type GeneroCiudadano,
 } from '@/derecho/plantillas/expedienteOficial';
 import {
   cargarPlantillaExpedienteOficial,
@@ -30,16 +29,19 @@ export interface DatosRegistroExpediente {
 
 /**
  * Botón "Descargar Expediente" — documento INDEPENDIENTE del acta, generado
- * rellenando la plantilla oficial real del despacho (EXPEDIENTE
- * PLANTILLA.docx) con los datos del mismo registro ya seleccionado. No
- * redacta ni sintetiza texto (a diferencia de `ExpedientePrevioButton`, que
- * arma un `DocumentoLegal` desde cero): solo reemplaza los tags del DOCX
- * real, así que conserva membrete, logos, tablas y estilos originales.
+ * rellenando la plantilla oficial real del despacho
+ * (`public/Plantillas/expediente-oficial.docx`) con los datos del mismo
+ * registro ya seleccionado. No redacta ni sintetiza texto (a diferencia de
+ * `ExpedientePrevioButton`, que arma un `DocumentoLegal` desde cero): solo
+ * reemplaza los campos de combinación de correspondencia (MERGEFIELD) del
+ * DOCX real, así que conserva membrete, logos, tablas y estilos originales.
+ * A diferencia del Acta, esta plantilla no bifurca por género — no hay nada
+ * que preguntar en ese sentido.
  *
- * Dos datos no vienen en la BD y el inspector debe confirmarlos aquí, nunca
- * inferidos: el género (afecta "señor/señora", "presunto/presunta") y la
- * fecha de la constancia de inasistencia (se sugiere la del término de
- * firmeza ya calculado, pero exige confirmación explícita antes de generar).
+ * Un solo dato no viene en la BD y el inspector debe confirmarlo aquí, nunca
+ * inventado: la fecha de la constancia de inasistencia (se sugiere la del
+ * término de firmeza ya calculado, pero exige confirmación explícita antes
+ * de generar).
  */
 export function DescargarExpedienteOficialButton({
   disabled,
@@ -52,7 +54,6 @@ export function DescargarExpedienteOficialButton({
 }) {
   const { message } = App.useApp();
   const [abierto, setAbierto] = useState(false);
-  const [genero, setGenero] = useState<GeneroCiudadano | undefined>(undefined);
   const [fechaConstancia, setFechaConstancia] = useState<string | null>(
     fechaConstanciaSugerida ? fechaConstanciaSugerida.format('YYYY-MM-DD') : null,
   );
@@ -60,7 +61,6 @@ export function DescargarExpedienteOficialButton({
   const [generando, setGenerando] = useState(false);
 
   function abrir() {
-    setGenero(undefined);
     setConfirmada(false);
     setFechaConstancia(fechaConstanciaSugerida ? fechaConstanciaSugerida.format('YYYY-MM-DD') : null);
     setAbierto(true);
@@ -70,10 +70,6 @@ export function DescargarExpedienteOficialButton({
     const faltantes = camposFaltantesExpedienteOficial(registro);
     if (faltantes.length > 0) {
       message.error(`Faltan datos del registro seleccionado: ${faltantes.join(', ')}.`);
-      return;
-    }
-    if (!genero) {
-      message.warning('Confirme el género del presunto infractor — no se infiere del nombre.');
       return;
     }
     if (!fechaConstancia || !confirmada) {
@@ -96,11 +92,16 @@ export function DescargarExpedienteOficialButton({
         hechos: registro.hechos,
         fechaRecepcion: registro.fechaComparendo,
         fechaConstanciaInasistencia: fechaConstancia,
-        genero,
       });
       const nombreArchivo = nombreArchivoExpedienteOficial(registro.proceso, registro.solicitado);
-      await descargarExpedienteOficialDocx(plantilla, campos, nombreArchivo);
-      message.success('Expediente generado.');
+      const { camposSinDato } = await descargarExpedienteOficialDocx(plantilla, campos, nombreArchivo);
+      if (camposSinDato.length > 0) {
+        message.warning(
+          `Expediente generado, pero la plantilla trae campos sin dato disponible (quedaron en blanco): ${camposSinDato.join(', ')}.`,
+        );
+      } else {
+        message.success('Expediente generado.');
+      }
       setAbierto(false);
     } catch (e) {
       message.error(
@@ -113,8 +114,8 @@ export function DescargarExpedienteOficialButton({
 
   return (
     <>
-      <Button icon={<FolderOpenOutlined />} disabled={disabled} onClick={abrir}>
-        Descargar Expediente
+      <Button icon={<FileWordOutlined />} disabled={disabled} onClick={abrir}>
+        Descargar Expediente (plantilla oficial)
       </Button>
       <Modal
         title="Expediente — confirmación de datos"
@@ -134,23 +135,8 @@ export function DescargarExpedienteOficialButton({
             type="info"
             showIcon
             message="Plantilla oficial del despacho"
-            description="Se usa el DOCX real EXPEDIENTE PLANTILLA.docx solo con los datos de este registro. Nada se completa, corrige ni deduce con IA."
+            description="Se usa el DOCX real del expediente solo con los datos de este registro. Nada se completa, corrige ni deduce con IA."
           />
-          <div>
-            <div style={{ fontSize: TEXTO.menor, marginBottom: 4 }}>
-              Género del presunto infractor (no se infiere del nombre)
-            </div>
-            <Select
-              style={{ width: '100%' }}
-              placeholder="Seleccione…"
-              value={genero}
-              onChange={setGenero}
-              options={[
-                { value: 'masculino', label: 'Masculino — el señor / presunto' },
-                { value: 'femenino', label: 'Femenino — la señora / presunta' },
-              ]}
-            />
-          </div>
           <div>
             <div style={{ fontSize: TEXTO.menor, marginBottom: 4 }}>
               Fecha de la constancia de inasistencia

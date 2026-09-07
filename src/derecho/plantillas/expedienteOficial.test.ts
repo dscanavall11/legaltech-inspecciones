@@ -19,58 +19,43 @@ const REGISTRO_BASE: DatosExpedienteOficial = {
   hechos: 'Hechos de prueba tomados exactamente de la fuente.',
   fechaRecepcion: '2026-04-24',
   fechaConstanciaInasistencia: '2026-05-05',
-  genero: 'masculino',
 };
 
 describe('mapearCamposExpedienteOficial — BASE DE DATOS + PLANTILLA = DOCUMENTO', () => {
-  it('mapea los campos de la carátula desde el registro, sin inventar nada', () => {
+  it('mapea los campos reales de la plantilla (mismos nombres MERGEFIELD del archivo) desde el registro', () => {
     const campos = mapearCamposExpedienteOficial(REGISTRO_BASE);
-    expect(campos.QUEJA).toBe('2026-6829');
-    expect(campos.ANIO).toBe('2026');
-    expect(campos.ARTICULO_NUMERAL).toBe('Artículo 92 Numeral 16');
-    expect(campos.PRESUNTO_INFRACTOR).toBe('ANDRÉS FELIPE CÁRDENAS AGUIRRE');
-    expect(campos.CEDULA).toBe('1002500001');
-    expect(campos.NUMERO_COMPARENDO).toBe('17-001-085044');
-    expect(campos.FECHA_COMPARENDO).toBe('24/04/2026');
-    expect(campos.HECHOS).toBe('Hechos de prueba tomados exactamente de la fuente.');
+    expect(campos.Proceso).toBe('2026-6829');
+    expect(campos.Comparendo).toBe('17-001-085044');
+    expect(campos.comparendo).toBe('17-001-085044'); // misma variante en minúscula que trae la plantilla
+    expect(campos.Artículo_Y_Númeral).toBe('Artículo 92 Numeral 16');
+    expect(campos.Solicitado).toBe('ANDRÉS FELIPE CÁRDENAS AGUIRRE');
+    expect(campos.Cedula_solicitado).toBe('1002500001');
+    expect(campos.Hechos_descripción_comportamientos).toBe(
+      'Hechos de prueba tomados exactamente de la fuente.',
+    );
   });
 
-  it('copia los hechos exactamente igual en carátula y constancia secretarial (no resume, no corrige)', () => {
+  it('copia los hechos exactamente igual (no resume, no corrige)', () => {
+    const campos = mapearCamposExpedienteOficial({ ...REGISTRO_BASE, hechos: 'Texto EXACTO de la fuente.' });
+    expect(campos.Hechos_descripción_comportamientos).toBe('Texto EXACTO de la fuente.');
+  });
+
+  it('formatea la fecha de la constancia de inasistencia confirmada (DD/MM/YYYY)', () => {
     const campos = mapearCamposExpedienteOficial(REGISTRO_BASE);
-    expect(campos.CS_HECHOS).toBe(campos.HECHOS);
-    expect(campos.CI_NOMBRE).toBe(campos.PRESUNTO_INFRACTOR);
+    expect(campos.Acto_Administrativo_citación_GED).toBe('05/05/2026');
   });
 
-  it('usa la fecha de constancia de inasistencia confirmada, no una calculada de nuevo', () => {
+  it('formatea la fecha de recepción como "DÍA (DD) DE MES DE AAAA", igual que ya trae la plantilla', () => {
+    // 2026-04-24 es un viernes.
     const campos = mapearCamposExpedienteOficial(REGISTRO_BASE);
-    expect(campos.CI_FECHA_CONSTANCIA).toBe('05/05/2026');
+    expect(campos.fecha_de_recibido_).toBe('VIERNES (24) DE ABRIL DE 2026');
   });
 
-  it.each([
-    ['masculino', 'señor', 'presunto'],
-    ['femenino', 'señora', 'presunta'],
-  ] as const)('género %s resuelve tratamiento "%s" y "%s" solo si fue confirmado explícitamente', (genero, tratamiento, presunto) => {
-    const campos = mapearCamposExpedienteOficial({ ...REGISTRO_BASE, genero });
-    expect(campos.TRATAMIENTO).toBe(tratamiento);
-    expect(campos.TRATAMIENTO_PRESUNTO).toBe(presunto);
-  });
-
-  it('deja en blanco los campos de identificación de archivo cuando no hay dato estructurado real', () => {
+  it('deja en blanco los campos sin fuente de datos real (nunca se inventan)', () => {
     const campos = mapearCamposExpedienteOficial(REGISTRO_BASE);
-    expect(campos.CODIGO_SERIE).toBe('');
-    expect(campos.NOMBRE_SUBSERIE).toBe('');
-    expect(campos.NUMERO_FOLIOS).toBe('');
-    expect(campos.ISLA).toBe('');
-  });
-
-  it('usa los campos de archivo reales cuando existen, sin tocar los que no', () => {
-    const campos = mapearCamposExpedienteOficial({
-      ...REGISTRO_BASE,
-      archivo: { codigoSerie: 'S-12', numeroCarpeta: '4' },
-    });
-    expect(campos.CODIGO_SERIE).toBe('S-12');
-    expect(campos.NUMERO_CARPETA).toBe('4');
-    expect(campos.NOMBRE_SERIE).toBe('');
+    expect(campos.Policia_).toBe('');
+    expect(campos.direccion_CAI).toBe('');
+    expect(campos.FECHA_AUDIENCIA_).toBe('');
   });
 });
 

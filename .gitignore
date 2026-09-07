@@ -38,6 +38,14 @@ vite.config.d.ts
 
 # Configuración local de herramientas
 .claude/
+
+# Plantillas oficiales del despacho: los .docx reales traen datos de casos
+# reales (nombres, cédulas, direcciones, teléfonos) cacheados en sus campos
+# MERGEFIELD — no son plantillas en blanco. No van a GitHub sin anonimizar
+# (regla del proyecto: nada de nombres ni cédulas reales). Se cargan aquí
+# localmente para que la app las sirva como asset estático; el despliegue
+# real debe provisionarlas por fuera de git (p. ej. subida directa a S3).
+public/Plantillas/
 .superpowers/
 .omo/
 docs

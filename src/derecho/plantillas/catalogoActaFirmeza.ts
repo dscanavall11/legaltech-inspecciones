@@ -46,9 +46,15 @@ interface EntradaCatalogo {
 const DIR = 'Actas de firmeza';
 
 /**
- * Las 13 plantillas reales, tal como están en disco — nombre de archivo
- * exacto, sin normalizar. Fuente: inspección directa del texto y los campos
- * MERGEFIELD de cada .docx (ver Issue/PR para el detalle completo).
+ * Las 20 plantillas reales, tal como están en disco — nombre de archivo
+ * exacto (relativo a `Actas de firmeza/`), sin normalizar. Fuente:
+ * inspección directa del texto y los campos MERGEFIELD de cada .docx.
+ *
+ * Las femeninas (`Femenino/...`) no venían en el primer lote entregado —
+ * salieron de la carpeta organizada por género que Gabriel tiene en su
+ * equipo (`PLANTILLAS DE FIRMEZA - FEMENINO/MASCULINO`), tras confirmar que
+ * el catálogo inicial estaba incompleto, no que las plantillas no existieran
+ * (revisión de PR #7, punto 1).
  */
 export const CATALOGO_ACTA_FIRMEZA: readonly EntradaCatalogo[] = [
   {
@@ -76,10 +82,18 @@ export const CATALOGO_ACTA_FIRMEZA: readonly EntradaCatalogo[] = [
     genero: 'femenino',
     tiposMulta: [2, 3, 4],
     causal: 'ninguna',
-    usoAutomatico: true,
+    usoAutomatico: false,
     advertencias: [
-      'Es la única plantilla femenina "sin reincidencia" disponible y le falta el párrafo sobre el Boletín de Deudores Morosos del Estado (BDME) que sí trae la versión masculina canónica. Contenido incompleto pendiente de corrección por el despacho — no se completa aquí por código (el contenido jurídico vive en la plantilla, no en el código).',
+      'Duplicada de "Femenino/1. FIRMEZA F. SIN REICIDENCIA GENERAL.docx": le falta el párrafo BDME que sí trae esa versión (hallada en la carpeta organizada por género que Gabriel tiene en su equipo, no en el primer lote entregado). Se mantiene solo como opción manual.',
     ],
+  },
+  {
+    archivo: 'Femenino/1. FIRMEZA F. SIN REICIDENCIA GENERAL.docx',
+    caso: 'normal',
+    genero: 'femenino',
+    tiposMulta: [2, 3, 4],
+    causal: 'ninguna',
+    usoAutomatico: true,
   },
   {
     archivo: '2. FIRMEZA MULTA 2. REINCIDENCIA 50% M..docx',
@@ -125,6 +139,54 @@ export const CATALOGO_ACTA_FIRMEZA: readonly EntradaCatalogo[] = [
     archivo: '3. FIRMEZA MULTA 4. REINCIDENCIA 75% M..docx',
     caso: 'normal',
     genero: 'masculino',
+    tiposMulta: [4],
+    causal: 'reiteracion_dentro_del_anio',
+    usoAutomatico: true,
+  },
+  {
+    archivo: 'Femenino/2. FIRMEZA MULTA 2. REINCIDENCIA 50% F..docx',
+    caso: 'normal',
+    genero: 'femenino',
+    tiposMulta: [2],
+    causal: 'reiteracion_despues_del_anio',
+    usoAutomatico: true,
+  },
+  {
+    archivo: 'Femenino/2. FIRMEZA MULTA 3. REINCIDENCIA 50% F..docx',
+    caso: 'normal',
+    genero: 'femenino',
+    tiposMulta: [3],
+    causal: 'reiteracion_despues_del_anio',
+    usoAutomatico: true,
+  },
+  {
+    archivo: 'Femenino/2. FIRMEZA MULTA 4. REINCIDENCIA 50% F..docx',
+    caso: 'normal',
+    genero: 'femenino',
+    tiposMulta: [4],
+    causal: 'reiteracion_despues_del_anio',
+    usoAutomatico: true,
+  },
+  {
+    archivo: 'Femenino/3. FIRMEZA MULTA 2. REINCIDENCIA 75% F..docx',
+    caso: 'normal',
+    genero: 'femenino',
+    tiposMulta: [2],
+    causal: 'reiteracion_dentro_del_anio',
+    usoAutomatico: true,
+  },
+  {
+    archivo: 'Femenino/3. FIRMEZA MULTA 3. REINCIDENCIA 75% F..docx',
+    caso: 'normal',
+    genero: 'femenino',
+    tiposMulta: [3],
+    causal: 'reiteracion_dentro_del_anio',
+    usoAutomatico: true,
+  },
+  {
+    archivo: 'Femenino/3. FIRMEZA MULTA 4. REINCIDENCIA 75% F..docx',
+    caso: 'normal',
+    genero: 'femenino',
     tiposMulta: [4],
     causal: 'reiteracion_dentro_del_anio',
     usoAutomatico: true,

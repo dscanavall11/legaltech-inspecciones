@@ -1,5 +1,5 @@
-import { fechaALetras } from '../letras';
-import type { LiquidacionMulta } from '../multas';
+import { anioConCifra, fechaALetras } from '../letras';
+import { VIGENCIA_MULTAS, type LiquidacionMulta } from '../multas';
 import type { CasoEspecialActa } from './catalogoActaFirmeza';
 
 /**
@@ -76,6 +76,24 @@ export function mapearCamposActaFirmezaOficial(d: DatosActaFirmezaOficial): Reco
   }
 
   return base;
+}
+
+/**
+ * Valores para reparar el texto fijo residual de la plantilla (año de
+ * vigencia y, en reincidencia, el valor total con incremento) — ninguno de
+ * los dos es MERGEFIELD. `anioVigenciaLetras` sale de la misma constante
+ * `VIGENCIA_MULTAS` que ya usa el generador de actas desde cero
+ * (`actaFirmeza.ts`), no de la fecha del comparendo: la vigencia es la tabla
+ * de SMDLV del año en curso, no la fecha del caso.
+ */
+export function valoresFijosActaFirmeza(liquidacion: LiquidacionMulta): {
+  anioVigenciaLetras: string;
+  valorTotalLetras: string;
+} {
+  return {
+    anioVigenciaLetras: anioConCifra(VIGENCIA_MULTAS),
+    valorTotalLetras: liquidacion.valorTotalLetras,
+  };
 }
 
 /** Campos del registro sin los cuales no se puede generar el acta (no hay de dónde tomarlos). */

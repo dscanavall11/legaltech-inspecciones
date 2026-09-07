@@ -153,6 +153,13 @@ export interface ResultadoGenerarDocx {
 export async function generarDocxDesdeMergeFields(
   plantilla: ArrayBuffer,
   valores: Record<string, string>,
+  /**
+   * Se ejecuta sobre el XML de cada parte (document.xml, headers, footers)
+   * DESPUÉS de reemplazar los MERGEFIELD — para reparar texto fijo residual
+   * que no es un campo (ver `textoFijoDocx.ts`). Recibe y devuelve el XML de
+   * esa parte; si no aplica ninguna reparación, debe devolverlo sin cambios.
+   */
+  posprocesarXml?: (nombreParte: string, xml: string) => string,
 ): Promise<ResultadoGenerarDocx> {
   const zip = await JSZip.loadAsync(plantilla);
   const camposEncontrados = new Set<string>();
@@ -162,12 +169,12 @@ export async function generarDocxDesdeMergeFields(
     if (!PARTES_CON_CAMPOS.test(nombre)) continue;
     const archivo = zip.file(nombre);
     if (!archivo) continue;
-    const xml = await archivo.async('string');
-    const resultado = reemplazarCamposMerge(xml, valores);
-    if (resultado.camposEncontrados.length === 0) continue;
+    const xmlOriginal = await archivo.async('string');
+    const resultado = reemplazarCamposMerge(xmlOriginal, valores);
     resultado.camposEncontrados.forEach((c) => camposEncontrados.add(c));
     resultado.camposSinDato.forEach((c) => camposSinDato.add(c));
-    zip.file(nombre, resultado.xml);
+    const xmlFinal = posprocesarXml ? posprocesarXml(nombre, resultado.xml) : resultado.xml;
+    if (xmlFinal !== xmlOriginal) zip.file(nombre, xmlFinal);
   }
 
   const blob = await zip.generateAsync({

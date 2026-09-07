@@ -94,7 +94,8 @@ export function DescargarExpedienteOficialButton({
         fechaConstanciaInasistencia: fechaConstancia,
       });
       const nombreArchivo = nombreArchivoExpedienteOficial(registro.proceso, registro.solicitado);
-      const { camposSinDato } = await descargarExpedienteOficialDocx(plantilla, campos, nombreArchivo);
+      const anio = String(new Date(registro.fechaComparendo).getFullYear());
+      const { camposSinDato } = await descargarExpedienteOficialDocx(plantilla, campos, anio, nombreArchivo);
       if (camposSinDato.length > 0) {
         message.warning(
           `Expediente generado, pero la plantilla trae campos sin dato disponible (quedaron en blanco): ${camposSinDato.join(', ')}.`,

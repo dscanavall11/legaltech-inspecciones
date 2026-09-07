@@ -1,4 +1,5 @@
 import { generarDocxDesdeMergeFields } from './mergeFieldDocx';
+import { repararAnioCaratulaExpediente } from './textoFijoDocx';
 import { descargarBlob } from './descargarBlob';
 
 /** Falla explícita, sin generar un documento con datos inventados, si la plantilla oficial no está disponible. */
@@ -32,20 +33,30 @@ export interface ResultadoExpedienteOficial {
   camposSinDato: string[];
 }
 
+/**
+ * Además de los MERGEFIELD, repara el "AÑO:" fijo de la carátula — no es un
+ * campo, así que sin esto quedaría con el año del último caso real
+ * combinado en la plantilla. `anio` debe salir del mismo registro (año del
+ * comparendo), nunca inventado. Ver textoFijoDocx.ts.
+ */
 export async function generarExpedienteOficialDocxBlob(
   plantilla: ArrayBuffer,
   campos: Record<string, string>,
+  anio: string,
 ): Promise<ResultadoExpedienteOficial> {
-  const { blob, camposSinDato } = await generarDocxDesdeMergeFields(plantilla, campos);
+  const { blob, camposSinDato } = await generarDocxDesdeMergeFields(plantilla, campos, (_parte, xml) =>
+    repararAnioCaratulaExpediente(xml, anio).xml,
+  );
   return { blob, camposSinDato };
 }
 
 export async function descargarExpedienteOficialDocx(
   plantilla: ArrayBuffer,
   campos: Record<string, string>,
+  anio: string,
   nombreArchivo: string,
 ): Promise<ResultadoExpedienteOficial> {
-  const resultado = await generarExpedienteOficialDocxBlob(plantilla, campos);
+  const resultado = await generarExpedienteOficialDocxBlob(plantilla, campos, anio);
   descargarBlob(resultado.blob, nombreArchivo);
   return resultado;
 }

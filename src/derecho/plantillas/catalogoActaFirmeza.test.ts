@@ -18,10 +18,10 @@ describe('seleccionarPlantillaActaFirmeza — catálogo determinístico, sin IA 
     }
   });
 
-  it('normal + femenino + sin reincidencia → única opción disponible, con advertencia de contenido incompleto', () => {
+  it('normal + femenino + sin reincidencia → la plantilla canónica completa (con párrafo BDME), no la duplicada incompleta', () => {
     const r = seleccionarPlantillaActaFirmeza(seleccion({ genero: 'femenino' }));
-    expect(r?.archivo).toBe('1. ACTA DE FIRMEZA 2026. F.docx');
-    expect(r?.advertencias.join(' ')).toMatch(/incompleta|BDME/i);
+    expect(r?.archivo).toBe('Femenino/1. FIRMEZA F. SIN REICIDENCIA GENERAL.docx');
+    expect(r?.archivo).not.toBe('1. ACTA DE FIRMEZA 2026. F.docx');
   });
 
   it.each([2, 3, 4] as const)('normal + masculino + reiteración dentro del año (75%%%%) tipo %i → plantilla específica del tipo', (tipo) => {
@@ -38,9 +38,18 @@ describe('seleccionarPlantillaActaFirmeza — catálogo determinístico, sin IA 
     expect(r?.archivo).toBe(`2. FIRMEZA MULTA ${tipo}. REINCIDENCIA 50% M..docx`);
   });
 
-  it('normal + femenino + cualquier reincidencia → sin plantilla (no existe versión femenina de reincidencia)', () => {
-    expect(seleccionarPlantillaActaFirmeza(seleccion({ genero: 'femenino', causal: 'reiteracion_dentro_del_anio' }))).toBeNull();
-    expect(seleccionarPlantillaActaFirmeza(seleccion({ genero: 'femenino', causal: 'reiteracion_despues_del_anio' }))).toBeNull();
+  it.each([2, 3, 4] as const)('normal + femenino + reiteración dentro del año (75%%%%) tipo %i → plantilla específica del tipo', (tipo) => {
+    const r = seleccionarPlantillaActaFirmeza(
+      seleccion({ genero: 'femenino', tipoMulta: tipo, causal: 'reiteracion_dentro_del_anio' }),
+    );
+    expect(r?.archivo).toBe(`Femenino/3. FIRMEZA MULTA ${tipo}. REINCIDENCIA 75% F..docx`);
+  });
+
+  it.each([2, 3, 4] as const)('normal + femenino + reiteración después del año (50%%%%) tipo %i → plantilla específica del tipo', (tipo) => {
+    const r = seleccionarPlantillaActaFirmeza(
+      seleccion({ genero: 'femenino', tipoMulta: tipo, causal: 'reiteracion_despues_del_anio' }),
+    );
+    expect(r?.archivo).toBe(`Femenino/2. FIRMEZA MULTA ${tipo}. REINCIDENCIA 50% F..docx`);
   });
 
   it('causal moroso_bdme → sin plantilla en ningún caso (no existe plantilla para el literal i)', () => {
@@ -101,7 +110,7 @@ describe('seleccionarPlantillaActaFirmeza — catálogo determinístico, sin IA 
     ).toBeNull();
   });
 
-  it('el catálogo completo tiene las 13 plantillas reales inspeccionadas (ninguna se perdió ni se inventó)', () => {
-    expect(CATALOGO_ACTA_FIRMEZA.length).toBe(13);
+  it('el catálogo completo tiene las 20 plantillas reales inspeccionadas (ninguna se perdió ni se inventó)', () => {
+    expect(CATALOGO_ACTA_FIRMEZA.length).toBe(20);
   });
 });

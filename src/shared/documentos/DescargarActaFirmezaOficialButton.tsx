@@ -11,6 +11,7 @@ import {
   camposFaltantesActaFirmezaOficial,
   mapearCamposActaFirmezaOficial,
   nombreArchivoActaFirmezaOficial,
+  valoresFijosActaFirmeza,
   type DatosActaFirmezaOficial,
 } from '@/derecho/plantillas/actaFirmezaOficial';
 import {
@@ -101,7 +102,8 @@ export function DescargarActaFirmezaOficialButton({
         representanteCedula: REQUIERE_REPRESENTANTE.includes(caso) ? representanteCedula : undefined,
       });
       const nombreArchivo = nombreArchivoActaFirmezaOficial(registro.proceso, registro.solicitado);
-      const { camposSinDato } = await descargarActaFirmezaOficialDocx(plantilla, campos, nombreArchivo);
+      const valoresFijos = valoresFijosActaFirmeza(registro.liquidacion);
+      const { camposSinDato } = await descargarActaFirmezaOficialDocx(plantilla, campos, valoresFijos, nombreArchivo);
       if (camposSinDato.length > 0) {
         message.warning(`Acta generada, pero quedaron en blanco campos sin dato: ${camposSinDato.join(', ')}.`);
       } else {

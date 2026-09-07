@@ -1,4 +1,5 @@
 import { generarDocxDesdeMergeFields } from './mergeFieldDocx';
+import { repararValoresFijosActaFirmeza } from './textoFijoDocx';
 import { descargarBlob } from './descargarBlob';
 import { rutaPlantillaActaFirmeza } from '@/derecho/plantillas/catalogoActaFirmeza';
 
@@ -30,20 +31,37 @@ export interface ResultadoActaFirmezaOficial {
   camposSinDato: string[];
 }
 
+export interface ValoresFijosActa {
+  /** "dos mil veintiséis (2026)" — año de vigencia real, calculado, nunca el que traía la plantilla. */
+  anioVigenciaLetras: string;
+  /** Solo cuando hay reincidencia: valor base + incremento, calculado. En "sin reincidencia" no se pasa (no hay frase que reparar). */
+  valorTotalLetras?: string;
+}
+
+/**
+ * Además de los MERGEFIELD, repara el texto fijo residual conocido (año de
+ * vigencia y, en reincidencia, el "VALOR TOTAL A RECAUDAR") — ninguno de los
+ * dos es un campo, así que sin esto quedarían con el valor del último caso
+ * real combinado en la plantilla. Ver textoFijoDocx.ts.
+ */
 export async function generarActaFirmezaOficialDocxBlob(
   plantilla: ArrayBuffer,
   campos: Record<string, string>,
+  valoresFijos: ValoresFijosActa,
 ): Promise<ResultadoActaFirmezaOficial> {
-  const { blob, camposSinDato } = await generarDocxDesdeMergeFields(plantilla, campos);
+  const { blob, camposSinDato } = await generarDocxDesdeMergeFields(plantilla, campos, (_parte, xml) =>
+    repararValoresFijosActaFirmeza(xml, valoresFijos).xml,
+  );
   return { blob, camposSinDato };
 }
 
 export async function descargarActaFirmezaOficialDocx(
   plantilla: ArrayBuffer,
   campos: Record<string, string>,
+  valoresFijos: ValoresFijosActa,
   nombreArchivo: string,
 ): Promise<ResultadoActaFirmezaOficial> {
-  const resultado = await generarActaFirmezaOficialDocxBlob(plantilla, campos);
+  const resultado = await generarActaFirmezaOficialDocxBlob(plantilla, campos, valoresFijos);
   descargarBlob(resultado.blob, nombreArchivo);
   return resultado;
 }

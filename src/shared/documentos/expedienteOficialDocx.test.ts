@@ -26,9 +26,11 @@ function docxConCampoMerge(nombre: string, resultadoCacheado: string): Promise<A
 describe('generarExpedienteOficialDocxBlob — delega en el motor de MERGEFIELD y reporta campos sin dato', () => {
   it('sustituye el campo y no reporta faltantes cuando el mapa cubre todos los campos de la plantilla', async () => {
     const plantilla = await docxConCampoMerge('Solicitado', 'NOMBRE DE EJEMPLO ANTERIOR');
-    const { blob, camposSinDato } = await generarExpedienteOficialDocxBlob(plantilla, {
-      Solicitado: 'CIUDADANO DE PRUEBA',
-    });
+    const { blob, camposSinDato } = await generarExpedienteOficialDocxBlob(
+      plantilla,
+      { Solicitado: 'CIUDADANO DE PRUEBA' },
+      '2026',
+    );
 
     expect(camposSinDato).toEqual([]);
     expect(blob.size).toBeGreaterThan(0);
@@ -41,11 +43,32 @@ describe('generarExpedienteOficialDocxBlob — delega en el motor de MERGEFIELD 
 
   it('reporta como "sin dato" un campo de la plantilla que el mapa no cubre, y lo deja en blanco (no inventa)', async () => {
     const plantilla = await docxConCampoMerge('Cedula_solicitado', '1000000000');
-    const { camposSinDato, blob } = await generarExpedienteOficialDocxBlob(plantilla, {});
+    const { camposSinDato, blob } = await generarExpedienteOficialDocxBlob(plantilla, {}, '2026');
 
     expect(camposSinDato).toEqual(['Cedula_solicitado']);
     const zip = await JSZip.loadAsync(await blob.arrayBuffer());
     const xml = await zip.file('word/document.xml')!.async('string');
     expect(xml).not.toContain('1000000000');
+  });
+
+  it('repara el "AÑO:" fijo de la carátula con el año real, sin depender de un MERGEFIELD', async () => {
+    const documentXml =
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+      `<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>` +
+      `<w:p><w:r><w:t xml:space="preserve">AÑO:   </w:t></w:r><w:r><w:rPr><w:b/></w:rPr><w:t>2026</w:t></w:r></w:p>` +
+      `</w:body></w:document>`;
+    const zip = new JSZip();
+    zip.file(
+      '[Content_Types].xml',
+      '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"/>',
+    );
+    zip.file('word/document.xml', documentXml);
+    const plantilla = await zip.generateAsync({ type: 'arraybuffer' });
+
+    const { blob } = await generarExpedienteOficialDocxBlob(plantilla, {}, '2019');
+    const salida = await JSZip.loadAsync(await blob.arrayBuffer());
+    const xml = await salida.file('word/document.xml')!.async('string');
+    expect(xml).toContain('2019');
+    expect(xml).not.toContain('2026');
   });
 });

@@ -110,7 +110,7 @@ describe.skipIf(!existsSync(DIR_ACTAS))('Generación masiva de Actas de Firmeza 
     for (const r of resumen.resultados.filter((r) => r.comparendo !== '17-001-7')) {
       expect(r.estado, r.comparendo).toBe('generado');
       expect(r.archivo, r.comparendo).toBeDefined();
-      expect(r.archivo!.nombre).toBe(`ACTA DE FIRMEZA. QUEJA ${r.proceso}. ${r.solicitado}.docx`);
+      expect(r.archivo!.nombre).toBe(`Acta de FIRMEZA. QUEJA ${r.proceso}. ${r.solicitado}.docx`);
     }
 
     const zipBlob = await generarZipActasMasivas(resumen.resultados);

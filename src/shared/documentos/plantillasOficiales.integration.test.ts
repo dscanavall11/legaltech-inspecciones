@@ -265,7 +265,7 @@ describe.skipIf(!existsSync(DIR_ACTAS))('Plantillas oficiales reales: Actas de f
 
   it('nombre de archivo correcto para el Acta de la prueba', () => {
     const nombre = nombreArchivoActaFirmezaOficial(REGISTRO.proceso, REGISTRO.solicitado);
-    expect(nombre).toBe('ACTA DE FIRMEZA. QUEJA 2026-9001. CIUDADANO DE PRUEBA EJEMPLO.docx');
+    expect(nombre).toBe('Acta de FIRMEZA. QUEJA 2026-9001. CIUDADANO DE PRUEBA EJEMPLO.docx');
   });
 
   it('el año de vigencia fijo se repara incluso cuando Word lo partió en varios runs (familia representante legal / establecimiento)', async () => {

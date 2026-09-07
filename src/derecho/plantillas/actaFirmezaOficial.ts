@@ -118,7 +118,14 @@ function paraNombreArchivo(texto: string): string {
     .trim();
 }
 
-/** "ACTA DE FIRMEZA. QUEJA {QUEJA}. {NOMBRE COMPLETO}.docx" — mismo patrón que el expediente. */
+/**
+ * "Acta de FIRMEZA. QUEJA {QUEJA}. {NOMBRE COMPLETO}.docx" — capitalización
+ * exacta pedida por el despacho ("Acta de" normal, "FIRMEZA" en mayúsculas).
+ * Única función de nombre de archivo para Acta de Firmeza: la usan tanto la
+ * generación individual (`DescargarActaFirmezaOficialButton`) como la
+ * masiva (`generacionMasivaActasDocx`) — cambiarla aquí mantiene ambas
+ * consistentes sin duplicar la convención de nombres.
+ */
 export function nombreArchivoActaFirmezaOficial(proceso: string, solicitado: string): string {
-  return `ACTA DE FIRMEZA. QUEJA ${paraNombreArchivo(proceso)}. ${paraNombreArchivo(solicitado).toUpperCase()}.docx`;
+  return `Acta de FIRMEZA. QUEJA ${paraNombreArchivo(proceso)}. ${paraNombreArchivo(solicitado).toUpperCase()}.docx`;
 }

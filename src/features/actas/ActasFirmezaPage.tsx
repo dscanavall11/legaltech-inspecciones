@@ -45,6 +45,7 @@ import { descargarDocumentoLegalDocx } from '@/shared/documentos/documentoLegalD
 import { ExpedientePrevioButton } from '@/shared/documentos/ExpedientePrevioButton';
 import { DescargarExpedienteOficialButton } from '@/shared/documentos/DescargarExpedienteOficialButton';
 import { DescargarActaFirmezaOficialButton } from '@/shared/documentos/DescargarActaFirmezaOficialButton';
+import { GeneracionMasivaActasButton } from '@/shared/documentos/GeneracionMasivaActasButton';
 import { TextoCierreActa } from '@/shared/documentos/TextoCierreActa';
 import { ReincidenciaCausalField } from '@/shared/components/ReincidenciaCausalField';
 import { PdfViewer } from '@/shared/documentos/PdfViewer';
@@ -123,6 +124,7 @@ export function ActasFirmezaPage() {
   const bd = useComparendosStore((s) => s.comparendos);
   const setBd = useComparendosStore((s) => s.cargar);
   const [origenBd, setOrigenBd] = useState<'demo' | 'archivo'>('demo');
+  const [seleccionMasivaKeys, setSeleccionMasivaKeys] = useState<string[]>([]);
   const [apelo, setApelo] = useState(false);
   const [extrayendo, setExtrayendo] = useState(false);
   const [camposExtraidos, setCamposExtraidos] = useState<(keyof Comparendo)[]>([]);
@@ -294,6 +296,9 @@ export function ActasFirmezaPage() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <Text strong>Cola de trabajo — actas de firmeza ({bd.length})</Text>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <GeneracionMasivaActasButton
+              seleccionados={bd.filter((c) => seleccionMasivaKeys.includes(c.comparendo))}
+            />
             <Link to="/panel/procesos">
               <Button size="small" icon={<UnorderedListOutlined />}>
                 Ver todos los procesos
@@ -309,6 +314,10 @@ export function ActasFirmezaPage() {
           pagination={{ pageSize: 8, hideOnSinglePage: true }}
           dataSource={bd}
           rowKey={(c) => c.comparendo}
+          rowSelection={{
+            selectedRowKeys: seleccionMasivaKeys,
+            onChange: (keys) => setSeleccionMasivaKeys(keys as string[]),
+          }}
           onRow={(c) => ({
             onClick: () => seleccionarComparendo(c.comparendo),
             style: { cursor: 'pointer' },

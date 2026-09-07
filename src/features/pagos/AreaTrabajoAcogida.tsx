@@ -6,7 +6,6 @@ import {
   FileWordOutlined,
   PrinterOutlined,
   SearchOutlined,
-  UploadOutlined,
   WalletOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
@@ -20,11 +19,7 @@ import {
   type RutaComparendo,
   type TipoMulta,
 } from '@/derecho';
-import {
-  parsearBdComparendos,
-  type Comparendo,
-  type ReporteImportacion,
-} from '@/features/actas/comparendos';
+import type { Comparendo } from '@/features/actas/comparendos';
 import { extraerComparendoPdf } from '@/features/actas/extraerComparendoPdf';
 import { descargarDocumentoLegalDocx } from '@/shared/documentos/documentoLegalDocx';
 import { descargarDocumentoLegalPdf } from '@/shared/documentos/documentoLegalPdf';
@@ -40,6 +35,7 @@ import { viaAdmiteTipo, type ViaAcogida } from './viaAcogida';
 import { VistaPreviaActa } from '@/shared/documentos/VistaPreviaActa';
 import { TEXTO } from '@/theme/escala';
 import { useComparendosStore } from '@/shared/comparendos/store';
+import { CargarBaseComparendosButton } from '@/shared/comparendos/CargarBaseComparendosButton';
 
 const { Title, Text } = Typography;
 
@@ -127,15 +123,11 @@ export function AreaTrabajoAcogida({ via }: { via: ViaAcogida }) {
   // cada página tenía su copia en useState y el .xlsx cargado aquí no existía
   // en la queja de al lado.
   const bd = useComparendosStore((s) => s.comparendos);
-  const setBd = useComparendosStore((s) => s.cargar);
-  const [origenBd, setOrigenBd] = useState<'demo' | 'archivo'>('demo');
   const [extrayendo, setExtrayendo] = useState(false);
   const [camposExtraidos, setCamposExtraidos] = useState<(keyof Comparendo)[]>([]);
   const [pdfEscaneado, setPdfEscaneado] = useState(false);
   const [archivoComparendo, setArchivoComparendo] = useState<File | null>(null);
-  const [reporteImportacion, setReporteImportacion] = useState<ReporteImportacion | null>(null);
   const [tieneMultasPendientes, setTieneMultasPendientes] = useState(false);
-  const archivoBdRef = useRef<HTMLInputElement>(null);
   const archivoPdfRef = useRef<HTMLInputElement>(null);
 
   function set<K extends keyof FormularioAcogida>(k: K, v: FormularioAcogida[K]) {
@@ -162,25 +154,6 @@ export function AreaTrabajoAcogida({ via }: { via: ViaAcogida }) {
     } finally {
       setExtrayendo(false);
       if (archivoPdfRef.current) archivoPdfRef.current.value = '';
-    }
-  }
-
-  async function cargarExcel(archivo: File | undefined) {
-    if (!archivo) return;
-    try {
-      const { comparendos: registros, reporte } = await parsearBdComparendos(archivo);
-      setReporteImportacion(reporte);
-      if (registros.length === 0) {
-        message.warning('El archivo no contiene comparendos reconocibles.');
-        return;
-      }
-      setBd(registros);
-      setOrigenBd('archivo');
-      message.success(`BD cargada: ${reporte.leidas.toLocaleString('es-CO')} comparendos.`);
-    } catch {
-      message.error('No fue posible leer el archivo.');
-    } finally {
-      if (archivoBdRef.current) archivoBdRef.current.value = '';
     }
   }
 
@@ -304,6 +277,7 @@ export function AreaTrabajoAcogida({ via }: { via: ViaAcogida }) {
               </>
             ) : (
               <>
+                <CargarBaseComparendosButton />
                 <Select
                   showSearch
                   placeholder="Número de comparendo, cédula o nombre…"
@@ -321,27 +295,6 @@ export function AreaTrabajoAcogida({ via }: { via: ViaAcogida }) {
                     label: `${c.comparendo} · ${c.solicitado} · CC ${c.cedula}`,
                   }))}
                 />
-                <input
-                  ref={archivoBdRef}
-                  type="file"
-                  accept=".xlsx,.xls"
-                  style={{ display: 'none' }}
-                  onChange={(e) => void cargarExcel(e.target.files?.[0])}
-                />
-                <Button icon={<UploadOutlined />} onClick={() => archivoBdRef.current?.click()} block>
-                  Cargar BD de comparendos (.xlsx)
-                </Button>
-                {reporteImportacion && (
-                  <Alert
-                    type="info"
-                    showIcon
-                    style={{ marginTop: 10, borderRadius: 14 }}
-                    message={`Válidas: ${reporteImportacion.leidas} · Descartadas: ${reporteImportacion.descartadas}`}
-                  />
-                )}
-                <Tag style={{ marginTop: 10 }} color={origenBd === 'archivo' ? 'green' : 'blue'}>
-                  {origenBd === 'archivo' ? 'BD del despacho' : 'BD de demostración'}
-                </Tag>
               </>
             )}
           </Tarjeta>

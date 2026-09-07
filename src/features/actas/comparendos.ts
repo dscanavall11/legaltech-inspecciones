@@ -86,6 +86,8 @@ export interface ReporteImportacion {
   leidas: number;
   descartadas: number;
   motivos: Record<string, number>;
+  /** Encabezados de columna tal como venían en el archivo (primera fila), para mostrar qué detectó el parseo. */
+  columnasDetectadas: string[];
 }
 
 export async function parsearBdComparendos(archivo: File): Promise<{ comparendos: Comparendo[]; reporte: ReporteImportacion }> {
@@ -99,6 +101,7 @@ export async function parsearBdComparendos(archivo: File): Promise<{ comparendos
     leidas: 0,
     descartadas: 0,
     motivos: {},
+    columnasDetectadas: filas.length > 0 ? Object.keys(filas[0]) : [],
   };
 
   const vistos = new Set<string>();

@@ -17,7 +17,6 @@ import {
   FilePdfOutlined,
   FileWordOutlined,
   PrinterOutlined,
-  UploadOutlined,
   SearchOutlined,
   SafetyCertificateOutlined,
   UnorderedListOutlined,
@@ -37,7 +36,7 @@ import {
   type TipoMulta,
 } from '@/derecho';
 import { calcularTermino } from '@/shared/terminos/diasHabiles';
-import { parsearBdComparendos, type Comparendo, type ReporteImportacion } from './comparendos';
+import type { Comparendo } from './comparendos';
 import { extraerComparendoPdf } from './extraerComparendoPdf';
 import { descargarDocumentoLegalPdf } from '@/shared/documentos/documentoLegalPdf';
 import { VistaPreviaActa } from '@/shared/documentos/VistaPreviaActa';
@@ -56,6 +55,7 @@ import { Campo } from '@/shared/ui/Campo';
 import { Tarjeta } from '@/shared/ui/Tarjeta';
 import { TEXTO } from '@/theme/escala';
 import { useComparendosStore } from '@/shared/comparendos/store';
+import { CargarBaseComparendosButton } from '@/shared/comparendos/CargarBaseComparendosButton';
 
 const { Title, Text } = Typography;
 
@@ -122,16 +122,12 @@ export function ActasFirmezaPage() {
   // cada página tenía su copia en useState y el .xlsx cargado aquí no existía
   // en la queja de al lado.
   const bd = useComparendosStore((s) => s.comparendos);
-  const setBd = useComparendosStore((s) => s.cargar);
-  const [origenBd, setOrigenBd] = useState<'demo' | 'archivo'>('demo');
   const [seleccionMasivaKeys, setSeleccionMasivaKeys] = useState<string[]>([]);
   const [apelo, setApelo] = useState(false);
   const [extrayendo, setExtrayendo] = useState(false);
   const [camposExtraidos, setCamposExtraidos] = useState<(keyof Comparendo)[]>([]);
   const [pdfEscaneado, setPdfEscaneado] = useState(false);
   const [archivoComparendo, setArchivoComparendo] = useState<File | null>(null);
-  const [reporteImportacion, setReporteImportacion] = useState<ReporteImportacion | null>(null);
-  const archivoBdRef = useRef<HTMLInputElement>(null);
   const archivoPdfRef = useRef<HTMLInputElement>(null);
 
   function set<K extends keyof DatosActaFirmeza>(k: K, v: DatosActaFirmeza[K]) {
@@ -213,26 +209,6 @@ export function ActasFirmezaPage() {
     }
   }
 
-  // ── Ruta B: BD de comparendos (Excel) ────────────────────────────────
-  async function cargarExcel(archivo: File | undefined) {
-    if (!archivo) return;
-    try {
-      const { comparendos: registros, reporte } = await parsearBdComparendos(archivo);
-      setReporteImportacion(reporte);
-      if (registros.length === 0) {
-        message.warning('El archivo no contiene comparendos reconocibles.');
-        return;
-      }
-      setBd(registros);
-      setOrigenBd('archivo');
-      message.success(`BD cargada: ${reporte.leidas.toLocaleString('es-CO')} comparendos (${reporte.descartadas} descartados).`);
-    } catch {
-      message.error('No fue posible leer el archivo. Verifique que sea la BD de comparendos (.xlsx).');
-    } finally {
-      if (archivoBdRef.current) archivoBdRef.current.value = '';
-    }
-  }
-
   function seleccionarComparendo(numero: string) {
     const c = bd.find((x) => x.comparendo === numero);
     if (!c) return;
@@ -304,11 +280,9 @@ export function ActasFirmezaPage() {
                 Ver todos los procesos
               </Button>
             </Link>
-            <Tag color={origenBd === 'archivo' ? 'green' : 'blue'}>
-              {origenBd === 'archivo' ? 'BD del despacho' : 'BD de demostración'}
-            </Tag>
           </div>
         </div>
+        <CargarBaseComparendosButton />
         <Table<Comparendo>
           size="small"
           pagination={{ pageSize: 8, hideOnSinglePage: true }}
@@ -468,10 +442,7 @@ export function ActasFirmezaPage() {
                   <Text type="secondary" style={{ fontSize: TEXTO.base }}>
                     Buscar comparendo
                   </Text>
-                  <Tag color={origenBd === 'archivo' ? 'green' : 'blue'}>
-                    {origenBd === 'archivo' ? 'BD del despacho' : 'BD de demostración'} ·{' '}
-                    {bd.length.toLocaleString('es-CO')}
-                  </Tag>
+                  <Tag color="blue">{bd.length.toLocaleString('es-CO')} registros</Tag>
                 </div>
                 <Select
                   showSearch
@@ -488,38 +459,10 @@ export function ActasFirmezaPage() {
                     label: `${c.comparendo} · ${c.solicitado} · CC ${c.cedula}`,
                   }))}
                 />
-                <input
-                  ref={archivoBdRef}
-                  type="file"
-                  accept=".xlsx,.xls"
-                  style={{ display: 'none' }}
-                  onChange={(e) => void cargarExcel(e.target.files?.[0])}
-                />
-                <Button icon={<UploadOutlined />} onClick={() => archivoBdRef.current?.click()} block>
-                  Cargar BD de comparendos (.xlsx)
-                </Button>
-                {reporteImportacion && (
-                  <Alert
-                    type="info"
-                    showIcon
-                    style={{ marginTop: 10, borderRadius: 14 }}
-                    message={`Filas leídas: ${reporteImportacion.totalFilas} · Válidas: ${reporteImportacion.leidas} · Descartadas: ${reporteImportacion.descartadas}`}
-                    description={
-                      reporteImportacion.descartadas > 0 ? (
-                        <ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>
-                          {Object.entries(reporteImportacion.motivos).map(([motivo, count]) => (
-                            <li key={motivo} style={{ fontSize: TEXTO.menor }}>
-                              {motivo}: {count}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : null
-                    }
-                  />
-                )}
-                <div style={{ fontSize: TEXTO.menor, color: PALETA.textoTenue, marginTop: 10 }}>
-                  Si la BD trae la columna REINCIDENTE, la reincidencia se precarga y puede
-                  ajustarse en el formulario.
+                <div style={{ fontSize: TEXTO.menor, color: PALETA.textoTenue }}>
+                  Para cargar o reemplazar la BD de comparendos, use "Reemplazar base" arriba, en la
+                  cola de trabajo. Si trae la columna REINCIDENTE, la reincidencia se precarga y
+                  puede ajustarse en el formulario.
                 </div>
               </>
             )}

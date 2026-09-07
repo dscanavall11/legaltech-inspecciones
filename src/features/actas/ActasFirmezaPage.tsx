@@ -45,6 +45,7 @@ import { descargarDocumentoLegalDocx } from '@/shared/documentos/documentoLegalD
 import { ExpedientePrevioButton } from '@/shared/documentos/ExpedientePrevioButton';
 import { DescargarExpedienteOficialButton } from '@/shared/documentos/DescargarExpedienteOficialButton';
 import { DescargarActaFirmezaOficialButton } from '@/shared/documentos/DescargarActaFirmezaOficialButton';
+import { TextoCierreActa } from '@/shared/documentos/TextoCierreActa';
 import { ReincidenciaCausalField } from '@/shared/components/ReincidenciaCausalField';
 import { PdfViewer } from '@/shared/documentos/PdfViewer';
 import { ELEVACION, PALETA } from '@/theme/theme';
@@ -824,6 +825,16 @@ export function ActasFirmezaPage() {
               />
             </div>
           </Tarjeta>
+
+          {/* Independiente de la descarga del .docx: reutiliza el mismo nombre, queja,
+              fecha, tipo de multa y causal ya seleccionados — no pide nada de nuevo. */}
+          <TextoCierreActa
+            nombre={datos.solicitado}
+            queja={datos.proceso}
+            fechaResolucion={datos.fechaResolucion}
+            tipoMulta={datos.tipoMulta}
+            causal={datos.causal}
+          />
         </div>
 
         {/* ── Columna derecha: vista previa del acta ─────────────── */}

@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Button, Input, Modal, Select, Space, App } from 'antd';
 import { FileWordOutlined } from '@ant-design/icons';
+import { detectarGeneroCiudadano } from '@/derecho/generoDetectado';
 import {
   seleccionarPlantillaActaFirmeza,
   type CasoEspecialActa,
@@ -64,22 +65,41 @@ export function DescargarActaFirmezaOficialButton({
   const { message } = App.useApp();
   const [abierto, setAbierto] = useState(false);
   const [caso, setCaso] = useState<CasoEspecialActa>('normal');
-  const [genero, setGenero] = useState<GeneroCiudadano>('masculino');
+  // null = sin decidir todavía (ni detectado ni elegido a mano) — nunca arranca en un
+  // género por defecto, para no inducir a generar con el que quedó de un registro anterior.
+  const [genero, setGenero] = useState<GeneroCiudadano | null>(null);
+  const [generoCorregidoManualmente, setGeneroCorregidoManualmente] = useState(false);
   const [representanteNombre, setRepresentanteNombre] = useState('');
   const [representanteCedula, setRepresentanteCedula] = useState('');
   const [generando, setGenerando] = useState(false);
 
-  const seleccion = seleccionarPlantillaActaFirmeza({
-    caso,
-    genero,
-    tipoMulta: registro.tipoMulta as 1 | 2 | 3 | 4,
-    causal: registro.liquidacion.causal,
-  });
+  // Detección automática por evidencia textual del comparendo (hechos) — nunca por el
+  // nombre, nunca con IA generativa. Se recalcula cada vez que cambia el registro o se
+  // vuelve a abrir el modal; una corrección manual del inspector no se pisa mientras el
+  // modal siga abierto sobre el mismo registro.
+  const generoDetectado = detectarGeneroCiudadano(registro.hechos);
+  useEffect(() => {
+    if (abierto && !generoCorregidoManualmente) setGenero(generoDetectado);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [abierto, registro.hechos]);
+
+  const seleccion =
+    genero &&
+    seleccionarPlantillaActaFirmeza({
+      caso,
+      genero,
+      tipoMulta: registro.tipoMulta as 1 | 2 | 3 | 4,
+      causal: registro.liquidacion.causal,
+    });
 
   async function generar() {
     const faltantes = camposFaltantesActaFirmezaOficial(registro);
     if (faltantes.length > 0) {
       message.error(`Faltan datos del registro seleccionado: ${faltantes.join(', ')}.`);
+      return;
+    }
+    if (caso === 'normal' && !genero) {
+      message.error('NO SE PUDO DETERMINAR EL GÉNERO CON CERTEZA. Selecciónelo manualmente antes de generar.');
       return;
     }
     if (!seleccion) {
@@ -121,7 +141,14 @@ export function DescargarActaFirmezaOficialButton({
 
   return (
     <>
-      <Button icon={<FileWordOutlined />} disabled={disabled} onClick={() => setAbierto(true)}>
+      <Button
+        icon={<FileWordOutlined />}
+        disabled={disabled}
+        onClick={() => {
+          setGeneroCorregidoManualmente(false);
+          setAbierto(true);
+        }}
+      >
         Descargar Acta (plantilla oficial)
       </Button>
       <Modal
@@ -145,17 +172,39 @@ export function DescargarActaFirmezaOficialButton({
           {caso === 'normal' && (
             <div>
               <div style={{ fontSize: TEXTO.menor, marginBottom: 4 }}>
-                Género del presunto infractor (no se infiere del nombre)
+                Género del presunto infractor (nunca se infiere del nombre)
               </div>
               <Select
                 style={{ width: '100%' }}
-                value={genero}
-                onChange={setGenero}
+                placeholder="Seleccione…"
+                value={genero ?? undefined}
+                onChange={(v) => {
+                  setGenero(v);
+                  setGeneroCorregidoManualmente(true);
+                }}
                 options={[
                   { value: 'masculino', label: 'Masculino' },
                   { value: 'femenino', label: 'Femenino' },
                 ]}
               />
+              {generoDetectado && !generoCorregidoManualmente && (
+                <Alert
+                  type="success"
+                  showIcon
+                  style={{ marginTop: 8 }}
+                  message={`Género detectado automáticamente: ${generoDetectado === 'masculino' ? 'Masculino' : 'Femenino'}`}
+                  description="Por evidencia textual explícita en los hechos del comparendo (nunca por el nombre). Puede corregirlo arriba si no corresponde."
+                />
+              )}
+              {!generoDetectado && !generoCorregidoManualmente && (
+                <Alert
+                  type="warning"
+                  showIcon
+                  style={{ marginTop: 8 }}
+                  message="NO SE PUDO DETERMINAR EL GÉNERO CON CERTEZA"
+                  description="Los hechos del comparendo no traen una marca de género inequívoca (o traen de ambos). Selecciónelo manualmente."
+                />
+              )}
             </div>
           )}
           {REQUIERE_REPRESENTANTE.includes(caso) && (

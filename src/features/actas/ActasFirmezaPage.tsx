@@ -43,6 +43,7 @@ import { descargarDocumentoLegalPdf } from '@/shared/documentos/documentoLegalPd
 import { VistaPreviaActa } from '@/shared/documentos/VistaPreviaActa';
 import { descargarDocumentoLegalDocx } from '@/shared/documentos/documentoLegalDocx';
 import { ExpedientePrevioButton } from '@/shared/documentos/ExpedientePrevioButton';
+import { DescargarExpedienteOficialButton } from '@/shared/documentos/DescargarExpedienteOficialButton';
 import { ReincidenciaCausalField } from '@/shared/components/ReincidenciaCausalField';
 import { PdfViewer } from '@/shared/documentos/PdfViewer';
 import { ELEVACION, PALETA } from '@/theme/theme';
@@ -780,6 +781,25 @@ export function ActasFirmezaPage() {
                   fechaComparendo: datos.fechaComparendo,
                   hechos: datos.hechos,
                 }}
+              />
+              {/* Descarga independiente desde la plantilla oficial real del despacho
+                  (EXPEDIENTE PLANTILLA.docx) — no se mezcla con el acta ni con el
+                  expediente sintetizado de ExpedientePrevioButton. */}
+              <DescargarExpedienteOficialButton
+                disabled={!acta || apelo}
+                registro={{
+                  proceso: datos.proceso,
+                  comparendo: datos.comparendo,
+                  articuloNumeral: datos.articuloNumeral,
+                  solicitante: datos.solicitante,
+                  solicitado: datos.solicitado,
+                  cedula: datos.cedula,
+                  direccion: datos.direccion,
+                  telefono: datos.telefono,
+                  fechaComparendo: datos.fechaComparendo,
+                  hechos: datos.hechos,
+                }}
+                fechaConstanciaSugerida={terminos?.firmeza.fechaVencimiento}
               />
             </div>
           </Tarjeta>

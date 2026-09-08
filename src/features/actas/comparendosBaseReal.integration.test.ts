@@ -3,7 +3,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { esIncidenteFirmeza, parsearBdComparendos } from './comparendos';
 import { validarFilaParaActaMasiva } from '@/derecho/plantillas/generacionMasivaActas';
-import { generarActasMasivas } from '@/shared/documentos/generacionMasivaActasDocx';
+import { generarActasMasivas, generarZipActasMasivas } from '@/shared/documentos/generacionMasivaActasDocx';
+import JSZip from 'jszip';
 
 // `cargarPlantillaActaFirmeza` usa `fetch()` pensado para servir `public/`
 // como asset estático del navegador. En Node se sustituye por una lectura
@@ -112,6 +113,17 @@ describe.skipIf(!existsSync(RUTA_BD))('Base real de comparendos — filtro por I
     // no perdido ni generado con datos inventados.
     expect(resumen.generados).toBeGreaterThan(0);
     expect(resumen.generados).toBeLessThan(resumen.candidatosFirmeza);
+
+    // "Generar todas" empaqueta en un solo .zip cada resultado con archivo: la
+    // cantidad de entradas del .zip debe ser exactamente generados+conObservaciones
+    // (ni una fila silenciosamente perdida por colisión de nombre ni por otra causa).
+    const zipBlob = await generarZipActasMasivas(resumen.resultados);
+    const zip = await JSZip.loadAsync(await zipBlob.arrayBuffer());
+    const nombresEnZip = Object.keys(zip.files);
+    const nombresEsperados = resumen.resultados.filter((r) => r.archivo).map((r) => r.archivo!.nombre);
+    expect(new Set(nombresEsperados).size).toBe(nombresEsperados.length); // sin colisión de nombres
+    expect(nombresEnZip.length).toBe(resumen.generados + resumen.conObservaciones);
+    expect(nombresEnZip.sort()).toEqual(nombresEsperados.sort());
   });
 
   it('cada fila validada sigue el orden exacto: ninguna fila FIRMEZA con tipo de multa 5 se rechaza jamás por estado (ya pasó el filtro de Incidente)', async () => {

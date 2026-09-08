@@ -13,9 +13,7 @@ import {
   Table,
 } from 'antd';
 import {
-  DownloadOutlined,
   FilePdfOutlined,
-  FileWordOutlined,
   PrinterOutlined,
   SearchOutlined,
   SafetyCertificateOutlined,
@@ -38,9 +36,7 @@ import {
 import { calcularTermino } from '@/shared/terminos/diasHabiles';
 import { esIncidenteFirmeza, type Comparendo } from './comparendos';
 import { extraerComparendoPdf } from './extraerComparendoPdf';
-import { descargarDocumentoLegalPdf } from '@/shared/documentos/documentoLegalPdf';
 import { VistaPreviaActa } from '@/shared/documentos/VistaPreviaActa';
-import { descargarDocumentoLegalDocx } from '@/shared/documentos/documentoLegalDocx';
 import { ExpedientePrevioButton } from '@/shared/documentos/ExpedientePrevioButton';
 import { DescargarExpedienteOficialButton } from '@/shared/documentos/DescargarExpedienteOficialButton';
 import { DescargarActaFirmezaOficialButton } from '@/shared/documentos/DescargarActaFirmezaOficialButton';
@@ -727,24 +723,10 @@ export function ActasFirmezaPage() {
             </Campo>
 
             <div style={{ display: 'flex', gap: 10, marginTop: 6, flexWrap: 'wrap' }}>
-              <Button
-                type="primary"
-                size="large"
-                icon={<DownloadOutlined />}
-                disabled={!acta || apelo || noEsFirmezaEnBase}
-                onClick={() => acta && void descargarDocumentoLegalPdf(actaFirmezaComoDocumento(acta), inspeccion.membreteDataUrl)}
-                style={{ fontWeight: 600 }}
-              >
-                Descargar PDF
-              </Button>
-              <Button
-                size="large"
-                icon={<FileWordOutlined />}
-                disabled={!acta || apelo || noEsFirmezaEnBase}
-                onClick={() => acta && void descargarDocumentoLegalDocx(actaFirmezaComoDocumento(acta), inspeccion.membreteDataUrl)}
-              >
-                Descargar .docx
-              </Button>
+              {/* Única vía de descarga individual del Acta de Firmeza: plantilla
+                  DOCX oficial del despacho (motor OOXML/MERGEFIELD), nunca PDF ni
+                  un .docx sintetizado desde texto — conserva membrete, logos,
+                  tablas y estilos originales byte a byte. */}
               <DescargarActaFirmezaOficialButton
                 disabled={!acta || apelo || noEsFirmezaEnBase}
                 registro={{

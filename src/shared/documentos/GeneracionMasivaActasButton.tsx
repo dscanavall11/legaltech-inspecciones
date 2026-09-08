@@ -54,6 +54,11 @@ export function GeneracionMasivaActasButton({
     setDescargando(true);
     try {
       await descargarZipActasMasivas(resumen.resultados, dayjs().format('YYYY-MM-DD'));
+      // Libera de inmediato la tabla de comparendos (el modal, al quedar abierto,
+      // bloqueaba la selección de nuevas filas con su overlay) — sin esto el
+      // inspector debía recordar cerrar el modal a mano antes de poder generar
+      // un segundo lote.
+      setResumen(null);
     } finally {
       setDescargando(false);
     }

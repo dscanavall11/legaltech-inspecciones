@@ -6,6 +6,7 @@ import {
   nombreArchivoActaFirmezaOficial,
   valoresFijosActaFirmeza,
 } from '@/derecho/plantillas/actaFirmezaOficial';
+import type { CausalIncremento } from '@/derecho';
 import {
   cargarPlantillaActaFirmeza,
   generarActaFirmezaOficialDocxBlob,
@@ -19,24 +20,41 @@ import { descargarBlob } from './descargarBlob';
  * género, catálogo de plantillas, MERGEFIELD + reparo de texto fijo): no
  * hay una segunda lógica. Solo se agrega la orquestación por lote y el
  * empaquetado en un .zip.
+ *
+ * `Incidente` decide, antes que cualquier otra cosa, si una fila entra
+ * siquiera a validarse: las filas que no son FIRMEZA se separan primero
+ * (barato: una sola comparación de texto) y NUNCA llegan a detectar género,
+ * liquidar la multa ni tocar una plantilla — así lo pidió el despacho.
  */
 
-export type EstadoFilaMasiva = 'generado' | 'con_observaciones' | 'error';
+export type EstadoFilaMasiva = 'generado' | 'con_observaciones' | 'excluido_estado' | 'no_generado';
+
+const ETIQUETA_CAUSAL: Record<CausalIncremento, string> = {
+  ninguna: 'SIN REINCIDENCIA',
+  reiteracion_despues_del_anio: '50%',
+  reiteracion_dentro_del_anio: '75%',
+  moroso_bdme: 'MOROSO BDME',
+};
 
 export interface ResultadoFilaMasiva {
   comparendo: string;
   proceso: string;
   solicitado: string;
   estado: EstadoFilaMasiva;
-  motivo?: string;
+  /** Motivo exacto a mostrar — para 'generado', la variante (SIN REINCIDENCIA/50%/75%); para el resto, la razón por la que no se generó. */
+  motivo: string;
   archivo?: { nombre: string; blob: Blob };
 }
 
 export interface ResumenGeneracionMasiva {
   resultados: ResultadoFilaMasiva[];
+  totalEnBase: number;
+  candidatosFirmeza: number;
+  excluidosPorEstado: number;
   generados: number;
   conObservaciones: number;
-  errores: number;
+  /** Candidatos FIRMEZA que no se generaron por otro motivo (reincidencia no definida, género no determinado, tipo sin plantilla, etc.). */
+  noGenerados: number;
 }
 
 /** Plantillas ya descargadas en este lote, para no volver a pedir el mismo archivo por cada fila que lo comparte. */
@@ -59,7 +77,11 @@ export async function generarActasMasivas(
     const base = { comparendo: registro.comparendo, proceso: registro.proceso, solicitado: registro.solicitado };
     const validacion = validarFilaParaActaMasiva(registro);
     if (!validacion.ok) {
-      resultados.push({ ...base, estado: 'error', motivo: validacion.motivo });
+      resultados.push({
+        ...base,
+        estado: validacion.tipoExclusion === 'estado' ? 'excluido_estado' : 'no_generado',
+        motivo: validacion.motivo,
+      });
       continue;
     }
     try {
@@ -85,17 +107,18 @@ export async function generarActasMasivas(
       const valoresFijos = valoresFijosActaFirmeza(validacion.liquidacion);
       const { blob, camposSinDato } = await generarActaFirmezaOficialDocxBlob(plantilla, campos, valoresFijos);
       const nombre = nombreArchivoActaFirmezaOficial(registro.proceso, registro.solicitado);
+      const etiquetaCausal = ETIQUETA_CAUSAL[registro.causal];
 
       resultados.push({
         ...base,
         estado: camposSinDato.length > 0 ? 'con_observaciones' : 'generado',
-        motivo: camposSinDato.length > 0 ? `campos sin dato: ${camposSinDato.join(', ')}` : undefined,
+        motivo: camposSinDato.length > 0 ? `${etiquetaCausal} — campos sin dato: ${camposSinDato.join(', ')}` : etiquetaCausal,
         archivo: { nombre, blob },
       });
     } catch (e) {
       resultados.push({
         ...base,
-        estado: 'error',
+        estado: 'no_generado',
         motivo: e instanceof PlantillaActaFirmezaNoDisponibleError ? e.message : 'no se pudo generar el acta',
       });
     }
@@ -103,13 +126,16 @@ export async function generarActasMasivas(
 
   return {
     resultados,
+    totalEnBase: registros.length,
+    candidatosFirmeza: resultados.filter((r) => r.estado !== 'excluido_estado').length,
+    excluidosPorEstado: resultados.filter((r) => r.estado === 'excluido_estado').length,
     generados: resultados.filter((r) => r.estado === 'generado').length,
     conObservaciones: resultados.filter((r) => r.estado === 'con_observaciones').length,
-    errores: resultados.filter((r) => r.estado === 'error').length,
+    noGenerados: resultados.filter((r) => r.estado === 'no_generado').length,
   };
 }
 
-/** Empaqueta los .docx generados (generado + con_observaciones; los "error" nunca se generaron) en un único .zip. */
+/** Empaqueta los .docx generados (generado + con_observaciones; ningún excluido/no generado entra al zip) en un único .zip. */
 export async function generarZipActasMasivas(resultados: ResultadoFilaMasiva[]): Promise<Blob> {
   const zip = new JSZip();
   for (const r of resultados) {

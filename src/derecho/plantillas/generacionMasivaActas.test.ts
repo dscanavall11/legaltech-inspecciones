@@ -18,7 +18,9 @@ function fila(over: Partial<Comparendo> = {}): Comparendo {
     hechos: 'Se aborda al ciudadano, identificado con cédula, quien portaba un arma cortopunzante.',
     tipoMulta: 4,
     apelo: false,
+    incidente: 'FIRMEZA',
     causal: 'ninguna',
+    reincidenciaValida: true,
     ...over,
   };
 }
@@ -77,6 +79,12 @@ describe('validarFilaParaActaMasiva — reutiliza exactamente la lógica individ
     if (!r.ok) expect(r.motivo).toBe('no existe plantilla tipo 1');
   });
 
+  it('tipo de multa fuera del modelo (p. ej. 5, como trae la BD real) → error explícito, no se descarta en silencio', () => {
+    const r = validarFilaParaActaMasiva(fila({ tipoMulta: 5 as Comparendo['tipoMulta'] }));
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.motivo).toMatch(/tipo de multa no reconocido \(5\)/);
+  });
+
   it('causal sin plantilla (moroso_bdme) → error "no existe plantilla..."', () => {
     const r = validarFilaParaActaMasiva(fila({ causal: 'moroso_bdme' }));
     expect(r.ok).toBe(false);
@@ -89,5 +97,87 @@ describe('validarFilaParaActaMasiva — reutiliza exactamente la lógica individ
     expect(rSinReincidencia.ok && rSinReincidencia.seleccion.archivo).not.toBe(
       rConReincidencia.ok && rConReincidencia.seleccion.archivo,
     );
+  });
+
+  describe('filtro por "Incidente" — primero y más barato, antes de cualquier otra validación', () => {
+    it('"FIRMEZA" con espacios al inicio/final → sí es candidata', () => {
+      const r = validarFilaParaActaMasiva(fila({ incidente: '  FIRMEZA  ' }));
+      expect(r.ok).toBe(true);
+    });
+
+    it('"firmeza" en minúsculas → sí es candidata', () => {
+      const r = validarFilaParaActaMasiva(fila({ incidente: 'firmeza' }));
+      expect(r.ok).toBe(true);
+    });
+
+    it('"PRONTO PAGO" → excluida por estado, no es un error jurídico', () => {
+      const r = validarFilaParaActaMasiva(fila({ incidente: 'PRONTO PAGO' }));
+      expect(r.ok).toBe(false);
+      if (!r.ok) {
+        expect(r.tipoExclusion).toBe('estado');
+        expect(r.motivo).toBe('NO GENERADO — ESTADO DISTINTO DE FIRMEZA (PRONTO PAGO)');
+      }
+    });
+
+    it('"NO ESTA - REVISAR" → excluida por estado', () => {
+      const r = validarFilaParaActaMasiva(fila({ incidente: 'NO ESTA - REVISAR' }));
+      expect(r.ok).toBe(false);
+      if (!r.ok) {
+        expect(r.tipoExclusion).toBe('estado');
+        expect(r.motivo).toBe('NO GENERADO — ESTADO DISTINTO DE FIRMEZA (NO ESTA - REVISAR)');
+      }
+    });
+
+    it('"NO CERRAR" → excluida por estado', () => {
+      const r = validarFilaParaActaMasiva(fila({ incidente: 'NO CERRAR' }));
+      expect(r.ok).toBe(false);
+      if (!r.ok) expect(r.tipoExclusion).toBe('estado');
+    });
+
+    it('Incidente vacío → excluida por estado, motivo indica "vacío"', () => {
+      const r = validarFilaParaActaMasiva(fila({ incidente: '' }));
+      expect(r.ok).toBe(false);
+      if (!r.ok) {
+        expect(r.tipoExclusion).toBe('estado');
+        expect(r.motivo).toBe('NO GENERADO — ESTADO DISTINTO DE FIRMEZA (vacío)');
+      }
+    });
+
+    it('una fila que no es FIRMEZA nunca llega a evaluar género ni tipo de multa: aunque ambos sean inválidos, el motivo reportado es el estado', () => {
+      const r = validarFilaParaActaMasiva(
+        fila({ incidente: 'PRONTO PAGO', hechos: 'sin marca de género', tipoMulta: 1 }),
+      );
+      expect(r.ok).toBe(false);
+      if (!r.ok) {
+        expect(r.tipoExclusion).toBe('estado');
+        expect(r.motivo).not.toMatch(/género|tipo de multa/i);
+      }
+    });
+  });
+
+  describe('reincidencia — columna oficial "Reincidencia", nunca "REINCIDENTE" ni texto libre', () => {
+    it('Incidente FIRMEZA pero reincidencia no definida/inválida → no se genera, motivo exacto', () => {
+      const r = validarFilaParaActaMasiva(fila({ reincidenciaValida: false }));
+      expect(r.ok).toBe(false);
+      if (!r.ok) {
+        expect(r.tipoExclusion).toBe('invalido');
+        expect(r.motivo).toBe('REINCIDENCIA NO DEFINIDA O INVÁLIDA');
+      }
+    });
+
+    it('reincidencia válida (ya resuelta a "ninguna") → sí es candidata', () => {
+      const r = validarFilaParaActaMasiva(fila({ causal: 'ninguna', reincidenciaValida: true }));
+      expect(r.ok).toBe(true);
+    });
+
+    it('reincidencia válida resuelta a 50% (reiteracion_despues_del_anio) → sí es candidata', () => {
+      const r = validarFilaParaActaMasiva(fila({ causal: 'reiteracion_despues_del_anio', reincidenciaValida: true }));
+      expect(r.ok).toBe(true);
+    });
+
+    it('reincidencia válida resuelta a 75% (reiteracion_dentro_del_anio) → sí es candidata', () => {
+      const r = validarFilaParaActaMasiva(fila({ causal: 'reiteracion_dentro_del_anio', reincidenciaValida: true }));
+      expect(r.ok).toBe(true);
+    });
   });
 });

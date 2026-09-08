@@ -50,7 +50,9 @@ function fila(over: Partial<Comparendo> = {}): Comparendo {
     hechos: 'Se aborda al ciudadano, identificado con cédula, quien portaba un arma cortopunzante.',
     tipoMulta: 4,
     apelo: false,
+    incidente: 'FIRMEZA',
     causal: 'ninguna',
+    reincidenciaValida: true,
     ...over,
   };
 }
@@ -94,20 +96,30 @@ describe.skipIf(!existsSync(DIR_ACTAS))('Generación masiva de Actas de Firmeza 
       }),
       // Caso con error deliberado: tipo de multa 1, sin plantilla.
       fila({ comparendo: '17-001-7', proceso: '2026-90007', solicitado: 'CIUDADANO SIETE ERROR', tipoMulta: 1 }),
+      // Caso excluido por estado: no es FIRMEZA, nunca debe tocar género/plantilla ni entrar al zip.
+      fila({ comparendo: '17-001-8', proceso: '2026-90008', solicitado: 'CIUDADANO OCHO PRONTO PAGO', incidente: 'PRONTO PAGO' }),
     ];
 
     const resumen = await generarActasMasivas(registros, '2026-06-20');
 
+    expect(resumen.totalEnBase).toBe(8);
+    expect(resumen.candidatosFirmeza).toBe(7);
+    expect(resumen.excluidosPorEstado).toBe(1);
     expect(resumen.generados).toBe(6);
-    expect(resumen.errores).toBe(1);
+    expect(resumen.noGenerados).toBe(1);
     expect(resumen.conObservaciones).toBe(0);
 
     const fallido = resumen.resultados.find((r) => r.comparendo === '17-001-7')!;
-    expect(fallido.estado).toBe('error');
+    expect(fallido.estado).toBe('no_generado');
     expect(fallido.motivo).toBe('no existe plantilla tipo 1');
     expect(fallido.archivo).toBeUndefined();
 
-    for (const r of resumen.resultados.filter((r) => r.comparendo !== '17-001-7')) {
+    const excluido = resumen.resultados.find((r) => r.comparendo === '17-001-8')!;
+    expect(excluido.estado).toBe('excluido_estado');
+    expect(excluido.motivo).toBe('NO GENERADO — ESTADO DISTINTO DE FIRMEZA (PRONTO PAGO)');
+    expect(excluido.archivo).toBeUndefined();
+
+    for (const r of resumen.resultados.filter((r) => !['17-001-7', '17-001-8'].includes(r.comparendo))) {
       expect(r.estado, r.comparendo).toBe('generado');
       expect(r.archivo, r.comparendo).toBeDefined();
       expect(r.archivo!.nombre).toBe(`Acta de FIRMEZA. QUEJA ${r.proceso}. ${r.solicitado}.docx`);
@@ -117,11 +129,12 @@ describe.skipIf(!existsSync(DIR_ACTAS))('Generación masiva de Actas de Firmeza 
     const zip = await JSZip.loadAsync(await zipBlob.arrayBuffer());
     const nombresEnZip = Object.keys(zip.files).sort();
 
-    expect(nombresEnZip.length).toBe(6); // no el de error
+    expect(nombresEnZip.length).toBe(6); // ni el error ni el excluido por estado
     for (const r of resumen.resultados.filter((r) => r.archivo)) {
       expect(nombresEnZip).toContain(r.archivo!.nombre);
     }
     expect(nombresEnZip.some((n) => n.includes('SIETE ERROR'))).toBe(false);
+    expect(nombresEnZip.some((n) => n.includes('PRONTO PAGO'))).toBe(false);
 
     // Cada .docx dentro del zip es válido y conserva el membrete.
     for (const nombre of nombresEnZip) {

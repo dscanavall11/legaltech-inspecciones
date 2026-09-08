@@ -46,6 +46,13 @@ vite.config.d.ts
 # localmente para que la app las sirva como asset estático; el despliegue
 # real debe provisionarlas por fuera de git (p. ej. subida directa a S3).
 public/Plantillas/
+
+# Bases de datos reales del despacho (nombres, cédulas, direcciones reales de
+# ciudadanos) usadas solo para pruebas de integración locales contra la
+# estructura real de columnas — jamás van a GitHub. Los tests que dependen de
+# este directorio se saltan solos si no existe (`describe.skipIf`).
+local-data/
+
 .superpowers/
 .omo/
 docs

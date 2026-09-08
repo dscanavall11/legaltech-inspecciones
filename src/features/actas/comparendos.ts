@@ -19,15 +19,43 @@ export interface Comparendo {
   articuloNumeral: string;
   descripcionConducta: string;
   hechos: string;
+  /**
+   * Tal como viene en el Excel — puede traer valores fuera de 1-4 (la BD
+   * real trae, por ejemplo, tipo 5, que hoy no está modelado en ninguna
+   * plantilla ni en `MULTA_GENERAL`). No se descarta ni se reinterpreta acá:
+   * el validador de generación (individual o masiva) es quien decide si el
+   * valor es utilizable, para que un tipo no reconocido aparezca reportado
+   * en vez de desaparecer silenciosamente del universo de candidatos.
+   */
   tipoMulta: TipoMulta;
   apelo: boolean;
-  /** Reincidencia registrada en la BD (columna REINCIDENTE), si la trae. */
+  /**
+   * Estado procesal real de la BD (columna "Incidente"), recortado pero sin
+   * normalizar el resto — para mostrarlo tal cual en los reportes ("ESTADO:
+   * NO ESTA - REVISAR"). Determina si corresponde generar Acta de Firmeza:
+   * ver `esIncidenteFirmeza`.
+   */
+  incidente: string;
+  /**
+   * Causal de reincidencia ya resuelta desde la columna oficial
+   * "Reincidencia" — nunca desde "REINCIDENTE" (columna obsoleta) ni
+   * inferida de texto libre. Vale 'ninguna' tanto si la BD trae
+   * explícitamente "sin reincidencia" como si el valor no se pudo
+   * reconocer; para distinguir esos dos casos, ver `reincidenciaValida`.
+   */
   causal: CausalIncremento;
+  /**
+   * false si la columna "Reincidencia" venía vacía o con un valor no
+   * reconocido (no es "SIN REICIDENCIA", "0.5"/"50%" ni "0.75"/"75%"). Si el
+   * Incidente es FIRMEZA y esto es false, NO debe generarse el acta
+   * automáticamente — hay que confirmarlo a mano.
+   */
+  reincidenciaValida: boolean;
 }
 
 // ── Parseo del Excel del despacho ──────────────────────────────────────────
 
-/** Normaliza un encabezado: sin tildes, minúsculas, sin espacios sobrantes. */
+/** Normaliza un encabezado o valor: sin tildes, minúsculas, sin espacios sobrantes. */
 function clave(h: string): string {
   return h
     .normalize('NFD')
@@ -60,16 +88,41 @@ export function fechaLetrasAIso(texto: string): string | null {
   return `${anio}-${String(MESES[mes]).padStart(2, '0')}-${dia.padStart(2, '0')}`;
 }
 
-function tipoMultaValido(v: unknown): TipoMulta | null {
+/** Cualquier número finito se deja pasar tal cual — la validez del tipo (1-4) la decide el validador de generación, no el parseo. */
+function tipoMultaCrudo(v: unknown): TipoMulta | null {
   const n = Number(v);
-  return n === 1 || n === 2 || n === 3 || n === 4 ? (n as TipoMulta) : null;
+  return Number.isFinite(n) ? (n as TipoMulta) : null;
 }
 
 /**
- * Interpreta la columna REINCIDENTE de la BD. Acepta las formas usuales:
- * "SI" / "75%" / "REITERACIÓN" → dentro del año (+75%); "50%" o "AÑO" →
- * después del año (+50%); "BDME" / "MOROSO" → moroso BDME (+50%).
+ * Estado procesal (columna oficial "Incidente"). Solo "FIRMEZA" habilita la
+ * generación del Acta de Firmeza — tolerante a mayúsculas/minúsculas y a
+ * espacios al inicio/final ("FIRMEZA ", " firmeza "), nada más: no se hace
+ * coincidencia parcial con otros estados.
  */
+export function esIncidenteFirmeza(incidente: string): boolean {
+  return clave(incidente) === 'firmeza';
+}
+
+/**
+ * Interpreta la columna oficial "Reincidencia" — NUNCA la columna obsoleta
+ * "REINCIDENTE" ni texto libre (hechos/observaciones). Solo reconoce las
+ * equivalencias exactas que definió el despacho:
+ * "SIN REICIDENCIA"/"SIN REINCIDENCIA" → ninguna; "0.5"/"0.50"/"50%" →
+ * después del año (+50%); "0.75"/"75%" → dentro del año (+75%). Cualquier
+ * otro valor, o vacío, se reporta como no reconocido — no se inventa una
+ * causal para that caso.
+ */
+export function causalDesdeReincidenciaOficial(v: unknown): CausalIncremento | null {
+  const t = clave(String(v ?? ''));
+  if (!t) return null;
+  if (t === 'sin reicidencia' || t === 'sin reincidencia') return 'ninguna';
+  if (t === '0.5' || t === '0.50' || t === '50%') return 'reiteracion_despues_del_anio';
+  if (t === '0.75' || t === '75%') return 'reiteracion_dentro_del_anio';
+  return null;
+}
+
+/** @deprecated Columna "REINCIDENTE" obsoleta — no usarla para decidir la causal (ver `causalDesdeReincidenciaOficial`). Se conserva solo por si algún flujo manual antiguo la sigue leyendo explícitamente. */
 export function causalDesdeBd(v: unknown): CausalIncremento {
   const t = clave(String(v ?? ''));
   if (!t || t === 'no' || t === 'n/a') return 'ninguna';
@@ -111,7 +164,7 @@ export async function parsearBdComparendos(archivo: File): Promise<{ comparendos
     const idx: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(fila)) idx[clave(k)] = v;
 
-    const tipo = tipoMultaValido(idx['tipo de multa']);
+    const tipo = tipoMultaCrudo(idx['tipo de multa']);
     const fecha = fechaLetrasAIso(String(idx['fecha comparendo'] ?? ''));
     const numero = String(idx['comparendo'] ?? '').trim();
 
@@ -138,6 +191,8 @@ export async function parsearBdComparendos(archivo: File): Promise<{ comparendos
     vistos.add(numero);
     reporte.leidas++;
 
+    const causalOficial = causalDesdeReincidenciaOficial(idx['reincidencia']);
+
     comparendos.push({
       proceso: String(idx['proceso'] ?? '').trim(),
       comparendo: numero,
@@ -153,7 +208,9 @@ export async function parsearBdComparendos(archivo: File): Promise<{ comparendos
       hechos: String(idx['hechos (descripcion comportamientos)'] ?? '').trim(),
       tipoMulta: tipo,
       apelo: clave(String(idx['apelo si/no'] ?? 'no')) === 'si',
-      causal: causalDesdeBd(idx['reincidente']),
+      incidente: String(idx['incidente'] ?? '').trim(),
+      causal: causalOficial ?? 'ninguna',
+      reincidenciaValida: causalOficial !== null,
     });
   }
   return { comparendos, reporte };
@@ -179,7 +236,9 @@ export const COMPARENDOS_DEMO: Comparendo[] = [
       'En verificación a establecimiento en apertura destinado a barbería con atención al público se realiza la verificación de los requisitos previstos del artículo 87 de la Ley 1801 de 2016, el cual no cuenta con Cámara de Comercio vigente.',
     tipoMulta: 4,
     apelo: false,
+    incidente: 'FIRMEZA',
     causal: 'ninguna',
+    reincidenciaValida: true,
   },
   {
     proceso: '2026-1068',
@@ -198,7 +257,9 @@ export const COMPARENDOS_DEMO: Comparendo[] = [
       'El infractor es sorprendido consumiendo sustancias prohibidas tipo marihuana en el perímetro de los 120 metros de un templo religioso, conforme al acuerdo municipal vigente.',
     tipoMulta: 4,
     apelo: false,
+    incidente: 'FIRMEZA',
     causal: 'reiteracion_dentro_del_anio', // registra reincidencia en la BD
+    reincidenciaValida: true,
   },
   {
     proceso: '2026-557',
@@ -217,7 +278,9 @@ export const COMPARENDOS_DEMO: Comparendo[] = [
       'Mediante registro a persona se le halla en la pretina del pantalón un arma cortopunzante tipo navaja, sin justificación de su porte.',
     tipoMulta: 2,
     apelo: false,
+    incidente: 'FIRMEZA',
     causal: 'ninguna',
+    reincidenciaValida: true,
   },
   {
     proceso: '2026-563',
@@ -236,7 +299,9 @@ export const COMPARENDOS_DEMO: Comparendo[] = [
       'El ciudadano es sorprendido consumiendo sustancias psicoactivas en el espacio público, en inmediaciones de un parque principal.',
     tipoMulta: 4,
     apelo: false,
+    incidente: 'FIRMEZA',
     causal: 'ninguna',
+    reincidenciaValida: true,
   },
   {
     proceso: '2026-598',
@@ -255,7 +320,9 @@ export const COMPARENDOS_DEMO: Comparendo[] = [
       'Se atiende llamado de la comunidad por ruido excesivo en vivienda; se constata música a alto volumen en horario de descanso pese a requerimiento previo.',
     tipoMulta: 3,
     apelo: false,
+    incidente: 'FIRMEZA',
     causal: 'ninguna',
+    reincidenciaValida: true,
   },
   {
     proceso: '2026-612',
@@ -273,6 +340,8 @@ export const COMPARENDOS_DEMO: Comparendo[] = [
       'Al momento de la intervención policial el ciudadano irrespeta de manera verbal y reiterada al personal uniformado que atendía el procedimiento.',
     tipoMulta: 2,
     apelo: false,
+    incidente: 'FIRMEZA',
     causal: 'ninguna',
+    reincidenciaValida: true,
   },
 ];

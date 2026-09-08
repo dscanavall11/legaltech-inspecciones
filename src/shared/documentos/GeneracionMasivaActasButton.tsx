@@ -7,6 +7,7 @@ import {
   descargarZipActasMasivas,
   generarActasMasivas,
   type ResultadoFilaMasiva,
+  type ResumenGeneracionMasiva,
 } from './generacionMasivaActasDocx';
 import { TEXTO } from '@/theme/escala';
 
@@ -17,27 +18,34 @@ const { Text } = Typography;
  * misma cadena de la generación individual (validación, detección de
  * género, catálogo de plantillas, MERGEFIELD + reparo de texto fijo) fila
  * por fila; la única lógica nueva es la orquestación del lote y el
- * empaquetado en .zip. La reincidencia sale de `Comparendo.causal`, que ya
- * viene de la columna REINCIDENTE de la BD — nunca se calcula aquí.
+ * empaquetado en .zip.
+ *
+ * Solo se procesan filas con `Incidente = FIRMEZA` — el resto (PRONTO PAGO,
+ * NO ESTA - REVISAR, NO CERRAR, vacío, cualquier otro estado) se excluye de
+ * inmediato, sin tratarlo como un error jurídico y sin que entre al .zip. La
+ * reincidencia sale de la columna oficial "Reincidencia" — nunca de
+ * "REINCIDENTE" ni de texto libre.
  */
-export function GeneracionMasivaActasButton({ seleccionados }: { seleccionados: Comparendo[] }) {
-  const [procesando, setProcesando] = useState(false);
-  const [resumen, setResumen] = useState<{
-    resultados: ResultadoFilaMasiva[];
-    generados: number;
-    conObservaciones: number;
-    errores: number;
-  } | null>(null);
+export function GeneracionMasivaActasButton({
+  seleccionados,
+  todos,
+}: {
+  seleccionados: Comparendo[];
+  /** Base activa completa — para "Generar todas las actas de firmeza", que no depende de la selección por checkbox. */
+  todos: Comparendo[];
+}) {
+  const [procesando, setProcesando] = useState<'seleccion' | 'todas' | null>(null);
+  const [resumen, setResumen] = useState<ResumenGeneracionMasiva | null>(null);
   const [descargando, setDescargando] = useState(false);
 
-  async function generar() {
-    setProcesando(true);
+  async function generar(registros: Comparendo[], boton: 'seleccion' | 'todas') {
+    setProcesando(boton);
     try {
       const fechaResolucion = dayjs().format('YYYY-MM-DD');
-      const resultado = await generarActasMasivas(seleccionados, fechaResolucion);
+      const resultado = await generarActasMasivas(registros, fechaResolucion);
       setResumen(resultado);
     } finally {
-      setProcesando(false);
+      setProcesando(null);
     }
   }
 
@@ -53,20 +61,30 @@ export function GeneracionMasivaActasButton({ seleccionados }: { seleccionados: 
 
   return (
     <>
-      <Button
-        icon={<FileZipOutlined />}
-        disabled={seleccionados.length === 0}
-        loading={procesando}
-        onClick={() => void generar()}
-      >
-        Generar actas seleccionadas {seleccionados.length > 0 ? `(${seleccionados.length})` : ''}
-      </Button>
+      <Space wrap>
+        <Button
+          icon={<FileZipOutlined />}
+          disabled={seleccionados.length === 0 || procesando !== null}
+          loading={procesando === 'seleccion'}
+          onClick={() => void generar(seleccionados, 'seleccion')}
+        >
+          Generar actas seleccionadas {seleccionados.length > 0 ? `(${seleccionados.length})` : ''}
+        </Button>
+        <Button
+          icon={<FileZipOutlined />}
+          disabled={todos.length === 0 || procesando !== null}
+          loading={procesando === 'todas'}
+          onClick={() => void generar(todos, 'todas')}
+        >
+          Generar todas las actas de firmeza
+        </Button>
+      </Space>
 
       <Modal
         title="Generación masiva de Actas de Firmeza"
         open={!!resumen}
         onCancel={() => setResumen(null)}
-        width={720}
+        width={760}
         footer={
           <Space>
             <Button onClick={() => setResumen(null)}>Cerrar</Button>
@@ -84,7 +102,16 @@ export function GeneracionMasivaActasButton({ seleccionados }: { seleccionados: 
       >
         {resumen && (
           <Space direction="vertical" style={{ width: '100%' }} size={14}>
-            <Space size={10}>
+            <Space size={10} wrap>
+              <Tag style={{ fontSize: TEXTO.base, padding: '4px 10px' }}>Total en base: {resumen.totalEnBase}</Tag>
+              <Tag color="blue" style={{ fontSize: TEXTO.base, padding: '4px 10px' }}>
+                Candidatos FIRMEZA: {resumen.candidatosFirmeza}
+              </Tag>
+              <Tag style={{ fontSize: TEXTO.base, padding: '4px 10px' }}>
+                Excluidos por estado: {resumen.excluidosPorEstado}
+              </Tag>
+            </Space>
+            <Space size={10} wrap>
               <Tag color="success" style={{ fontSize: TEXTO.base, padding: '4px 10px' }}>
                 Generados correctamente: {resumen.generados}
               </Tag>
@@ -93,19 +120,27 @@ export function GeneracionMasivaActasButton({ seleccionados }: { seleccionados: 
                   Con observaciones: {resumen.conObservaciones}
                 </Tag>
               )}
-              {resumen.errores > 0 && (
+              {resumen.noGenerados > 0 && (
                 <Tag color="error" style={{ fontSize: TEXTO.base, padding: '4px 10px' }}>
-                  No generados: {resumen.errores}
+                  No generados: {resumen.noGenerados}
                 </Tag>
               )}
             </Space>
 
-            {resumen.errores > 0 && (
+            {resumen.excluidosPorEstado > 0 && (
+              <Alert
+                type="info"
+                showIcon
+                message={`${resumen.excluidosPorEstado} registro(s) excluido(s) por no estar marcados como FIRMEZA`}
+                description="No es un error jurídico: son registros en otro estado procesal (pronto pago, no está - revisar, no cerrar, u otro) que no corresponde firmar en este lote."
+              />
+            )}
+            {resumen.noGenerados > 0 && (
               <Alert
                 type="warning"
                 showIcon
-                message="Ningún registro con error se generó ni se incluyó en el .zip"
-                description="Corrija el dato faltante o confirme el género/reincidencia manualmente en la generación individual, y vuelva a intentarlo."
+                message="Ningún candidato FIRMEZA sin generar entró al .zip"
+                description="Revise el motivo exacto de cada uno abajo; corríjalo en la BD o gestiónelo por la generación individual."
               />
             )}
 
@@ -120,20 +155,22 @@ export function GeneracionMasivaActasButton({ seleccionados }: { seleccionados: 
                 {
                   title: 'Resultado',
                   key: 'estado',
-                  width: 320,
+                  width: 380,
                   render: (_: unknown, r: ResultadoFilaMasiva) =>
                     r.estado === 'generado' ? (
-                      <Tag color="success">generado</Tag>
+                      <Tag color="success">GENERADO — {r.motivo}</Tag>
                     ) : r.estado === 'con_observaciones' ? (
-                      <Tag color="warning">con observaciones — {r.motivo}</Tag>
+                      <Tag color="warning">GENERADO (con observaciones) — {r.motivo}</Tag>
+                    ) : r.estado === 'excluido_estado' ? (
+                      <Tag>{r.motivo}</Tag>
                     ) : (
-                      <Tag color="error">{r.motivo}</Tag>
+                      <Tag color="error">NO GENERADO — {r.motivo}</Tag>
                     ),
                 },
               ]}
             />
             <Text type="secondary" style={{ fontSize: TEXTO.menor }}>
-              Formato del ejemplo: "{'{QUEJA}'} — generado" / "{'{QUEJA}'} — {'{motivo exacto}'}".
+              Ejemplo: "2026-13490 — GENERADO — SIN REINCIDENCIA" / "2026-13503 — NO GENERADO — ESTADO DISTINTO DE FIRMEZA".
             </Text>
           </Space>
         )}

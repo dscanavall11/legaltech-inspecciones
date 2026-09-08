@@ -36,7 +36,7 @@ import {
   type TipoMulta,
 } from '@/derecho';
 import { calcularTermino } from '@/shared/terminos/diasHabiles';
-import type { Comparendo } from './comparendos';
+import { esIncidenteFirmeza, type Comparendo } from './comparendos';
 import { extraerComparendoPdf } from './extraerComparendoPdf';
 import { descargarDocumentoLegalPdf } from '@/shared/documentos/documentoLegalPdf';
 import { VistaPreviaActa } from '@/shared/documentos/VistaPreviaActa';
@@ -128,6 +128,11 @@ export function ActasFirmezaPage() {
   const [camposExtraidos, setCamposExtraidos] = useState<(keyof Comparendo)[]>([]);
   const [pdfEscaneado, setPdfEscaneado] = useState(false);
   const [archivoComparendo, setArchivoComparendo] = useState<File | null>(null);
+  // Estado "Incidente" del registro seleccionado en la base activa — null si el
+  // registro no viene de la BD (p. ej. PDF subido a mano), caso en el que no
+  // aplica esta protección. Solo bloquea la descarga del Acta de Firmeza; el
+  // Expediente y las demás funciones del registro siguen disponibles.
+  const [incidenteSeleccionado, setIncidenteSeleccionado] = useState<string | null>(null);
   const archivoPdfRef = useRef<HTMLInputElement>(null);
 
   function set<K extends keyof DatosActaFirmeza>(k: K, v: DatosActaFirmeza[K]) {
@@ -188,6 +193,7 @@ export function ActasFirmezaPage() {
     // Se guarda el File aunque falle la extracción — el inspector debe poder
     // ver el PDF subido incluso si no se detectó ningún campo automáticamente.
     setArchivoComparendo(archivo);
+    setIncidenteSeleccionado(null); // fuera de la BD: no aplica el filtro por estado
     try {
       const { datos: extraidos, camposDetectados, textoDisponible } =
         await extraerComparendoPdf(archivo);
@@ -214,6 +220,7 @@ export function ActasFirmezaPage() {
     if (!c) return;
     setApelo(c.apelo);
     setCamposExtraidos([]);
+    setIncidenteSeleccionado(c.incidente);
     setDatos((prev) => ({
       ...prev,
       proceso: c.proceso,
@@ -245,7 +252,13 @@ export function ActasFirmezaPage() {
     };
   }, [datos.fechaComparendo]);
 
+  // La BD real trae "Tipo de multa" fuera de 1-4 (p. ej. 5, sin modelar en
+  // MULTA_GENERAL): liquidarMulta lanzaría una excepción no controlada y
+  // tumbaría toda la página. Se valida acá, antes de tocar `generarActaFirmeza`.
+  const tipoMultaModelado = ([1, 2, 3, 4] as const).includes(datos.tipoMulta as 1 | 2 | 3 | 4);
+
   const listaParaGenerar =
+    tipoMultaModelado &&
     datos.comparendo && datos.solicitado && datos.cedula && datos.fechaComparendo && datos.proceso;
 
   const acta = useMemo(
@@ -253,7 +266,11 @@ export function ActasFirmezaPage() {
     [datos, listaParaGenerar],
   );
 
-  const liq = acta?.liquidacion ?? liquidarMulta(datos.tipoMulta, datos.causal);
+  const liq = acta?.liquidacion ?? (tipoMultaModelado ? liquidarMulta(datos.tipoMulta, datos.causal) : null);
+
+  // Protección por estado: solo aplica cuando el registro viene de la base
+  // activa (incidenteSeleccionado !== null) y su "Incidente" no es FIRMEZA.
+  const noEsFirmezaEnBase = incidenteSeleccionado !== null && !esIncidenteFirmeza(incidenteSeleccionado);
 
   return (
     <div>
@@ -274,6 +291,7 @@ export function ActasFirmezaPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <GeneracionMasivaActasButton
               seleccionados={bd.filter((c) => seleccionMasivaKeys.includes(c.comparendo))}
+              todos={bd}
             />
             <Link to="/panel/procesos">
               <Button size="small" icon={<UnorderedListOutlined />}>
@@ -460,9 +478,9 @@ export function ActasFirmezaPage() {
                   }))}
                 />
                 <div style={{ fontSize: TEXTO.menor, color: PALETA.textoTenue }}>
-                  Para cargar o reemplazar la BD de comparendos, use "Reemplazar base" arriba, en la
-                  cola de trabajo. Si trae la columna REINCIDENTE, la reincidencia se precarga y
-                  puede ajustarse en el formulario.
+                  Para cargar o reemplazar la BD de comparendos, use "Cargar base de comparendos
+                  (.xlsx)" arriba, en la cola de trabajo. La reincidencia se toma de la columna
+                  oficial "Reincidencia" y puede ajustarse en el formulario.
                 </div>
               </>
             )}
@@ -476,6 +494,15 @@ export function ActasFirmezaPage() {
               style={{ marginBottom: 18, borderRadius: 16 }}
               message="El comparendo registra objeción"
               description="La orden fue objetada dentro del término: no procede acta de firmeza. Corresponde dar trámite de proceso verbal abreviado."
+            />
+          )}
+          {!apelo && noEsFirmezaEnBase && (
+            <Alert
+              type="error"
+              showIcon
+              style={{ marginBottom: 18, borderRadius: 16 }}
+              message="Este registro no está marcado como FIRMEZA en la base activa."
+              description={`Incidente registrado: "${incidenteSeleccionado || 'vacío'}". El Expediente y las demás funciones de este registro siguen disponibles.`}
             />
           )}
           {!apelo && terminos && (
@@ -528,34 +555,43 @@ export function ActasFirmezaPage() {
             </div>
 
             {/* Liquidación */}
-            <div style={{ background: '#eef4fa', borderRadius: 16, padding: '12px 16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: TEXTO.base }}>
-                <Text type="secondary">
-                  Multa tipo {liq.tipo} ({liq.smdlvLetras} SMDLV)
-                </Text>
-                <Text>$ {liq.valorBase.toLocaleString('es-CO')}</Text>
-              </div>
-              {liq.porcentajeIncremento > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: TEXTO.base, marginTop: 4 }}>
-                  <Text type="secondary">Incremento {liq.porcentajeIncremento}%</Text>
-                  <Text>$ {liq.valorIncremento.toLocaleString('es-CO')}</Text>
+            {liq ? (
+              <div style={{ background: '#eef4fa', borderRadius: 16, padding: '12px 16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: TEXTO.base }}>
+                  <Text type="secondary">
+                    Multa tipo {liq.tipo} ({liq.smdlvLetras} SMDLV)
+                  </Text>
+                  <Text>$ {liq.valorBase.toLocaleString('es-CO')}</Text>
                 </div>
-              )}
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  marginTop: 8,
-                  paddingTop: 8,
-                  borderTop: `1px solid ${PALETA.borde}`,
-                }}
-              >
-                <Text strong>Valor a recaudar</Text>
-                <Text strong style={{ color: PALETA.azulOscuro }}>
-                  $ {liq.valorTotal.toLocaleString('es-CO')}
-                </Text>
+                {liq.porcentajeIncremento > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: TEXTO.base, marginTop: 4 }}>
+                    <Text type="secondary">Incremento {liq.porcentajeIncremento}%</Text>
+                    <Text>$ {liq.valorIncremento.toLocaleString('es-CO')}</Text>
+                  </div>
+                )}
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    marginTop: 8,
+                    paddingTop: 8,
+                    borderTop: `1px solid ${PALETA.borde}`,
+                  }}
+                >
+                  <Text strong>Valor a recaudar</Text>
+                  <Text strong style={{ color: PALETA.azulOscuro }}>
+                    $ {liq.valorTotal.toLocaleString('es-CO')}
+                  </Text>
+                </div>
               </div>
-            </div>
+            ) : (
+              <Alert
+                type="error"
+                showIcon
+                message={`Tipo de multa no reconocido (${datos.tipoMulta})`}
+                description="No está modelado en el sistema (solo existen los tipos 1 a 4). No se puede liquidar ni generar el acta de firmeza para este registro."
+              />
+            )}
           </Tarjeta>
 
           {/* Datos del comparendo (editables) */}
@@ -695,7 +731,7 @@ export function ActasFirmezaPage() {
                 type="primary"
                 size="large"
                 icon={<DownloadOutlined />}
-                disabled={!acta || apelo}
+                disabled={!acta || apelo || noEsFirmezaEnBase}
                 onClick={() => acta && void descargarDocumentoLegalPdf(actaFirmezaComoDocumento(acta), inspeccion.membreteDataUrl)}
                 style={{ fontWeight: 600 }}
               >
@@ -704,13 +740,13 @@ export function ActasFirmezaPage() {
               <Button
                 size="large"
                 icon={<FileWordOutlined />}
-                disabled={!acta || apelo}
+                disabled={!acta || apelo || noEsFirmezaEnBase}
                 onClick={() => acta && void descargarDocumentoLegalDocx(actaFirmezaComoDocumento(acta), inspeccion.membreteDataUrl)}
               >
                 Descargar .docx
               </Button>
               <DescargarActaFirmezaOficialButton
-                disabled={!acta || apelo}
+                disabled={!acta || apelo || noEsFirmezaEnBase}
                 registro={{
                   proceso: datos.proceso,
                   comparendo: datos.comparendo,
@@ -725,14 +761,16 @@ export function ActasFirmezaPage() {
                   lugar: datos.lugar,
                   hechos: datos.hechos,
                   tipoMulta: datos.tipoMulta,
-                  liquidacion: liq,
+                  // El botón está disabled cuando liq es null (tipo de multa sin
+                  // modelar): este valor de relleno nunca llega a usarse.
+                  liquidacion: liq ?? liquidarMulta(1, 'ninguna'),
                   apelo,
                 }}
               />
               <Button
                 size="large"
                 icon={<PrinterOutlined />}
-                disabled={!acta || apelo}
+                disabled={!acta || apelo || noEsFirmezaEnBase}
                 onClick={() => window.print()}
               >
                 Imprimir

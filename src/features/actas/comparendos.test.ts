@@ -44,6 +44,34 @@ describe('parsearBdComparendos — estructura de la BD del despacho', () => {
     expect(c.apelo).toBe(false);
   });
 
+  it('lee la columna oficial "Genero", normalizada (trim + sin distinguir mayúsculas/minúsculas)', async () => {
+    async function generoDeFila(valor: unknown) {
+      const fila = {
+        'Proceso': '2026-1',
+        'Solicitado': 'PRUEBA',
+        'Cedula solicitado': '1',
+        'Comparendo': '17-001-1',
+        'Fecha comparendo': 'primero (01) de enero de dos mil veintiséis (2026)',
+        'Tipo de multa': 2,
+        'Genero': valor,
+      };
+      const hoja = XLSX.utils.json_to_sheet([fila]);
+      const libro = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(libro, hoja, 'BD');
+      const buffer = XLSX.write(libro, { type: 'array', bookType: 'xlsx' }) as ArrayBuffer;
+      const { comparendos } = await parsearBdComparendos(new File([buffer], 'bd.xlsx'));
+      return comparendos[0].genero;
+    }
+    expect(await generoDeFila('Masculino')).toBe('masculino');
+    expect(await generoDeFila(' masculino ')).toBe('masculino');
+    expect(await generoDeFila('MASCULINO')).toBe('masculino');
+    expect(await generoDeFila('Femenino')).toBe('femenino');
+    expect(await generoDeFila('Femenino ')).toBe('femenino');
+    expect(await generoDeFila(' femenino ')).toBe('femenino');
+    expect(await generoDeFila('')).toBeNull();
+    expect(await generoDeFila('Otro')).toBeNull();
+  });
+
   it('descarta filas sin datos mínimos', async () => {
     const hoja = XLSX.utils.json_to_sheet([{ Proceso: 'x', Comparendo: '', 'Tipo de multa': 9 }]);
     const libro = XLSX.utils.book_new();

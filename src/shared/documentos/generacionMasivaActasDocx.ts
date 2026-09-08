@@ -53,7 +53,7 @@ export interface ResumenGeneracionMasiva {
   excluidosPorEstado: number;
   generados: number;
   conObservaciones: number;
-  /** Candidatos FIRMEZA que no se generaron por otro motivo (reincidencia no definida, género no determinado, tipo sin plantilla, etc.). */
+  /** Candidatos FIRMEZA que no se generaron por otro motivo (reincidencia no definida, género no determinado ni por columna ni por texto, tipo sin plantilla, etc.). */
   noGenerados: number;
 }
 

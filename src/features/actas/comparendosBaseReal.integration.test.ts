@@ -79,6 +79,17 @@ describe.skipIf(!existsSync(RUTA_BD))('Base real de comparendos — filtro por I
     expect(excluidas.every((c) => !c.reincidenciaValida)).toBe(true);
   });
 
+  it('columna oficial "Genero": 54 masculino y 5 femenino en toda la base (48/4 entre las 52 FIRMEZA), todas reconocidas', async () => {
+    const { comparendos } = await cargar();
+    expect(comparendos.filter((c) => c.genero === 'masculino')).toHaveLength(54);
+    expect(comparendos.filter((c) => c.genero === 'femenino')).toHaveLength(5);
+    expect(comparendos.filter((c) => c.genero === null)).toHaveLength(0);
+
+    const firmeza = comparendos.filter((c) => esIncidenteFirmeza(c.incidente));
+    expect(firmeza.filter((c) => c.genero === 'masculino')).toHaveLength(48);
+    expect(firmeza.filter((c) => c.genero === 'femenino')).toHaveLength(4);
+  });
+
   it('generación masiva contra el universo completo: ningún registro no-FIRMEZA entra al lote de candidatos ni al zip', async () => {
     const { comparendos } = await cargar();
     const resumen = await generarActasMasivas(comparendos, '2026-06-20');
@@ -93,26 +104,12 @@ describe.skipIf(!existsSync(RUTA_BD))('Base real de comparendos — filtro por I
       if (r.estado === 'excluido_estado') expect(r.archivo).toBeUndefined();
     }
 
-    // Hallazgo conocido: 39 de las 52 candidatas FIRMEZA traen "Tipo de multa" = 5,
-    // valor que no está modelado en ninguna plantilla (solo existen 2, 3 y 4).
-    // El validador las reporta explícitamente en vez de generarlas o descartarlas
-    // en silencio — se documenta aquí para que la prueba falle si ese conteo cambia
-    // sin que alguien lo note.
-    const tipoNoReconocido = resumen.resultados.filter((r) => r.motivo.includes('tipo de multa no reconocido (5)'));
-    expect(tipoNoReconocido.length).toBeGreaterThan(0);
-
-    // Hallazgo conocido #2: parte de las candidatas FIRMEZA con tipo 2/3/4 (con
-    // plantilla real) tampoco se generan porque el texto de "Hechos" no trae
-    // marca explícita de género — correcto por diseño (nunca se infiere del
-    // nombre), pero documentado aquí para que no desaparezca sin verse.
-    const generoNoDeterminado = resumen.resultados.filter((r) => r.motivo === 'género no determinado');
-    expect(generoNoDeterminado.length).toBeGreaterThan(0);
-
-    // De 52 candidatas FIRMEZA reales, hoy solo ~12 generan automáticamente
-    // (tipo 2/3/4 + género detectado); el resto queda correctamente reportado,
-    // no perdido ni generado con datos inventados.
-    expect(resumen.generados).toBeGreaterThan(0);
-    expect(resumen.generados).toBeLessThan(resumen.candidatosFirmeza);
+    // Con la columna "Genero" ya como fuente principal y el tipo de multa
+    // corregido en la base real (ya no trae el valor 5, sin modelar, de
+    // rondas anteriores), las 52 candidatas FIRMEZA generan sin excepción:
+    // ninguna se pierde por "género no determinado" ni por tipo sin plantilla.
+    expect(resumen.generados + resumen.conObservaciones).toBe(52);
+    expect(resumen.noGenerados).toBe(0);
 
     // "Generar todas" empaqueta en un solo .zip cada resultado con archivo: la
     // cantidad de entradas del .zip debe ser exactamente generados+conObservaciones
@@ -122,25 +119,33 @@ describe.skipIf(!existsSync(RUTA_BD))('Base real de comparendos — filtro por I
     const nombresEnZip = Object.keys(zip.files);
     const nombresEsperados = resumen.resultados.filter((r) => r.archivo).map((r) => r.archivo!.nombre);
     expect(new Set(nombresEsperados).size).toBe(nombresEsperados.length); // sin colisión de nombres
-    expect(nombresEnZip.length).toBe(resumen.generados + resumen.conObservaciones);
+    expect(nombresEnZip.length).toBe(52);
     expect(nombresEnZip.sort()).toEqual(nombresEsperados.sort());
   });
 
-  it('cada fila validada sigue el orden exacto: ninguna fila FIRMEZA con tipo de multa 5 se rechaza jamás por estado (ya pasó el filtro de Incidente)', async () => {
+  it('la plantilla elegida coincide con el género de cada fila (columna, no detección textual)', async () => {
     const { comparendos } = await cargar();
-    const firmezaTipo5 = comparendos.filter((c) => esIncidenteFirmeza(c.incidente) && (c.tipoMulta as number) === 5);
-    expect(firmezaTipo5.length).toBeGreaterThan(0);
-    for (const registro of firmezaTipo5) {
+    const firmeza = comparendos.filter((c) => esIncidenteFirmeza(c.incidente));
+    for (const registro of firmeza) {
       const r = validarFilaParaActaMasiva(registro);
-      expect(r.ok).toBe(false);
-      if (!r.ok) {
-        expect(r.tipoExclusion).toBe('invalido');
-        // El orden exigido evalúa género antes que tipo de multa: si el texto de
-        // "hechos" no trae marca de género explícita, ese es el motivo reportado
-        // (nunca "tipo de multa no reconocido") — ambos son válidos aquí, lo que
-        // nunca puede pasar es que el motivo hable de estado/Incidente.
-        expect(r.motivo === 'género no determinado' || r.motivo.includes('tipo de multa no reconocido (5)')).toBe(true);
+      expect(r.ok, `${registro.proceso}: ${!r.ok ? r.motivo : ''}`).toBe(true);
+      if (r.ok) {
+        // Las plantillas femeninas viven bajo "Femenino/"; las masculinas, en
+        // la raíz — es la única marca fiable en los nombres reales (algunas
+        // usan "M."/"F.", otras "MASCULINO"/no lo dicen en absoluto).
+        expect(r.seleccion.archivo.startsWith('Femenino/'), `${registro.proceso}: ${r.seleccion.archivo}`).toBe(
+          registro.genero === 'femenino',
+        );
       }
     }
+  });
+
+  it('un valor de "Genero" no reconocido (o vacío) cae a la detección textual, y si tampoco resuelve, reporta el mensaje exacto', async () => {
+    const { comparendos } = await cargar();
+    const base = comparendos.find((c) => esIncidenteFirmeza(c.incidente))!;
+    const sinColumna = { ...base, genero: null, hechos: 'Se realiza verificación de requisitos del establecimiento.' };
+    const r = validarFilaParaActaMasiva(sinColumna);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.motivo).toBe('GÉNERO NO DETERMINADO — REQUIERE REVISIÓN');
   });
 });

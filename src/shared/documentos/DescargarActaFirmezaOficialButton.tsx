@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Alert, Button, Input, Modal, Select, Space, App } from 'antd';
 import { FileWordOutlined } from '@ant-design/icons';
-import { detectarGeneroCiudadano } from '@/derecho/generoDetectado';
+import { resolverGeneroCiudadano } from '@/derecho/generoDetectado';
 import {
   seleccionarPlantillaActaFirmeza,
   type CasoEspecialActa,
@@ -58,9 +58,12 @@ const CAUSAL_LABEL: Record<CausalActa, string> = {
 export function DescargarActaFirmezaOficialButton({
   disabled,
   registro,
+  generoColumna,
 }: {
   disabled?: boolean;
   registro: DatosRegistroActaFirmeza;
+  /** Valor crudo de la columna oficial "Genero" de la base activa (fuente principal, ver `resolverGeneroCiudadano`). */
+  generoColumna?: unknown;
 }) {
   const { message } = App.useApp();
   const [abierto, setAbierto] = useState(false);
@@ -73,15 +76,17 @@ export function DescargarActaFirmezaOficialButton({
   const [representanteCedula, setRepresentanteCedula] = useState('');
   const [generando, setGenerando] = useState(false);
 
-  // Detección automática por evidencia textual del comparendo (hechos) — nunca por el
-  // nombre, nunca con IA generativa. Se recalcula cada vez que cambia el registro o se
-  // vuelve a abrir el modal; una corrección manual del inspector no se pisa mientras el
-  // modal siga abierto sobre el mismo registro.
-  const generoDetectado = detectarGeneroCiudadano(registro.hechos);
+  // Fuente principal: columna oficial "Genero" de la base activa. Solo si
+  // falta o no se reconoce se recurre a evidencia textual de "hechos" —
+  // nunca por el nombre, nunca con IA generativa. Se recalcula cada vez que
+  // cambia el registro o se vuelve a abrir el modal; una corrección manual
+  // del inspector no se pisa mientras el modal siga abierto sobre el mismo
+  // registro.
+  const generoDetectado = resolverGeneroCiudadano(generoColumna, registro.hechos);
   useEffect(() => {
     if (abierto && !generoCorregidoManualmente) setGenero(generoDetectado);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [abierto, registro.hechos]);
+  }, [abierto, registro.hechos, generoColumna]);
 
   const seleccion =
     genero &&

@@ -1,6 +1,6 @@
 import type { Comparendo } from '@/features/actas/comparendos';
 import { esIncidenteFirmeza } from '@/features/actas/comparendos';
-import { detectarGeneroCiudadano, type GeneroCiudadano } from '../generoDetectado';
+import { resolverGeneroCiudadano, type GeneroCiudadano } from '../generoDetectado';
 import { liquidarMulta, type LiquidacionMulta } from '../multas';
 import {
   seleccionarPlantillaActaFirmeza,
@@ -72,10 +72,12 @@ export function validarFilaParaActaMasiva(registro: Comparendo): ValidacionFilaO
     return { ok: false, tipoExclusion: 'invalido', motivo: `faltan datos obligatorios (${faltantes.join(', ')})` };
   }
 
-  // 5) Género — solo evidencia textual explícita, nunca el nombre, nunca IA.
-  const genero = detectarGeneroCiudadano(registro.hechos);
+  // 5) Género — fuente principal: columna oficial "Genero" de la base activa;
+  //    solo si falta o no se reconoce, se recurre a evidencia textual de los
+  //    "hechos". Nunca el nombre, nunca IA.
+  const genero = resolverGeneroCiudadano(registro.genero, registro.hechos);
   if (!genero) {
-    return { ok: false, tipoExclusion: 'invalido', motivo: 'género no determinado' };
+    return { ok: false, tipoExclusion: 'invalido', motivo: 'GÉNERO NO DETERMINADO — REQUIERE REVISIÓN' };
   }
 
   // 6) Tipo de multa — la BD real puede traer valores sin plantilla (p. ej. 5): se reportan, no se descartan en silencio.

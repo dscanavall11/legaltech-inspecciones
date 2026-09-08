@@ -34,6 +34,7 @@ import {
   type TipoMulta,
 } from '@/derecho';
 import { calcularTermino } from '@/shared/terminos/diasHabiles';
+import type { GeneroCiudadano } from '@/derecho/generoDetectado';
 import { compararPorProceso, esIncidenteFirmeza, type Comparendo } from './comparendos';
 import { extraerComparendoPdf } from './extraerComparendoPdf';
 import { VistaPreviaActa } from '@/shared/documentos/VistaPreviaActa';
@@ -132,6 +133,11 @@ export function ActasFirmezaPage() {
   // aplica esta protección. Solo bloquea la descarga del Acta de Firmeza; el
   // Expediente y las demás funciones del registro siguen disponibles.
   const [incidenteSeleccionado, setIncidenteSeleccionado] = useState<string | null>(null);
+  // Columna oficial "Genero" del registro seleccionado en la base activa —
+  // fuente principal para elegir la plantilla (ver resolverGeneroCiudadano);
+  // null si el registro no viene de la BD o la columna no trae un valor
+  // reconocido, caso en el que el botón cae a la detección textual.
+  const [generoColumnaSeleccionada, setGeneroColumnaSeleccionada] = useState<GeneroCiudadano | null>(null);
   const archivoPdfRef = useRef<HTMLInputElement>(null);
 
   function set<K extends keyof DatosActaFirmeza>(k: K, v: DatosActaFirmeza[K]) {
@@ -193,6 +199,7 @@ export function ActasFirmezaPage() {
     // ver el PDF subido incluso si no se detectó ningún campo automáticamente.
     setArchivoComparendo(archivo);
     setIncidenteSeleccionado(null); // fuera de la BD: no aplica el filtro por estado
+    setGeneroColumnaSeleccionada(null); // fuera de la BD: cae a detección textual
     try {
       const { datos: extraidos, camposDetectados, textoDisponible } =
         await extraerComparendoPdf(archivo);
@@ -220,6 +227,7 @@ export function ActasFirmezaPage() {
     setApelo(c.apelo);
     setCamposExtraidos([]);
     setIncidenteSeleccionado(c.incidente);
+    setGeneroColumnaSeleccionada(c.genero);
     setDatos((prev) => ({
       ...prev,
       proceso: c.proceso,
@@ -733,6 +741,7 @@ export function ActasFirmezaPage() {
                   tablas y estilos originales byte a byte. */}
               <DescargarActaFirmezaOficialButton
                 disabled={!acta || apelo || noEsFirmezaEnBase}
+                generoColumna={generoColumnaSeleccionada}
                 registro={{
                   proceso: datos.proceso,
                   comparendo: datos.comparendo,

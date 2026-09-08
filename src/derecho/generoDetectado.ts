@@ -51,3 +51,33 @@ export function detectarGeneroCiudadano(textoEstructurado: string | undefined | 
   if (femenino > 0 && masculino === 0) return 'femenino';
   return null; // sin evidencia, o evidencia contradictoria — exige confirmación manual
 }
+
+/**
+ * Columna oficial "Genero" de la base activa — dato estructurado, no texto
+ * libre. Tolerante a mayúsculas/minúsculas y a espacios al inicio/final
+ * ("Masculino", " masculino ", "FEMENINO "), nada más: no se hace
+ * coincidencia parcial ni se reconocen abreviaturas.
+ */
+export function generoDesdeColumnaOficial(v: unknown): GeneroCiudadano | null {
+  const t = String(v ?? '').trim().toLowerCase();
+  if (t === 'masculino') return 'masculino';
+  if (t === 'femenino') return 'femenino';
+  return null;
+}
+
+/**
+ * Resuelve el género con la prioridad exacta que pidió el despacho:
+ *  1) columna estructurada "Genero" de la base activa;
+ *  2) solo si está vacía o trae un valor no reconocido, evidencia textual
+ *     de los "hechos" (`detectarGeneroCiudadano`);
+ *  3) si tampoco se puede determinar, `null` — el llamador exige revisión
+ *     manual, nunca infiere por el nombre ni con IA.
+ * El dato estructurado, cuando es válido, nunca se sustituye por lo que
+ * diga el texto libre.
+ */
+export function resolverGeneroCiudadano(
+  generoColumna: unknown,
+  textoEstructurado: string | undefined | null,
+): GeneroCiudadano | null {
+  return generoDesdeColumnaOficial(generoColumna) ?? detectarGeneroCiudadano(textoEstructurado);
+}

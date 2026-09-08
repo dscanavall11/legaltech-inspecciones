@@ -21,6 +21,7 @@ function fila(over: Partial<Comparendo> = {}): Comparendo {
     incidente: 'FIRMEZA',
     causal: 'ninguna',
     reincidenciaValida: true,
+    genero: null,
     ...over,
   };
 }
@@ -67,10 +68,31 @@ describe('validarFilaParaActaMasiva — reutiliza exactamente la lógica individ
     if (!r.ok) expect(r.motivo).toMatch(/objeción/i);
   });
 
-  it('género no determinable (hechos sin marca) → error "género no determinado", NUNCA infiere del nombre', () => {
+  it('género no determinable (sin columna ni marca en hechos) → error exacto, NUNCA infiere del nombre', () => {
     const r = validarFilaParaActaMasiva(fila({ hechos: 'Se realiza verificación de requisitos del establecimiento.' }));
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.motivo).toBe('género no determinado');
+    if (!r.ok) expect(r.motivo).toBe('GÉNERO NO DETERMINADO — REQUIERE REVISIÓN');
+  });
+
+  describe('columna oficial "Genero" — fuente principal, antes que el texto de "hechos"', () => {
+    it('columna "Femenino" decide aunque los hechos tengan marca masculina', () => {
+      const r = validarFilaParaActaMasiva(fila({ genero: 'femenino' })); // fila() trae hechos masculinos por defecto
+      expect(r.ok).toBe(true);
+      if (r.ok) expect(r.seleccion.archivo).toContain('Femenino');
+    });
+
+    it('columna "Masculino" decide aunque los hechos no tengan ninguna marca', () => {
+      const r = validarFilaParaActaMasiva(fila({ genero: 'masculino', hechos: 'Sin marca de género en el texto.' }));
+      expect(r.ok).toBe(true);
+    });
+
+    it('sin columna (null) → cae a la detección textual de "hechos", como antes', () => {
+      const r = validarFilaParaActaMasiva(
+        fila({ genero: null, hechos: 'Se aborda a la ciudadana, identificada con cédula.' }),
+      );
+      expect(r.ok).toBe(true);
+      if (r.ok) expect(r.seleccion.archivo).toContain('Femenino');
+    });
   });
 
   it('tipo de multa 1 → error específico "no existe plantilla tipo 1"', () => {

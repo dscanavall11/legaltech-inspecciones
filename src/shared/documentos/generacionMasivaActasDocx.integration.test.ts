@@ -53,6 +53,7 @@ function fila(over: Partial<Comparendo> = {}): Comparendo {
     incidente: 'FIRMEZA',
     causal: 'ninguna',
     reincidenciaValida: true,
+    genero: null,
     ...over,
   };
 }

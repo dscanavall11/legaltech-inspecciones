@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
 import type { CausalIncremento, TipoMulta } from '@/derecho';
+import { generoDesdeColumnaOficial, type GeneroCiudadano } from '@/derecho/generoDetectado';
 
 /**
  * Orden de comparendo tal como la maneja la BD del despacho
@@ -51,6 +52,14 @@ export interface Comparendo {
    * automáticamente — hay que confirmarlo a mano.
    */
   reincidenciaValida: boolean;
+  /**
+   * Género ya resuelto desde la columna oficial "Genero" de la base activa —
+   * `null` si la columna no existe, viene vacía o trae un valor no
+   * reconocido (no es "Masculino" ni "Femenino"). Es la fuente PRINCIPAL
+   * para elegir la plantilla: solo si esto es `null` se recurre a la
+   * detección textual sobre "hechos" (ver `resolverGeneroCiudadano`).
+   */
+  genero: GeneroCiudadano | null;
 }
 
 // ── Parseo del Excel del despacho ──────────────────────────────────────────
@@ -223,6 +232,7 @@ export async function parsearBdComparendos(archivo: File): Promise<{ comparendos
       incidente: String(idx['incidente'] ?? '').trim(),
       causal: causalOficial ?? 'ninguna',
       reincidenciaValida: causalOficial !== null,
+      genero: generoDesdeColumnaOficial(idx['genero']),
     });
   }
   return { comparendos, reporte };
@@ -251,6 +261,7 @@ export const COMPARENDOS_DEMO: Comparendo[] = [
     incidente: 'FIRMEZA',
     causal: 'ninguna',
     reincidenciaValida: true,
+    genero: null, // demo: se resuelve por evidencia textual en "hechos"
   },
   {
     proceso: '2026-1068',
@@ -272,6 +283,7 @@ export const COMPARENDOS_DEMO: Comparendo[] = [
     incidente: 'FIRMEZA',
     causal: 'reiteracion_dentro_del_anio', // registra reincidencia en la BD
     reincidenciaValida: true,
+    genero: null, // demo: se resuelve por evidencia textual en "hechos"
   },
   {
     proceso: '2026-557',
@@ -293,6 +305,7 @@ export const COMPARENDOS_DEMO: Comparendo[] = [
     incidente: 'FIRMEZA',
     causal: 'ninguna',
     reincidenciaValida: true,
+    genero: null, // demo: se resuelve por evidencia textual en "hechos"
   },
   {
     proceso: '2026-563',
@@ -314,6 +327,7 @@ export const COMPARENDOS_DEMO: Comparendo[] = [
     incidente: 'FIRMEZA',
     causal: 'ninguna',
     reincidenciaValida: true,
+    genero: null, // demo: se resuelve por evidencia textual en "hechos"
   },
   {
     proceso: '2026-598',
@@ -335,6 +349,7 @@ export const COMPARENDOS_DEMO: Comparendo[] = [
     incidente: 'FIRMEZA',
     causal: 'ninguna',
     reincidenciaValida: true,
+    genero: null, // demo: se resuelve por evidencia textual en "hechos"
   },
   {
     proceso: '2026-612',
@@ -355,5 +370,6 @@ export const COMPARENDOS_DEMO: Comparendo[] = [
     incidente: 'FIRMEZA',
     causal: 'ninguna',
     reincidenciaValida: true,
+    genero: null, // demo: se resuelve por evidencia textual en "hechos"
   },
 ];

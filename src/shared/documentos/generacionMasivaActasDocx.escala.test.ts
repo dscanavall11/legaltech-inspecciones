@@ -70,6 +70,7 @@ function loteSinteticoValido(n: number): Comparendo[] {
       incidente: 'FIRMEZA',
       causal: causales[i % causales.length],
       reincidenciaValida: true,
+      genero: null, // se resuelve por evidencia textual en "hechos", como antes de la columna "Genero"
     });
   }
   // Desordenar (patrón determinístico, no aleatorio, para que el test sea

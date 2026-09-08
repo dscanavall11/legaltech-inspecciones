@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { COMPARENDOS_DEMO, type Comparendo } from '@/features/actas/comparendos';
+import { crearStoragePorUsuario } from '@/shared/estado/storagePorUsuario';
 
 export type EstadoCargaComparendos = 'ACTIVA' | 'REEMPLAZADA' | 'FALLIDA';
 
@@ -36,8 +37,19 @@ interface ComparendosState {
 
 const ETIQUETA_DEMO = 'BD de demostración';
 
+/** Estado propio de cada inspector — sin sesión, o sin datos guardados todavía, arranca aquí (nunca con lo que dejó otro usuario en memoria). */
+const ESTADO_INICIAL_COMPARENDOS: Pick<ComparendosState, 'comparendos' | 'cargadaEn' | 'archivoActivo' | 'historialCargas'> = {
+  comparendos: COMPARENDOS_DEMO,
+  cargadaEn: null,
+  archivoActivo: ETIQUETA_DEMO,
+  historialCargas: [],
+};
+
 /**
- * La base de comparendos del despacho, una sola vez para toda la app.
+ * La base de comparendos — una por INSPECTOR AUTENTICADO, no una sola para
+ * toda la app (`crearStoragePorUsuario`): el inspector A carga su Excel, el
+ * inspector B carga el suyo, y cada uno sigue viendo solo el propio al volver
+ * a iniciar sesión, aunque compartan el mismo navegador.
  *
  * Vivía en un `useState` dentro de Actas de firmeza y otro dentro de Acogida:
  * dos copias, y las dos se perdían al cambiar de pantalla. El inspector cargaba
@@ -51,10 +63,7 @@ const ETIQUETA_DEMO = 'BD de demostración';
 export const useComparendosStore = create<ComparendosState>()(
   persist(
     (set, get) => ({
-      comparendos: COMPARENDOS_DEMO,
-      cargadaEn: null,
-      archivoActivo: ETIQUETA_DEMO,
-      historialCargas: [],
+      ...ESTADO_INICIAL_COMPARENDOS,
       cargar: (comparendos, nombreArchivo, usuario) => {
         const historialPrevio = get().historialCargas.map((h) =>
           h.estado === 'ACTIVA' ? { ...h, estado: 'REEMPLAZADA' as const } : h,
@@ -89,7 +98,15 @@ export const useComparendosStore = create<ComparendosState>()(
         });
       },
     }),
-    { name: 'bd-comparendos' },
+    {
+      name: 'bd-comparendos',
+      storage: crearStoragePorUsuario('bd-comparendos'),
+      // Sin esto, cambiar de usuario sin datos propios guardados heredaría
+      // por defecto (merge superficial) lo que quedó en memoria del usuario
+      // anterior — exactamente la contaminación que este cambio evita.
+      merge: (persistido, actual) =>
+        persistido ? { ...actual, ...(persistido as ComparendosState) } : { ...actual, ...ESTADO_INICIAL_COMPARENDOS },
+    },
   ),
 );
 

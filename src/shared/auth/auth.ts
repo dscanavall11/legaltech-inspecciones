@@ -30,7 +30,13 @@ export interface Sesion {
 
 const SESSION_KEY = 'authSession';
 
+/** `sessionStorage` no existe en Node (pruebas que no declaran entorno jsdom) — este módulo ahora se importa desde más sitios de los que se importaba antes. */
+function haySessionStorage(): boolean {
+  return typeof sessionStorage !== 'undefined';
+}
+
 export function leerSesion(): Sesion | null {
+  if (!haySessionStorage()) return null;
   const raw = sessionStorage.getItem(SESSION_KEY);
   if (!raw) return null;
   try {
@@ -42,10 +48,12 @@ export function leerSesion(): Sesion | null {
 }
 
 export function guardarSesion(sesion: Sesion): void {
+  if (!haySessionStorage()) return;
   sessionStorage.setItem(SESSION_KEY, JSON.stringify(sesion));
 }
 
 export function limpiarSesion(): void {
+  if (!haySessionStorage()) return;
   sessionStorage.removeItem(SESSION_KEY);
 }
 

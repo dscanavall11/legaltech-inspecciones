@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { crearStoragePorUsuario } from '@/shared/estado/storagePorUsuario';
 
 /**
  * Configuración de la inspección (contexto del despacho/inspector).
@@ -70,6 +71,12 @@ export const useInspeccionStore = create<InspeccionState>()(
       name: 'legaltech-inspeccion',
       version: 1,
       migrate: migrarConfigInspeccion,
+      storage: crearStoragePorUsuario('legaltech-inspeccion'),
+      // Cada inspector tiene su propia configuración institucional (art. 5 del
+      // requerimiento de espacios de trabajo); sin este merge, un inspector sin
+      // configuración propia heredaría por defecto la que quedó en memoria del
+      // inspector anterior en la misma pestaña.
+      merge: (persistido, actual) => (persistido ? { ...actual, ...(persistido as InspeccionState) } : { ...actual, config: VACIO }),
     },
   ),
 );

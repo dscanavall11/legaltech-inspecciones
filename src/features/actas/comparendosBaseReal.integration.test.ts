@@ -125,7 +125,7 @@ describe.skipIf(!existsSync(RUTA_BD))('Base real de comparendos — filtro por I
     expect(new Set(nombresEsperados).size).toBe(nombresEsperados.length); // sin colisión de nombres
     expect(nombresEnZip.length).toBe(52);
     expect(nombresEnZip.sort()).toEqual(nombresEsperados.sort());
-  });
+  }, 20_000); // 52 DOCX reales + verificación de integridad: bajo carga (suite completa en paralelo) el timeout por defecto (5s) puede quedar corto sin ser un fallo real
 
   it('la plantilla elegida coincide con el género de cada fila (columna, no detección textual)', async () => {
     const { comparendos } = await cargar();

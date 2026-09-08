@@ -4,6 +4,10 @@ import { App } from './App';
 import './index.css';
 import { resolveWorkspaceContext } from '@/shared/api/workspaceContext';
 import { useWorkspaceContextStore } from '@/store/workspaceContextStore';
+// Efecto secundario: mantiene el espacio de trabajo (base de comparendos,
+// configuración institucional) sincronizado con el inspector que quede
+// autenticado en cada momento — ver el archivo para el porqué.
+import '@/shared/estado/sincronizarEspacioPorUsuario';
 
 /**
  * La capa de mocks (MSW) se eliminó: el backend real atiende todos los

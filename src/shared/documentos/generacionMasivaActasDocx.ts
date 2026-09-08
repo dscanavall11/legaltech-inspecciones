@@ -1,5 +1,5 @@
 import JSZip from 'jszip';
-import type { Comparendo } from '@/features/actas/comparendos';
+import { compararPorProceso, type Comparendo } from '@/features/actas/comparendos';
 import { validarFilaParaActaMasiva } from '@/derecho/plantillas/generacionMasivaActas';
 import {
   mapearCamposActaFirmezaOficial,
@@ -67,13 +67,17 @@ async function plantillaCacheada(cache: Map<string, ArrayBuffer>, archivo: strin
 }
 
 export async function generarActasMasivas(
-  registros: Comparendo[],
+  registrosEntrada: Comparendo[],
   fechaResolucion: string, // ISO — misma para todo el lote, como en el formulario individual
+  onProgreso?: (procesados: number, total: number) => void,
 ): Promise<ResumenGeneracionMasiva> {
+  // Orden natural por PROCESO — el mismo para el listado, el reporte y el
+  // .zip, independientemente del orden en que vinieran seleccionados/cargados.
+  const registros = [...registrosEntrada].sort(compararPorProceso);
   const cachePlantillas = new Map<string, ArrayBuffer>();
   const resultados: ResultadoFilaMasiva[] = [];
 
-  for (const registro of registros) {
+  for (const [indice, registro] of registros.entries()) {
     const base = { comparendo: registro.comparendo, proceso: registro.proceso, solicitado: registro.solicitado };
     const validacion = validarFilaParaActaMasiva(registro);
     if (!validacion.ok) {
@@ -82,6 +86,7 @@ export async function generarActasMasivas(
         estado: validacion.tipoExclusion === 'estado' ? 'excluido_estado' : 'no_generado',
         motivo: validacion.motivo,
       });
+      onProgreso?.(indice + 1, registros.length);
       continue;
     }
     try {
@@ -122,6 +127,7 @@ export async function generarActasMasivas(
         motivo: e instanceof PlantillaActaFirmezaNoDisponibleError ? e.message : 'no se pudo generar el acta',
       });
     }
+    onProgreso?.(indice + 1, registros.length);
   }
 
   return {

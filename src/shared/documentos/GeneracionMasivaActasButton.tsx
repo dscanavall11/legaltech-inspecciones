@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Button, Modal, Space, Table, Tag, Typography } from 'antd';
+import { Alert, Button, Modal, Progress, Space, Table, Tag, Typography } from 'antd';
 import { FileZipOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import type { Comparendo } from '@/features/actas/comparendos';
@@ -35,17 +35,24 @@ export function GeneracionMasivaActasButton({
   todos: Comparendo[];
 }) {
   const [procesando, setProcesando] = useState<'seleccion' | 'todas' | null>(null);
+  const [progreso, setProgreso] = useState<{ actual: number; total: number } | null>(null);
   const [resumen, setResumen] = useState<ResumenGeneracionMasiva | null>(null);
+  const [modoResumen, setModoResumen] = useState<'seleccion' | 'todas' | null>(null);
   const [descargando, setDescargando] = useState(false);
 
   async function generar(registros: Comparendo[], boton: 'seleccion' | 'todas') {
     setProcesando(boton);
+    setProgreso({ actual: 0, total: registros.length });
     try {
       const fechaResolucion = dayjs().format('YYYY-MM-DD');
-      const resultado = await generarActasMasivas(registros, fechaResolucion);
+      const resultado = await generarActasMasivas(registros, fechaResolucion, (actual, total) =>
+        setProgreso({ actual, total }),
+      );
       setResumen(resultado);
+      setModoResumen(boton);
     } finally {
       setProcesando(null);
+      setProgreso(null);
     }
   }
 
@@ -85,11 +92,39 @@ export function GeneracionMasivaActasButton({
         </Button>
       </Space>
 
+      {/* Progreso dinámico durante el lote (nunca un total fijo: sale del tamaño
+          real del lote que se está procesando en ese momento). */}
+      <Modal
+        title="Generando actas de firmeza…"
+        open={procesando !== null}
+        closable={false}
+        maskClosable={false}
+        footer={null}
+        transitionName=""
+        maskTransitionName=""
+      >
+        <Space direction="vertical" style={{ width: '100%' }}>
+          <Progress
+            percent={progreso && progreso.total > 0 ? Math.round((progreso.actual / progreso.total) * 100) : 0}
+            status="active"
+          />
+          <Text type="secondary">
+            {progreso ? `Procesando ${progreso.actual} de ${progreso.total}` : 'Procesando…'}
+          </Text>
+        </Space>
+      </Modal>
+
+      {/* Sin animación de entrada/salida: con transición, la máscara del modal
+          sigue interceptando clics durante los ~300ms de la animación de
+          cierre — si el inspector selecciona una fila nueva justo en ese
+          instante, el clic se pierde y parece que "quedó bloqueado". */}
       <Modal
         title="Generación masiva de Actas de Firmeza"
         open={!!resumen}
         onCancel={() => setResumen(null)}
         width={760}
+        transitionName=""
+        maskTransitionName=""
         footer={
           <Space>
             <Button onClick={() => setResumen(null)}>Cerrar</Button>
@@ -107,8 +142,25 @@ export function GeneracionMasivaActasButton({
       >
         {resumen && (
           <Space direction="vertical" style={{ width: '100%' }} size={14}>
+            <Alert
+              type={
+                resumen.generados + resumen.conObservaciones === resumen.totalEnBase
+                  ? 'success'
+                  : resumen.excluidosPorEstado > 0
+                    ? 'info'
+                    : 'warning'
+              }
+              showIcon
+              message={
+                `${modoResumen === 'seleccion' ? 'Esperadas (seleccionadas)' : 'Disponibles en la base activa'}: ` +
+                `${resumen.totalEnBase}  ·  Generadas: ${resumen.generados + resumen.conObservaciones}  ·  ` +
+                `Fallidas o excluidas: ${resumen.excluidosPorEstado + resumen.noGenerados}`
+              }
+            />
             <Space size={10} wrap>
-              <Tag style={{ fontSize: TEXTO.base, padding: '4px 10px' }}>Total en base: {resumen.totalEnBase}</Tag>
+              <Tag style={{ fontSize: TEXTO.base, padding: '4px 10px' }}>
+                {modoResumen === 'seleccion' ? 'Seleccionadas' : 'Total en base'}: {resumen.totalEnBase}
+              </Tag>
               <Tag color="blue" style={{ fontSize: TEXTO.base, padding: '4px 10px' }}>
                 Candidatos FIRMEZA: {resumen.candidatosFirmeza}
               </Tag>

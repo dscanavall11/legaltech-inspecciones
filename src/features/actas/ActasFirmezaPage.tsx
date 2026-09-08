@@ -34,7 +34,7 @@ import {
   type TipoMulta,
 } from '@/derecho';
 import { calcularTermino } from '@/shared/terminos/diasHabiles';
-import { esIncidenteFirmeza, type Comparendo } from './comparendos';
+import { compararPorProceso, esIncidenteFirmeza, type Comparendo } from './comparendos';
 import { extraerComparendoPdf } from './extraerComparendoPdf';
 import { VistaPreviaActa } from '@/shared/documentos/VistaPreviaActa';
 import { ExpedientePrevioButton } from '@/shared/documentos/ExpedientePrevioButton';
@@ -118,6 +118,9 @@ export function ActasFirmezaPage() {
   // cada página tenía su copia en useState y el .xlsx cargado aquí no existía
   // en la queja de al lado.
   const bd = useComparendosStore((s) => s.comparendos);
+  // Orden natural por PROCESO ("2026-1, 2026-2, …, 2026-10"), no alfabético —
+  // el mismo orden que sigue la generación masiva y el .zip.
+  const bdOrdenada = useMemo(() => [...bd].sort(compararPorProceso), [bd]);
   const [seleccionMasivaKeys, setSeleccionMasivaKeys] = useState<string[]>([]);
   const [apelo, setApelo] = useState(false);
   const [extrayendo, setExtrayendo] = useState(false);
@@ -300,7 +303,7 @@ export function ActasFirmezaPage() {
         <Table<Comparendo>
           size="small"
           pagination={{ pageSize: 8, hideOnSinglePage: true }}
-          dataSource={bd}
+          dataSource={bdOrdenada}
           rowKey={(c) => c.comparendo}
           rowSelection={{
             selectedRowKeys: seleccionMasivaKeys,
@@ -311,6 +314,7 @@ export function ActasFirmezaPage() {
             style: { cursor: 'pointer' },
           })}
           columns={[
+            { title: 'Proceso', dataIndex: 'proceso', key: 'proceso', width: 120 },
             { title: 'Comparendo', dataIndex: 'comparendo', key: 'comparendo', width: 150 },
             { title: 'Infractor', dataIndex: 'solicitado', key: 'solicitado', ellipsis: true },
             {

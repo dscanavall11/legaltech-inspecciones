@@ -7,5 +7,9 @@ export function descargarBlob(blob: Blob, nombreArchivo: string): void {
   document.body.appendChild(enlace);
   enlace.click();
   enlace.remove();
-  URL.revokeObjectURL(url);
+  // Revocar de inmediato puede invalidar la URL antes de que el navegador
+  // termine de leer el blob para la descarga (falla intermitente, más
+  // probable cuanto más pesado el archivo, p. ej. el .zip de un lote grande).
+  // Se da margen a que la descarga arranque antes de liberar memoria.
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
 }

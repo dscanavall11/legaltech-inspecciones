@@ -95,6 +95,18 @@ function tipoMultaCrudo(v: unknown): TipoMulta | null {
 }
 
 /**
+ * Orden natural por PROCESO ("2026-1" antes que "2026-2" antes que "2026-10",
+ * no orden alfabético): usado tanto en el listado como en la generación
+ * masiva/ZIP, para que ambos coincidan. `Intl.Collator` con `numeric: true`
+ * trata cada corrida de dígitos como número, sin necesidad de parsear el
+ * formato del consecutivo a mano.
+ */
+const COLLATOR_PROCESO = new Intl.Collator('es', { numeric: true });
+export function compararPorProceso(a: Comparendo, b: Comparendo): number {
+  return COLLATOR_PROCESO.compare(a.proceso, b.proceso);
+}
+
+/**
  * Estado procesal (columna oficial "Incidente"). Solo "FIRMEZA" habilita la
  * generación del Acta de Firmeza — tolerante a mayúsculas/minúsculas y a
  * espacios al inicio/final ("FIRMEZA ", " firmeza "), nada más: no se hace

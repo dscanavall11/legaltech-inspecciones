@@ -1,9 +1,13 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
+import * as XLSX from 'xlsx';
 import { esIncidenteFirmeza, parsearBdComparendos } from './comparendos';
 import { validarFilaParaActaMasiva } from '@/derecho/plantillas/generacionMasivaActas';
 import { generarActasMasivas, generarZipActasMasivas } from '@/shared/documentos/generacionMasivaActasDocx';
+import { mapearCamposActaFirmezaOficial, valoresFijosActaFirmeza } from '@/derecho/plantillas/actaFirmezaOficial';
+import { cargarPlantillaActaFirmeza, generarActaFirmezaOficialDocxBlob } from '@/shared/documentos/actaFirmezaOficialDocx';
+import { extraerValoresCacheadosDocx, verificarIntegridadActaGenerada } from '@/shared/documentos/verificacionIntegridadActaDocx';
 import JSZip from 'jszip';
 
 // `cargarPlantillaActaFirmeza` usa `fetch()` pensado para servir `public/`
@@ -148,4 +152,106 @@ describe.skipIf(!existsSync(RUTA_BD))('Base real de comparendos — filtro por I
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.motivo).toBe('GÉNERO NO DETERMINADO — REQUIERE REVISIÓN');
   });
+
+  /**
+   * Prueba de confiabilidad pedida por el despacho: para una muestra diversa
+   * (primera y última por Proceso, masculina, femenina, sin reincidencia,
+   * 50%, 75%, tipo 2, tipo 4 — cubiertas con 5 registros reales), comparar
+   * los cuatro momentos del dato: EXCEL crudo → registro importado → objeto
+   * documental (campos MERGEFIELD) → DOCX final. Debe haber coincidencia
+   * exacta en todos los datos relevantes, y la verificación de integridad
+   * completa (el mismo motor que corre en la generación masiva real) debe
+   * aprobar cada una.
+   */
+  it.skipIf(!existsSync(RAIZ_PLANTILLAS))(
+    'confiabilidad: EXCEL vs registro importado vs objeto documental vs DOCX final coinciden exactamente',
+    async () => {
+      const libro = XLSX.read(readFileSync(RUTA_BD), { type: 'buffer' });
+      const filasExcel = XLSX.utils.sheet_to_json<Record<string, unknown>>(libro.Sheets[libro.SheetNames[0]], { defval: '' });
+      const { comparendos } = await cargar();
+
+      const MUESTRA = [
+        '17-001-6-2026-14748', // primera por Proceso (2026-13490); femenino; sin reincidencia; tipo 2
+        '17-001-6-2026-14827', // última por Proceso (2026-13548)
+        '17-001-6-2026-14750', // masculino; sin reincidencia; tipo 2
+        '17-001-6-2026-14751', // masculino; tipo 4; 50%
+        '17-001-6-2026-14753', // femenino; tipo 2; 75%
+      ];
+
+      for (const numeroComparendo of MUESTRA) {
+        const filaExcel = filasExcel.find((f) => String(f['Comparendo']).trim() === numeroComparendo);
+        const registro = comparendos.find((c) => c.comparendo === numeroComparendo);
+        expect(filaExcel, numeroComparendo).toBeDefined();
+        expect(registro, numeroComparendo).toBeDefined();
+
+        // ── EXCEL vs REGISTRO IMPORTADO ──
+        expect(registro!.proceso, numeroComparendo).toBe(String(filaExcel!['Proceso']).trim());
+        expect(registro!.solicitado, numeroComparendo).toBe(String(filaExcel!['Solicitado']).trim());
+        expect(registro!.cedula, numeroComparendo).toBe(String(filaExcel!['Cedula solicitado']).trim());
+        expect(registro!.tipoMulta, numeroComparendo).toBe(Number(filaExcel!['Tipo de multa']));
+
+        // ── REGISTRO IMPORTADO vs OBJETO DOCUMENTAL ──
+        const validacion = validarFilaParaActaMasiva(registro!);
+        expect(validacion.ok, `${numeroComparendo}: ${!validacion.ok ? validacion.motivo : ''}`).toBe(true);
+        if (!validacion.ok) continue;
+
+        const campos = mapearCamposActaFirmezaOficial({
+          proceso: registro!.proceso,
+          comparendo: registro!.comparendo,
+          articuloNumeral: registro!.articuloNumeral,
+          solicitante: registro!.solicitante,
+          solicitado: registro!.solicitado,
+          cedula: registro!.cedula,
+          direccion: registro!.direccion,
+          telefono: registro!.telefono,
+          fechaComparendo: registro!.fechaComparendo,
+          fechaResolucion: '2026-06-20',
+          lugar: registro!.lugar,
+          hechos: registro!.hechos,
+          tipoMulta: registro!.tipoMulta,
+          liquidacion: validacion.liquidacion,
+          apelo: registro!.apelo,
+          caso: 'normal',
+        });
+        expect(campos.Proceso, numeroComparendo).toBe(registro!.proceso);
+        expect(campos.Comparendo, numeroComparendo).toBe(registro!.comparendo);
+        expect(campos.Solicitado, numeroComparendo).toBe(registro!.solicitado);
+        expect(campos.Cedula_solicitado, numeroComparendo).toBe(registro!.cedula);
+        expect(campos.Hechos_descripción_comportamientos, numeroComparendo).toBe(registro!.hechos);
+        expect(campos.Tipo_de_multa, numeroComparendo).toBe(String(registro!.tipoMulta));
+
+        // ── OBJETO DOCUMENTAL vs DOCX FINAL ──
+        const plantilla = await cargarPlantillaActaFirmeza(validacion.seleccion.archivo);
+        const valoresFijos = valoresFijosActaFirmeza(validacion.liquidacion);
+        const { blob, camposSinDato } = await generarActaFirmezaOficialDocxBlob(plantilla, campos, valoresFijos);
+        expect(camposSinDato, numeroComparendo).toEqual([]);
+
+        const zipSalida = await JSZip.loadAsync(await blob.arrayBuffer());
+        const xmlSalida = await zipSalida.file('word/document.xml')!.async('string');
+        expect(xmlSalida, numeroComparendo).toContain(registro!.proceso);
+        expect(xmlSalida, numeroComparendo).toContain(registro!.comparendo);
+        expect(xmlSalida, numeroComparendo).toContain(registro!.solicitado);
+        expect(xmlSalida, numeroComparendo).toContain(registro!.cedula);
+        expect(xmlSalida, numeroComparendo).toContain(registro!.hechos);
+        expect(xmlSalida, numeroComparendo).toContain(validacion.liquidacion.valorBaseLetras);
+        if (validacion.liquidacion.causal !== 'ninguna') {
+          expect(xmlSalida, numeroComparendo).toContain(validacion.liquidacion.valorTotalLetras);
+        }
+
+        // ── Verificación de integridad completa (el mismo motor de la generación masiva real) ──
+        const zipOriginal = await JSZip.loadAsync(plantilla);
+        const xmlOriginal = await zipOriginal.file('word/document.xml')!.async('string');
+        const verificacion = await verificarIntegridadActaGenerada({
+          valoresCacheadosPlantilla: extraerValoresCacheadosDocx(xmlOriginal),
+          blobGenerado: blob,
+          camposEsperados: campos,
+          valoresFijosEsperados: valoresFijos,
+          archivoPlantilla: validacion.seleccion.archivo,
+          generoResuelto: validacion.genero,
+          liquidacion: validacion.liquidacion,
+        });
+        expect(verificacion.ok, `${numeroComparendo}: ${verificacion.motivo}`).toBe(true);
+      }
+    },
+  );
 });

@@ -13,6 +13,7 @@ import {
   PlantillaActaFirmezaNoDisponibleError,
 } from './actaFirmezaOficialDocx';
 import { descargarBlob } from './descargarBlob';
+import { extraerValoresCacheadosDocx, verificarIntegridadActaGenerada } from './verificacionIntegridadActaDocx';
 
 /**
  * Modo masivo de Acta de Firmeza — para cada fila reutiliza EXACTAMENTE la
@@ -36,6 +37,22 @@ const ETIQUETA_CAUSAL: Record<CausalIncremento, string> = {
   moroso_bdme: 'MOROSO BDME',
 };
 
+/** Registro interno por fila, para auditoría — de dónde salió cada dato que terminó (o no) en el .docx. */
+export interface TrazabilidadFilaMasiva {
+  proceso: string;
+  comparendo: string;
+  nombre: string;
+  cedula: string;
+  genero: 'masculino' | 'femenino' | null;
+  tipoMulta: number;
+  reincidencia: string;
+  plantillaUsada: string | null;
+  valorBase: number | null;
+  valorTotal: number | null;
+  nombreArchivo: string | null;
+  resultadoVerificacion: EstadoFilaMasiva;
+}
+
 export interface ResultadoFilaMasiva {
   comparendo: string;
   proceso: string;
@@ -44,6 +61,7 @@ export interface ResultadoFilaMasiva {
   /** Motivo exacto a mostrar — para 'generado', la variante (SIN REINCIDENCIA/50%/75%); para el resto, la razón por la que no se generó. */
   motivo: string;
   archivo?: { nombre: string; blob: Blob };
+  trazabilidad: TrazabilidadFilaMasiva;
 }
 
 export interface ResumenGeneracionMasiva {
@@ -66,6 +84,22 @@ async function plantillaCacheada(cache: Map<string, ArrayBuffer>, archivo: strin
   return plantilla;
 }
 
+/** Valores cacheados (del caso real de ejemplo) de cada plantilla, calculados una sola vez por archivo — no por fila. */
+async function valoresCacheadosDePlantilla(
+  cache: Map<string, string[]>,
+  plantilla: ArrayBuffer,
+  archivo: string,
+): Promise<string[]> {
+  const existente = cache.get(archivo);
+  if (existente) return existente;
+  const zip = await JSZip.loadAsync(plantilla);
+  const documento = zip.file('word/document.xml');
+  const xml = documento ? await documento.async('string') : '';
+  const valores = extraerValoresCacheadosDocx(xml);
+  cache.set(archivo, valores);
+  return valores;
+}
+
 export async function generarActasMasivas(
   registrosEntrada: Comparendo[],
   fechaResolucion: string, // ISO — misma para todo el lote, como en el formulario individual
@@ -75,20 +109,42 @@ export async function generarActasMasivas(
   // .zip, independientemente del orden en que vinieran seleccionados/cargados.
   const registros = [...registrosEntrada].sort(compararPorProceso);
   const cachePlantillas = new Map<string, ArrayBuffer>();
+  const cacheValoresCacheados = new Map<string, string[]>();
   const resultados: ResultadoFilaMasiva[] = [];
 
   for (const [indice, registro] of registros.entries()) {
     const base = { comparendo: registro.comparendo, proceso: registro.proceso, solicitado: registro.solicitado };
+    const trazaBase: TrazabilidadFilaMasiva = {
+      proceso: registro.proceso,
+      comparendo: registro.comparendo,
+      nombre: registro.solicitado,
+      cedula: registro.cedula,
+      genero: null,
+      tipoMulta: registro.tipoMulta,
+      reincidencia: ETIQUETA_CAUSAL[registro.causal],
+      plantillaUsada: null,
+      valorBase: null,
+      valorTotal: null,
+      nombreArchivo: null,
+      resultadoVerificacion: 'no_generado',
+    };
+
     const validacion = validarFilaParaActaMasiva(registro);
     if (!validacion.ok) {
-      resultados.push({
-        ...base,
-        estado: validacion.tipoExclusion === 'estado' ? 'excluido_estado' : 'no_generado',
-        motivo: validacion.motivo,
-      });
+      const estado = validacion.tipoExclusion === 'estado' ? 'excluido_estado' : 'no_generado';
+      resultados.push({ ...base, estado, motivo: validacion.motivo, trazabilidad: { ...trazaBase, resultadoVerificacion: estado } });
       onProgreso?.(indice + 1, registros.length);
       continue;
     }
+
+    const traza: TrazabilidadFilaMasiva = {
+      ...trazaBase,
+      genero: validacion.genero,
+      plantillaUsada: validacion.seleccion.archivo,
+      valorBase: validacion.liquidacion.valorBase,
+      valorTotal: validacion.liquidacion.valorTotal,
+    };
+
     try {
       const plantilla = await plantillaCacheada(cachePlantillas, validacion.seleccion.archivo);
       const campos = mapearCamposActaFirmezaOficial({
@@ -111,20 +167,48 @@ export async function generarActasMasivas(
       });
       const valoresFijos = valoresFijosActaFirmeza(validacion.liquidacion);
       const { blob, camposSinDato } = await generarActaFirmezaOficialDocxBlob(plantilla, campos, valoresFijos);
+
+      // Confiabilidad antes que velocidad: se vuelve a abrir el .docx recién
+      // generado y se compara contra los mismos datos que debía traer — solo
+      // si pasa TODAS las verificaciones se agrega al .zip.
+      const valoresCacheados = await valoresCacheadosDePlantilla(cacheValoresCacheados, plantilla, validacion.seleccion.archivo);
+      const verificacion = await verificarIntegridadActaGenerada({
+        valoresCacheadosPlantilla: valoresCacheados,
+        blobGenerado: blob,
+        camposEsperados: campos,
+        valoresFijosEsperados: valoresFijos,
+        archivoPlantilla: validacion.seleccion.archivo,
+        generoResuelto: validacion.genero,
+        liquidacion: validacion.liquidacion,
+      });
+      if (!verificacion.ok) {
+        resultados.push({
+          ...base,
+          estado: 'no_generado',
+          motivo: verificacion.motivo!,
+          trazabilidad: { ...traza, resultadoVerificacion: 'no_generado' },
+        });
+        onProgreso?.(indice + 1, registros.length);
+        continue;
+      }
+
       const nombre = nombreArchivoActaFirmezaOficial(registro.proceso, registro.solicitado);
       const etiquetaCausal = ETIQUETA_CAUSAL[registro.causal];
+      const estado: EstadoFilaMasiva = camposSinDato.length > 0 ? 'con_observaciones' : 'generado';
 
       resultados.push({
         ...base,
-        estado: camposSinDato.length > 0 ? 'con_observaciones' : 'generado',
+        estado,
         motivo: camposSinDato.length > 0 ? `${etiquetaCausal} — campos sin dato: ${camposSinDato.join(', ')}` : etiquetaCausal,
         archivo: { nombre, blob },
+        trazabilidad: { ...traza, nombreArchivo: nombre, resultadoVerificacion: estado },
       });
     } catch (e) {
       resultados.push({
         ...base,
         estado: 'no_generado',
         motivo: e instanceof PlantillaActaFirmezaNoDisponibleError ? e.message : 'no se pudo generar el acta',
+        trazabilidad: { ...traza, resultadoVerificacion: 'no_generado' },
       });
     }
     onProgreso?.(indice + 1, registros.length);

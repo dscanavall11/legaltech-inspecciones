@@ -29,7 +29,7 @@ import JSZip from 'jszip';
 const RUN_RE = /<w:r\b[\s\S]*?<\/w:r>/g;
 const RPR_RE = /<w:rPr>[\s\S]*?<\/w:rPr>/;
 
-function escaparXml(texto: string): string {
+export function escaparXml(texto: string): string {
   return texto
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
